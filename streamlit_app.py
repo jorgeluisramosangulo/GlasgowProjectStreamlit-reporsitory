@@ -7,10 +7,10 @@ st.title('🤖 Machine Learning App')
 
 st.info('This is app builds a machine learning model!')
 
-with st.expander('Data'):
-   st.write('**Raw data**')
-   df = pd.read_csv('C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\.devcontainer\devcontainer.json')
-   df
+# with st.expander('Data'):
+#    st.write('**Raw data**')
+#    df = pd.read_csv('C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\.devcontainer\devcontainer.json')
+#    df
 
 #   st.write('**X**')
 #   X_raw = df.drop('species', axis=1)
