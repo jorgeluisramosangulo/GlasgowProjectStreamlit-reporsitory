@@ -22,6 +22,7 @@ if uploaded_file is not None:
             df = pd.read_json(uploaded_file)
         else:
             st.error("Unsupported file type.")
+            st.stop()
     except Exception as e:
         st.error(f"Error reading file: {e}")
         st.stop()
@@ -29,47 +30,38 @@ if uploaded_file is not None:
     st.success(f"✅ Successfully loaded {file_type.upper()} file.")
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
-else:
-    st.warning("Please upload a CSV, Excel, or JSON file to proceed.")
-    st.stop()
 
+    # ✅ Move this inside the "if uploaded_file" block
+    target_column = st.selectbox(
+        "Select the target (classification) column:",
+        df.columns,
+        help="This is the column the model will try to predict (e.g. species, outcome, label)"
+    )
 
-# Select target (label) column
-target_column = st.selectbox(
-    "Select the target (classification) column:",
-    df.columns,
-    help="This is the column the model will try to predict (e.g. species, outcome, label)"
-)
+    # Separate features (X) and target (y)
+    X_raw = df.drop(columns=[target_column])
+    y_raw = df[target_column]
 
-# Separate features (X) and target (y)
-X_raw = df.drop(columns=[target_column])
-y_raw = df[target_column]
-
-st.write("**Features (X)**")
-st.dataframe(X_raw)
-
-st.write("**Target (y)**")
-st.dataframe(y_raw)
-
-
-
-
-
-
-
-
-
-
-# === Data Loading and Preview ===
-with st.expander('Data'):
-    st.write('**Raw data**')
-    st.dataframe(df)
-
-    st.write('**X**')
+    st.write("**Features (X)**")
     st.dataframe(X_raw)
 
-    st.write('**y**')
+    st.write("**Target (y)**")
     st.dataframe(y_raw)
+
+    # === Data Loading and Preview ===
+    with st.expander('Data'):
+        st.write('**Raw data**')
+        st.dataframe(df)
+
+        st.write('**X**')
+        st.dataframe(X_raw)
+
+        st.write('**y**')
+        st.dataframe(y_raw)
+
+else:
+    st.info("Please upload a CSV, Excel, or JSON file to proceed.")
+
 
 # === Visualization ===
 with st.expander('Data visualization'):
