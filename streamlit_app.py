@@ -28,8 +28,7 @@ if uploaded_file is not None:
         st.stop()
 
     st.success(f"✅ Successfully loaded {file_type.upper()} file.")
-    st.write("Preview of your uploaded data:")
-    st.dataframe(df)
+
 
     # ✅ Move this inside the "if uploaded_file" block
     target_column = st.selectbox(
@@ -42,11 +41,6 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    st.write("**Features (X)**")
-    st.dataframe(X_raw)
-
-    st.write("**Target (y)**")
-    st.dataframe(y_raw)
 
     # === Data Loading and Preview ===
     with st.expander('Data'):
