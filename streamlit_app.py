@@ -9,7 +9,7 @@ st.info('This app builds a binary classification model!')
 # === Data Loading and Preview ===
 with st.expander('Data'):
     st.write('**Raw data**')
-    df = pd.read_csv(r'C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\penguins.csv')
+    df = pd.read_csv(r'C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\penguins_cleaned.csv')
     st.dataframe(df)
 
     st.write('**X**')
