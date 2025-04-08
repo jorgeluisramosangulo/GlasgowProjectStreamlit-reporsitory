@@ -36,7 +36,6 @@ else:
 # === Data Loading and Preview ===
 with st.expander('Data'):
     st.write('**Raw data**')
-    df = pd.read_csv(uploaded_file)
     st.dataframe(df)
 
     st.write('**X**')
