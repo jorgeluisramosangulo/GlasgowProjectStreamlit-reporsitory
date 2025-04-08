@@ -33,17 +33,42 @@ else:
     st.warning("Please upload a CSV, Excel, or JSON file to proceed.")
     st.stop()
 
+
+# Select target (label) column
+target_column = st.selectbox(
+    "Select the target (classification) column:",
+    df.columns,
+    help="This is the column the model will try to predict (e.g. species, outcome, label)"
+)
+
+# Separate features (X) and target (y)
+X_raw = df.drop(columns=[target_column])
+y_raw = df[target_column]
+
+st.write("**Features (X)**")
+st.dataframe(X_raw)
+
+st.write("**Target (y)**")
+st.dataframe(y_raw)
+
+
+
+
+
+
+
+
+
+
 # === Data Loading and Preview ===
 with st.expander('Data'):
     st.write('**Raw data**')
     st.dataframe(df)
 
     st.write('**X**')
-    X_raw = df.drop('species', axis=1)
     st.dataframe(X_raw)
 
     st.write('**y**')
-    y_raw = df['species']
     st.dataframe(y_raw)
 
 # === Visualization ===
