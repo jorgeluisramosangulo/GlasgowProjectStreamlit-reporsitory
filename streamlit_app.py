@@ -9,7 +9,7 @@ st.info('This app builds a binary classification model!')
 
 with st.expander('Data'):
    st.write('**Raw data**')
-   df = pd.read_csv('C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\.devcontainer\devcontainer.json')
+   df = pd.read_csv(r'C:\Users\jorger\Desktop\Studies\Glasgow\Dissertation\Dashboard for binary classification\GlasgowProjectStreamlit reporsitory\.devcontainer\devcontainer.json')
    df
 
   st.write('**X**')
