@@ -65,7 +65,29 @@ else:
 
 # === Visualization ===
 with st.expander('Data visualization'):
-    st.scatter_chart(data=df, x='bill_length_mm', y='body_mass_g', color='species')
+    st.subheader("📊 Customize your scatter plot")
+
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+
+    if len(numeric_columns) < 2:
+        st.warning("❗Please upload a dataset with at least two numeric columns to create a scatter plot.")
+    else:
+        # Select X and Y
+        x_axis = st.selectbox("Select X-axis", options=numeric_columns, index=0)
+        y_axis = st.selectbox("Select Y-axis", options=[col for col in numeric_columns if col != x_axis], index=0)
+
+        # Ask if legend is wanted
+        use_legend = st.radio("Would you like to color by a third column (legend)?", ["No", "Yes"], index=0)
+
+        if use_legend == "Yes":
+            legend_col = st.selectbox(
+                "Select the column to use for legend (color grouping):",
+                options=[col for col in df.columns if col not in [x_axis, y_axis]],
+            )
+            st.scatter_chart(data=df, x=x_axis, y=y_axis, color=legend_col)
+        else:
+            st.scatter_chart(data=df[[x_axis, y_axis]], x=x_axis, y=y_axis)
+
 
 # === Sidebar Inputs ===
 with st.sidebar:
