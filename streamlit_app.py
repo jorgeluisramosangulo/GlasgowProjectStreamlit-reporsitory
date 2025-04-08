@@ -2,14 +2,41 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
+import json
 
-st.title('🤖 Binary Classification App')
-st.info('This app builds a binary classification model!')
+st.title("🤖 Binary Classification App")
+st.info("This app builds a binary classification model!")
+
+# File uploader
+uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "xls", "json"])
+
+if uploaded_file is not None:
+    file_type = uploaded_file.name.split(".")[-1].lower()
+
+    try:
+        if file_type == "csv":
+            df = pd.read_csv(uploaded_file)
+        elif file_type in ["xlsx", "xls"]:
+            df = pd.read_excel(uploaded_file)
+        elif file_type == "json":
+            df = pd.read_json(uploaded_file)
+        else:
+            st.error("Unsupported file type.")
+    except Exception as e:
+        st.error(f"Error reading file: {e}")
+        st.stop()
+
+    st.success(f"✅ Successfully loaded {file_type.upper()} file.")
+    st.write("Preview of your uploaded data:")
+    st.dataframe(df)
+else:
+    st.warning("Please upload a CSV, Excel, or JSON file to proceed.")
+    st.stop()
 
 # === Data Loading and Preview ===
 with st.expander('Data'):
     st.write('**Raw data**')
-    df = pd.read_csv('penguins_cleaned.csv')
+    df = pd.read_csv(uploaded_file)
     st.dataframe(df)
 
     st.write('**X**')
