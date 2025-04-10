@@ -64,9 +64,12 @@ if uploaded_file is not None:
     # === PCA Step ===
     use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
     if use_pca == "Yes":
+        numeric_cols_train = X_train.select_dtypes(include=np.number).dropna(axis=1)
+        numeric_cols_val = X_val[numeric_cols_train.columns]  # Keep same columns as train
+
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
-        X_val_scaled = scaler.transform(X_val.select_dtypes(include=np.number))
+        X_train_scaled = scaler.fit_transform(numeric_cols_train)
+        X_val_scaled = scaler.transform(numeric_cols_val)
 
         pca = PCA()
         pca.fit(X_train_scaled)
@@ -98,7 +101,6 @@ if uploaded_file is not None:
         lr_model.fit(X_train_final, y_train)
 
         y_pred_lr = lr_model.predict(X_train_final)
-        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1]
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_lr))
 
@@ -111,7 +113,6 @@ if uploaded_file is not None:
         rf_model.fit(X_train_final, y_train)
 
         y_pred_rf = rf_model.predict(X_train_final)
-        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1]
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_rf))
 
@@ -120,13 +121,25 @@ if uploaded_file is not None:
     y_val_pred_lr = lr_model.predict(X_val_final)
     y_val_pred_rf = rf_model.predict(X_val_final)
 
+    try:
+        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1]
+        auc_lr = roc_auc_score(y_val, y_proba_lr)
+    except:
+        auc_lr = np.nan
+
+    try:
+        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1]
+        auc_rf = roc_auc_score(y_val, y_proba_rf)
+    except:
+        auc_rf = np.nan
+
     metrics_summary = pd.DataFrame({
         'Model': ['Logistic Regression', 'Random Forest'],
         'Accuracy': [accuracy_score(y_val, y_val_pred_lr), accuracy_score(y_val, y_val_pred_rf)],
         'Precision': [precision_score(y_val, y_val_pred_lr, zero_division=0), precision_score(y_val, y_val_pred_rf, zero_division=0)],
         'Recall': [recall_score(y_val, y_val_pred_lr, zero_division=0), recall_score(y_val, y_val_pred_rf, zero_division=0)],
         'F1 Score': [f1_score(y_val, y_val_pred_lr, zero_division=0), f1_score(y_val, y_val_pred_rf, zero_division=0)],
-        'AUC': [roc_auc_score(y_val, y_proba_lr), roc_auc_score(y_val, y_proba_rf)]
+        'AUC': [auc_lr, auc_rf]
     })
 
     st.dataframe(metrics_summary.style.format("{:.2f}"))
@@ -134,75 +147,3 @@ if uploaded_file is not None:
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
 
-
-
-
-
-# # === Sidebar Inputs ===
-# with st.sidebar:
-#     st.header('Input features')
-#     island = st.selectbox('Island', ('Biscoe', 'Dream', 'Torgersen'))
-#     bill_length_mm = st.slider('Bill length (mm)', 32.1, 59.6, 43.9)
-#     bill_depth_mm = st.slider('Bill depth (mm)', 13.1, 21.5, 17.2)
-#     flipper_length_mm = st.slider('Flipper length (mm)', 172.0, 231.0, 201.0)
-#     body_mass_g = st.slider('Body mass (g)', 2700.0, 6300.0, 4207.0)
-#     gender = st.selectbox('Gender', ('male', 'female'))
-
-#     data = {
-#         'island': island,
-#         'bill_length_mm': bill_length_mm,
-#         'bill_depth_mm': bill_depth_mm,
-#         'flipper_length_mm': flipper_length_mm,
-#         'body_mass_g': body_mass_g,
-#         'sex': gender
-#     }
-#     input_df = pd.DataFrame(data, index=[0])
-#     input_penguins = pd.concat([input_df, X_raw], axis=0)
-
-# # === Input Preview ===
-# with st.expander('Input features'):
-#     st.write('**Input penguin**')
-#     st.dataframe(input_df)
-#     st.write('**Combined penguins data**')
-#     st.dataframe(input_penguins)
-
-# # === Encoding Data ===
-# encode = ['island', 'sex']
-# df_penguins = pd.get_dummies(input_penguins, columns=encode)
-
-# X = df_penguins[1:]
-# input_row = df_penguins[:1]
-
-# target_mapper = {'Adelie': 0, 'Chinstrap': 1, 'Gentoo': 2}
-# def target_encode(val):
-#     return target_mapper[val]
-
-# y = y_raw.apply(target_encode)
-
-# with st.expander('Data preparation'):
-#     st.write('**Encoded X (input penguin)**')
-#     st.dataframe(input_row)
-#     st.write('**Encoded y**')
-#     st.dataframe(y)
-
-# # === Model Training ===
-# clf = RandomForestClassifier()
-# clf.fit(X, y)
-
-# prediction = clf.predict(input_row)
-# prediction_proba = clf.predict_proba(input_row)
-
-# # === Prediction Output ===
-# df_prediction_proba = pd.DataFrame(prediction_proba, columns=['Adelie', 'Chinstrap', 'Gentoo'])
-
-# st.subheader('Predicted Species')
-# st.dataframe(df_prediction_proba,
-#              column_config={
-#                  'Adelie': st.column_config.ProgressColumn('Adelie', format='%f', width='medium', min_value=0, max_value=1),
-#                  'Chinstrap': st.column_config.ProgressColumn('Chinstrap', format='%f', width='medium', min_value=0, max_value=1),
-#                  'Gentoo': st.column_config.ProgressColumn('Gentoo', format='%f', width='medium', min_value=0, max_value=1)
-#              },
-#              hide_index=True)
-
-# penguins_species = np.array(['Adelie', 'Chinstrap', 'Gentoo'])
-# st.success(f"Predicted species: {penguins_species[prediction][0]}")
