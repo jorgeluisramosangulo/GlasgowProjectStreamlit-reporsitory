@@ -69,8 +69,12 @@ if uploaded_file is not None:
 
         # Standardize the training data
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train)
-        X_val_scaled = scaler.transform(X_val)
+        X_train_numeric = X_train.select_dtypes(include=np.number)
+        X_val_numeric = X_val.select_dtypes(include=np.number)
+
+        X_train_scaled = scaler.fit_transform(X_train_numeric)
+        X_val_scaled = scaler.transform(X_val_numeric)
+
 
         # Fit PCA on scaled training data
         pca = PCA()
