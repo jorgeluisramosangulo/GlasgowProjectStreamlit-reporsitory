@@ -56,6 +56,14 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
+    # Check if binary classification is valid
+    if y_raw.nunique() != 2:
+        st.error("❌ The selected target column must have exactly 2 unique values for binary classification.")
+        st.stop()
+    else:
+        class_names = y_raw.unique().tolist()
+        y_raw = pd.factorize(y_raw)[0]  # Encode to 0 and 1
+
     # === Train/Validation Split ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
@@ -121,29 +129,24 @@ if uploaded_file is not None:
     y_val_pred_lr = lr_model.predict(X_val_final)
     y_val_pred_rf = rf_model.predict(X_val_final)
 
-    average_type = 'binary' if y_raw.nunique() == 2 else 'macro'
-
     try:
-        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1] if average_type == 'binary' else None
-        auc_lr = roc_auc_score(y_val, y_proba_lr) if average_type == 'binary' else np.nan
+        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1]
+        auc_lr = roc_auc_score(y_val, y_proba_lr)
     except:
         auc_lr = np.nan
 
     try:
-        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1] if average_type == 'binary' else None
-        auc_rf = roc_auc_score(y_val, y_proba_rf) if average_type == 'binary' else np.nan
+        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1]
+        auc_rf = roc_auc_score(y_val, y_proba_rf)
     except:
         auc_rf = np.nan
 
     metrics_summary = pd.DataFrame({
         'Model': ['Logistic Regression', 'Random Forest'],
         'Accuracy': [accuracy_score(y_val, y_val_pred_lr), accuracy_score(y_val, y_val_pred_rf)],
-        'Precision': [precision_score(y_val, y_val_pred_lr, average=average_type, zero_division=0),
-                      precision_score(y_val, y_val_pred_rf, average=average_type, zero_division=0)],
-        'Recall': [recall_score(y_val, y_val_pred_lr, average=average_type, zero_division=0),
-                   recall_score(y_val, y_val_pred_rf, average=average_type, zero_division=0)],
-        'F1 Score': [f1_score(y_val, y_val_pred_lr, average=average_type, zero_division=0),
-                     f1_score(y_val, y_val_pred_rf, average=average_type, zero_division=0)],
+        'Precision': [precision_score(y_val, y_val_pred_lr, zero_division=0), precision_score(y_val, y_val_pred_rf, zero_division=0)],
+        'Recall': [recall_score(y_val, y_val_pred_lr, zero_division=0), recall_score(y_val, y_val_pred_rf, zero_division=0)],
+        'F1 Score': [f1_score(y_val, y_val_pred_lr, zero_division=0), f1_score(y_val, y_val_pred_rf, zero_division=0)],
         'AUC': [auc_lr, auc_rf]
     })
 
