@@ -28,33 +28,29 @@ if uploaded_file is not None:
         st.stop()
 
     st.success(f"✅ Successfully loaded {file_type.upper()} file.")
+    st.write("Preview of your uploaded data:")
+    st.dataframe(df)
 
+    # ✅ Everything else goes INSIDE this block
+    # e.g. target column selection, train/test split, visualization, modeling, etc.
 
-    # ✅ Move this inside the "if uploaded_file" block
+    # Example:
     target_column = st.selectbox(
         "Select the target (classification) column:",
         df.columns,
         help="This is the column the model will try to predict (e.g. species, outcome, label)"
     )
 
-    # Separate features (X) and target (y)
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
+    # Now you can safely get numeric columns
+    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
 
-    # === Data Loading and Preview ===
-    with st.expander('Data'):
-        st.write('**Raw data**')
-        st.dataframe(df)
-
-        st.write('**X**')
-        st.dataframe(X_raw)
-
-        st.write('**y**')
-        st.dataframe(y_raw)
-
+    # and continue the rest of your app...
 else:
-    st.info("Please upload a CSV, Excel, or JSON file to proceed.")
+    st.warning("Please upload a CSV, Excel, or JSON file to proceed.")
+
 
 
 # === Visualization ===
