@@ -1,6 +1,7 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
+from sklearn.model_selection import train_test_split
 from sklearn.ensemble import RandomForestClassifier
 import json
 
@@ -43,6 +44,19 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
+    # === Train/Validation Split ===
+    st.subheader("📚 Train/Validation Split")
+    test_size_percent = st.slider("Select validation set size (%)", min_value=10, max_value=50, value=20, step=5)
+    test_size = test_size_percent / 100.0
+
+    # Randomize and split data
+    X_train, X_val, y_train, y_val = train_test_split(
+        X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True
+    )
+
+    st.write(f"🔹 Training set size: {X_train.shape[0]} rows")
+    st.write(f"🔸 Validation set size: {X_val.shape[0]} rows")
+
     # === Visualization ===
     with st.expander("📊 Data Visualization"):
         numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
@@ -66,6 +80,7 @@ if uploaded_file is not None:
 
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
+
 
 
 
