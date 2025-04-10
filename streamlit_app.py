@@ -9,7 +9,7 @@ from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, accuracy_score
+from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
@@ -91,7 +91,6 @@ if uploaded_file is not None:
 
     # === Logistic Regression ===
     with st.expander("📊 Logistic Regression"):
-        st.write("**Hyperparameters**")
         C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
         max_iter = st.slider("Max iterations", 100, 1000, 100)
 
@@ -99,12 +98,12 @@ if uploaded_file is not None:
         lr_model.fit(X_train_final, y_train)
 
         y_pred_lr = lr_model.predict(X_train_final)
+        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1]
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_lr))
 
     # === Random Forest ===
     with st.expander("🌳 Random Forest"):
-        st.write("**Hyperparameters**")
         n_estimators = st.slider("Number of trees", 10, 200, 100)
         max_depth = st.slider("Max depth", 1, 20, 5)
 
@@ -112,6 +111,7 @@ if uploaded_file is not None:
         rf_model.fit(X_train_final, y_train)
 
         y_pred_rf = rf_model.predict(X_train_final)
+        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1]
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_rf))
 
@@ -120,17 +120,20 @@ if uploaded_file is not None:
     y_val_pred_lr = lr_model.predict(X_val_final)
     y_val_pred_rf = rf_model.predict(X_val_final)
 
-    acc_lr = accuracy_score(y_val, y_val_pred_lr)
-    acc_rf = accuracy_score(y_val, y_val_pred_rf)
-
-    summary_df = pd.DataFrame({
+    metrics_summary = pd.DataFrame({
         'Model': ['Logistic Regression', 'Random Forest'],
-        'Accuracy on Validation Set': [acc_lr, acc_rf]
+        'Accuracy': [accuracy_score(y_val, y_val_pred_lr), accuracy_score(y_val, y_val_pred_rf)],
+        'Precision': [precision_score(y_val, y_val_pred_lr, zero_division=0), precision_score(y_val, y_val_pred_rf, zero_division=0)],
+        'Recall': [recall_score(y_val, y_val_pred_lr, zero_division=0), recall_score(y_val, y_val_pred_rf, zero_division=0)],
+        'F1 Score': [f1_score(y_val, y_val_pred_lr, zero_division=0), f1_score(y_val, y_val_pred_rf, zero_division=0)],
+        'AUC': [roc_auc_score(y_val, y_proba_lr), roc_auc_score(y_val, y_proba_rf)]
     })
-    st.dataframe(summary_df)
+
+    st.dataframe(metrics_summary.style.format("{:.2f}"))
 
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
+
 
 
 
