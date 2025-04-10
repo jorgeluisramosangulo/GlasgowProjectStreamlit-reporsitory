@@ -1,9 +1,13 @@
 import streamlit as st
 import numpy as np
 import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
+import matplotlib.pyplot as plt
 import json
+
+from sklearn.model_selection import train_test_split
+from sklearn.decomposition import PCA
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
 
 st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
@@ -57,57 +61,46 @@ if uploaded_file is not None:
     st.write(f"🔹 Training set size: {X_train.shape[0]} rows")
     st.write(f"🔸 Validation set size: {X_val.shape[0]} rows")
 
+    # === PCA Option ===
+    use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
 
+    if use_pca == "Yes":
+        st.subheader("🔍 PCA Analysis")
 
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-import matplotlib.pyplot as plt
+        # Standardize the training data
+        scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train)
+        X_val_scaled = scaler.transform(X_val)
 
-# === PCA Option ===
-use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
+        # Fit PCA on scaled training data
+        pca = PCA()
+        pca.fit(X_train_scaled)
 
-if use_pca == "Yes":
-    st.subheader("🔍 PCA Analysis")
+        # Plot explained variance
+        cum_var = np.cumsum(pca.explained_variance_ratio_)
+        fig, ax = plt.subplots()
+        ax.plot(range(1, len(cum_var)+1), cum_var, marker='o')
+        ax.set_title("Cumulative Explained Variance")
+        ax.set_xlabel("Number of Components")
+        ax.set_ylabel("Cumulative Variance")
+        ax.grid(True)
+        st.pyplot(fig)
 
-    # Standardize the training data
-    scaler = StandardScaler()
-    X_train_scaled = scaler.fit_transform(X_train)
-    X_val_scaled = scaler.transform(X_val)
+        # Select how many components to keep
+        n_components = st.slider("Select number of principal components to keep", 1, X_train.shape[1], 2)
 
-    # Fit PCA on scaled training data
-    pca = PCA()
-    pca.fit(X_train_scaled)
+        # Apply PCA with selected components
+        pca = PCA(n_components=n_components)
+        X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+        X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
 
-    # Plot explained variance
-    cum_var = np.cumsum(pca.explained_variance_ratio_)
-    fig, ax = plt.subplots()
-    ax.plot(range(1, len(cum_var)+1), cum_var, marker='o')
-    ax.set_title("Cumulative Explained Variance")
-    ax.set_xlabel("Number of Components")
-    ax.set_ylabel("Cumulative Variance")
-    ax.grid(True)
-    st.pyplot(fig)
+        st.write("✅ PCA applied. Transformed training set:")
+        st.dataframe(X_train_final)
 
-    # Select how many components to keep
-    n_components = st.slider("Select number of principal components to keep", 1, X_train.shape[1], 2)
-
-    # Apply PCA with selected components
-    pca = PCA(n_components=n_components)
-    X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-    X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-
-    st.write("✅ PCA applied. Transformed training set:")
-    st.dataframe(X_train_final)
-
-else:
-    st.info("PCA not applied. Using original features.")
-    X_train_final = X_train.copy()
-    X_val_final = X_val.copy()
-
-
-
-
-
+    else:
+        st.info("PCA not applied. Using original features.")
+        X_train_final = X_train.copy()
+        X_val_final = X_val.copy()
 
     # === Visualization ===
     with st.expander("📊 Data Visualization"):
@@ -132,6 +125,7 @@ else:
 
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
+
 
 
 
