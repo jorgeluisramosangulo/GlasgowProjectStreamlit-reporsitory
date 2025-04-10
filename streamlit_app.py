@@ -7,8 +7,12 @@ import json
 from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from sklearn.linear_model import LogisticRegression, RidgeClassifier, Lasso, ElasticNet
+from sklearn.cross_decomposition import PLSRegression
+from sklearn.svm import SVC
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import classification_report, accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
 st.title("🤖 Binary Classification App")
@@ -56,13 +60,11 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    # Check if binary classification is valid
     if y_raw.nunique() != 2:
         st.error("❌ The selected target column must have exactly 2 unique values for binary classification.")
         st.stop()
     else:
-        class_names = y_raw.unique().tolist()
-        y_raw = pd.factorize(y_raw)[0]  # Encode to 0 and 1
+        y_raw = pd.factorize(y_raw)[0]
 
     # === Train/Validation Split ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
@@ -73,7 +75,7 @@ if uploaded_file is not None:
     use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
     if use_pca == "Yes":
         numeric_cols_train = X_train.select_dtypes(include=np.number).dropna(axis=1)
-        numeric_cols_val = X_val[numeric_cols_train.columns]  # Keep same columns as train
+        numeric_cols_val = X_val[numeric_cols_train.columns]
 
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(numeric_cols_train)
@@ -100,56 +102,103 @@ if uploaded_file is not None:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
 
-    # === Logistic Regression ===
+    # === Model Definitions ===
+    models = []
+
+    # Logistic Regression
     with st.expander("📊 Logistic Regression"):
-        C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
-        max_iter = st.slider("Max iterations", 100, 1000, 100)
+        C = st.slider("C (inverse regularization)", 0.01, 10.0, 1.0)
+        model = LogisticRegression(C=C)
+        models.append(("Logistic Regression", model))
 
-        lr_model = LogisticRegression(C=C, max_iter=max_iter)
-        lr_model.fit(X_train_final, y_train)
+    # Ridge
+    with st.expander("📊 Ridge Classifier"):
+        alpha = st.slider("Alpha (regularization strength)", 0.01, 10.0, 1.0)
+        model = RidgeClassifier(alpha=alpha)
+        models.append(("Ridge", model))
 
-        y_pred_lr = lr_model.predict(X_train_final)
-        st.text("Classification Report (Training Set):")
-        st.text(classification_report(y_train, y_pred_lr))
+    # Lasso (via LogisticRegression with L1 penalty)
+    with st.expander("📊 Lasso"):
+        C = st.slider("C (inverse regularization)", 0.01, 10.0, 1.0)
+        model = LogisticRegression(C=C, penalty='l1', solver='liblinear')
+        models.append(("Lasso", model))
 
-    # === Random Forest ===
+    # Elastic Net
+    with st.expander("📊 Elastic Net"):
+        C = st.slider("C", 0.01, 10.0, 1.0)
+        l1_ratio = st.slider("L1 Ratio", 0.0, 1.0, 0.5)
+        model = LogisticRegression(C=C, penalty='elasticnet', solver='saga', l1_ratio=l1_ratio, max_iter=10000)
+        models.append(("Elastic Net", model))
+
+    # PLS-DA
+    with st.expander("📊 PLS-DA"):
+        n_components = st.slider("Number of PLS components", 1, min(10, X_train_final.shape[1]), 2)
+        pls = PLSRegression(n_components=n_components)
+        pls.fit(X_train_final, y_train)
+        y_pred_pls = (pls.predict(X_train_final) > 0.5).astype(int).flatten()
+        models.append(("PLS-DA", pls))
+
+    # SVM
+    with st.expander("📊 Support Vector Machine"):
+        C = st.slider("C", 0.01, 10.0, 1.0)
+        kernel = st.selectbox("Kernel", ["linear", "rbf"])
+        model = SVC(C=C, kernel=kernel, probability=True)
+        models.append(("SVM", model))
+
+    # Decision Tree
+    with st.expander("🌳 Decision Tree"):
+        max_depth = st.slider("Max depth", 1, 20, 5)
+        model = DecisionTreeClassifier(max_depth=max_depth)
+        models.append(("Decision Tree", model))
+
+    # Random Forest
     with st.expander("🌳 Random Forest"):
         n_estimators = st.slider("Number of trees", 10, 200, 100)
         max_depth = st.slider("Max depth", 1, 20, 5)
+        model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth)
+        models.append(("Random Forest", model))
 
-        rf_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
-        rf_model.fit(X_train_final, y_train)
+    # Gradient Boosting
+    with st.expander("🌿 Gradient Boosting"):
+        n_estimators = st.slider("Number of estimators", 10, 200, 100)
+        learning_rate = st.slider("Learning rate", 0.01, 1.0, 0.1)
+        model = GradientBoostingClassifier(n_estimators=n_estimators, learning_rate=learning_rate)
+        models.append(("GBM", model))
 
-        y_pred_rf = rf_model.predict(X_train_final)
-        st.text("Classification Report (Training Set):")
-        st.text(classification_report(y_train, y_pred_rf))
+    # Neural Network
+    with st.expander("🧠 Neural Network"):
+        hidden_layer_sizes = st.slider("Hidden layer size", 1, 100, 50)
+        alpha = st.slider("Regularization (alpha)", 0.0001, 0.1, 0.001)
+        model = MLPClassifier(hidden_layer_sizes=(hidden_layer_sizes,), alpha=alpha, max_iter=1000)
+        models.append(("Neural Net", model))
 
-    # === Validation Metrics Summary ===
+    # === Final Metrics on Validation Set ===
     st.subheader("📊 Final Validation Set Comparison")
-    y_val_pred_lr = lr_model.predict(X_val_final)
-    y_val_pred_rf = rf_model.predict(X_val_final)
+    summary_data = []
+    for name, model in models:
+        model.fit(X_train_final, y_train)
+        if name == "PLS-DA":
+            y_pred = (model.predict(X_val_final) > 0.5).astype(int).flatten()
+            y_proba = model.predict(X_val_final)
+        else:
+            y_pred = model.predict(X_val_final)
+            y_proba = model.predict_proba(X_val_final)[:, 1] if hasattr(model, "predict_proba") else None
 
-    try:
-        y_proba_lr = lr_model.predict_proba(X_val_final)[:, 1]
-        auc_lr = roc_auc_score(y_val, y_proba_lr)
-    except:
-        auc_lr = np.nan
+        try:
+            auc = roc_auc_score(y_val, y_proba) if y_proba is not None else np.nan
+        except:
+            auc = np.nan
 
-    try:
-        y_proba_rf = rf_model.predict_proba(X_val_final)[:, 1]
-        auc_rf = roc_auc_score(y_val, y_proba_rf)
-    except:
-        auc_rf = np.nan
+        summary_data.append({
+            "Model": name,
+            "Accuracy": accuracy_score(y_val, y_pred),
+            "Precision": precision_score(y_val, y_pred, zero_division=0),
+            "Recall": recall_score(y_val, y_pred, zero_division=0),
+            "F1 Score": f1_score(y_val, y_pred, zero_division=0),
+            "AUC": auc
+        })
 
-    metrics_summary = pd.DataFrame({
-        'Model': ['Logistic Regression', 'Random Forest'],
-        'Accuracy': [accuracy_score(y_val, y_val_pred_lr), accuracy_score(y_val, y_val_pred_rf)],
-        'Precision': [precision_score(y_val, y_val_pred_lr, zero_division=0), precision_score(y_val, y_val_pred_rf, zero_division=0)],
-        'Recall': [recall_score(y_val, y_val_pred_lr, zero_division=0), recall_score(y_val, y_val_pred_rf, zero_division=0)],
-        'F1 Score': [f1_score(y_val, y_val_pred_lr, zero_division=0), f1_score(y_val, y_val_pred_rf, zero_division=0)],
-        'AUC': [auc_lr, auc_rf]
-    })
-
+    metrics_summary = pd.DataFrame(summary_data)
     st.dataframe(metrics_summary.style.format("{:.2f}"))
 
 else:
