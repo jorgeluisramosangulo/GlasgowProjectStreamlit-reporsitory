@@ -7,9 +7,10 @@ import json
 st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
 
-# File uploader
+# === File Upload ===
 uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "xls", "json"])
 
+# === Proceed only if file is uploaded ===
 if uploaded_file is not None:
     file_type = uploaded_file.name.split(".")[-1].lower()
 
@@ -31,52 +32,40 @@ if uploaded_file is not None:
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
 
-    # ✅ Everything else goes INSIDE this block
-    # e.g. target column selection, train/test split, visualization, modeling, etc.
-
-    # Example:
+    # === Target Column Selection ===
     target_column = st.selectbox(
         "Select the target (classification) column:",
         df.columns,
         help="This is the column the model will try to predict (e.g. species, outcome, label)"
     )
 
+    # === Feature/Target Split ===
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    # Now you can safely get numeric columns
-    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
+    # === Visualization ===
+    with st.expander("📊 Data Visualization"):
+        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
 
-    # and continue the rest of your app...
-else:
-    st.warning("Please upload a CSV, Excel, or JSON file to proceed.")
-
-
-
-# === Visualization ===
-with st.expander('Data visualization'):
-    st.subheader("📊 Customize your scatter plot")
-
-    numeric_columns = df.select_dtypes(include=['number']).columns.tolist()
-
-    if len(numeric_columns) < 2:
-        st.warning("❗Please upload a dataset with at least two numeric columns to create a scatter plot.")
-    else:
-        # Select X and Y
-        x_axis = st.selectbox("Select X-axis", options=numeric_columns, index=0)
-        y_axis = st.selectbox("Select Y-axis", options=[col for col in numeric_columns if col != x_axis], index=0)
-
-        # Ask if legend is wanted
-        use_legend = st.radio("Would you like to color by a third column (legend)?", ["No", "Yes"], index=0)
-
-        if use_legend == "Yes":
-            legend_col = st.selectbox(
-                "Select the column to use for legend (color grouping):",
-                options=[col for col in df.columns if col not in [x_axis, y_axis]],
-            )
-            st.scatter_chart(data=df, x=x_axis, y=y_axis, color=legend_col)
+        if len(numeric_columns) < 2:
+            st.warning("❗Please upload a dataset with at least two numeric columns to create a scatter plot.")
         else:
-            st.scatter_chart(data=df[[x_axis, y_axis]], x=x_axis, y=y_axis)
+            x_axis = st.selectbox("Select X-axis", options=numeric_columns, index=0)
+            y_axis = st.selectbox("Select Y-axis", options=[col for col in numeric_columns if col != x_axis], index=0)
+
+            use_legend = st.radio("Would you like to color by a third column (legend)?", ["No", "Yes"], index=0)
+
+            if use_legend == "Yes":
+                legend_col = st.selectbox(
+                    "Select the column to use for legend (color grouping):",
+                    options=[col for col in df.columns if col not in [x_axis, y_axis]]
+                )
+                st.scatter_chart(data=df, x=x_axis, y=y_axis, color=legend_col)
+            else:
+                st.scatter_chart(data=df[[x_axis, y_axis]], x=x_axis, y=y_axis)
+
+else:
+    st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
 
 
 
