@@ -8,6 +8,8 @@ from sklearn.model_selection import train_test_split
 from sklearn.decomposition import PCA
 from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import classification_report, accuracy_score
 
 st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
@@ -15,7 +17,6 @@ st.info("This app builds a binary classification model!")
 # === File Upload ===
 uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "xls", "json"])
 
-# === Proceed only if file is uploaded ===
 if uploaded_file is not None:
     file_type = uploaded_file.name.split(".")[-1].lower()
 
@@ -37,121 +38,99 @@ if uploaded_file is not None:
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
 
-
-    # Show data overview
+    # === Dataset Overview ===
     st.markdown("### 📋 Dataset Overview")
+    st.write(f"📃 **Rows:** {df.shape[0]} | 📄 **Columns:** {df.shape[1]}")
 
-    # Shape
-    st.write(f"🔢 **Rows:** {df.shape[0]} &nbsp;&nbsp;&nbsp;&nbsp; 📁 **Columns:** {df.shape[1]}")
-
-    # Data types per column
-    st.markdown("#### 📌 Column Data Types")
     col_dtype_df = pd.DataFrame({'Column': df.columns, 'Data Type': df.dtypes.values})
+    st.markdown("#### 📌 Column Data Types")
     st.dataframe(col_dtype_df)
 
-    # Data type frequency
+    dtype_counts_df = df.dtypes.value_counts().reset_index()
+    dtype_counts_df.columns = ['Data Type', 'Count']
     st.markdown("#### 📊 Data Type Frequency")
-    dtype_counts = df.dtypes.value_counts()
-    dtype_counts_df = pd.DataFrame({'Data Type': dtype_counts.index.astype(str), 'Count': dtype_counts.values})
     st.dataframe(dtype_counts_df)
 
-
-
-    # === Target Column Selection ===
-    target_column = st.selectbox(
-        "Select the target (classification) column:",
-        df.columns,
-        help="This is the column the model will try to predict (e.g. species, outcome, label)"
-    )
-
-    # === Feature/Target Split ===
+    # === Target Selection ===
+    target_column = st.selectbox("Select the target column:", df.columns)
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
     # === Train/Validation Split ===
-    st.subheader("📚 Train/Validation Split")
-    test_size_percent = st.slider("Select validation set size (%)", min_value=10, max_value=50, value=20, step=5)
+    test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
+    X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
 
-    # Randomize and split data
-    X_train, X_val, y_train, y_val = train_test_split(
-        X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True
-    )
-
-    st.write(f"🔹 Training set size: {X_train.shape[0]} rows")
-    st.write(f"🔸 Validation set size: {X_val.shape[0]} rows")
-
-    # === PCA Option ===
+    # === PCA Step ===
     use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
-
     if use_pca == "Yes":
-        st.subheader("🔍 PCA Analysis")
-
-        # Standardize the training data
         scaler = StandardScaler()
+        X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
+        X_val_scaled = scaler.transform(X_val.select_dtypes(include=np.number))
 
-        X_train_numeric = X_train.select_dtypes(include=np.number)
-        X_val_numeric = X_val.select_dtypes(include=np.number)
-
-        X_train_scaled = scaler.fit_transform(X_train_numeric)
-        X_val_scaled = scaler.transform(X_val_numeric)
-
-
-        # Fit PCA on scaled training data
         pca = PCA()
         pca.fit(X_train_scaled)
 
-        # Plot explained variance
         cum_var = np.cumsum(pca.explained_variance_ratio_)
         fig, ax = plt.subplots()
         ax.plot(range(1, len(cum_var)+1), cum_var, marker='o')
         ax.set_title("Cumulative Explained Variance")
         ax.set_xlabel("Number of Components")
         ax.set_ylabel("Cumulative Variance")
-        ax.grid(True)
         st.pyplot(fig)
 
-        # Select how many components to keep
-        n_components = st.slider("Select number of principal components to keep", 1, X_train.shape[1], 2)
+        n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
 
-        # Apply PCA with selected components
         pca = PCA(n_components=n_components)
         X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
         X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-
-        st.write("✅ PCA applied. Transformed training set:")
-        st.dataframe(X_train_final)
-
+        st.dataframe(X_train_final.head())
     else:
-        st.info("PCA not applied. Using original features.")
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
 
-    # === Visualization ===
-    with st.expander("📊 Data Visualization"):
-        numeric_columns = df.select_dtypes(include=["number"]).columns.tolist()
+    # === Logistic Regression ===
+    with st.expander("📊 Logistic Regression"):
+        st.write("**Hyperparameters**")
+        C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
+        max_iter = st.slider("Max iterations", 100, 1000, 100)
 
-        if len(numeric_columns) < 2:
-            st.warning("❗Please upload a dataset with at least two numeric columns to create a scatter plot.")
-        else:
-            x_axis = st.selectbox("Select X-axis", options=numeric_columns, index=0)
-            y_axis = st.selectbox("Select Y-axis", options=[col for col in numeric_columns if col != x_axis], index=0)
+        lr_model = LogisticRegression(C=C, max_iter=max_iter)
+        lr_model.fit(X_train_final, y_train)
 
-            use_legend = st.radio("Would you like to color by a third column (legend)?", ["No", "Yes"], index=0)
+        y_pred_lr = lr_model.predict(X_train_final)
+        st.text("Classification Report (Training Set):")
+        st.text(classification_report(y_train, y_pred_lr))
 
-            if use_legend == "Yes":
-                legend_col = st.selectbox(
-                    "Select the column to use for legend (color grouping):",
-                    options=[col for col in df.columns if col not in [x_axis, y_axis]]
-                )
-                st.scatter_chart(data=df, x=x_axis, y=y_axis, color=legend_col)
-            else:
-                st.scatter_chart(data=df[[x_axis, y_axis]], x=x_axis, y=y_axis)
+    # === Random Forest ===
+    with st.expander("🌳 Random Forest"):
+        st.write("**Hyperparameters**")
+        n_estimators = st.slider("Number of trees", 10, 200, 100)
+        max_depth = st.slider("Max depth", 1, 20, 5)
+
+        rf_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+        rf_model.fit(X_train_final, y_train)
+
+        y_pred_rf = rf_model.predict(X_train_final)
+        st.text("Classification Report (Training Set):")
+        st.text(classification_report(y_train, y_pred_rf))
+
+    # === Validation Metrics Summary ===
+    st.subheader("📊 Final Validation Set Comparison")
+    y_val_pred_lr = lr_model.predict(X_val_final)
+    y_val_pred_rf = rf_model.predict(X_val_final)
+
+    acc_lr = accuracy_score(y_val, y_val_pred_lr)
+    acc_rf = accuracy_score(y_val, y_val_pred_rf)
+
+    summary_df = pd.DataFrame({
+        'Model': ['Logistic Regression', 'Random Forest'],
+        'Accuracy on Validation Set': [acc_lr, acc_rf]
+    })
+    st.dataframe(summary_df)
 
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
-
-
 
 
 
