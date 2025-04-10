@@ -37,6 +37,26 @@ if uploaded_file is not None:
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
 
+
+    # Show data overview
+    st.markdown("### 📋 Dataset Overview")
+
+    # Shape
+    st.write(f"🔢 **Rows:** {df.shape[0]} &nbsp;&nbsp;&nbsp;&nbsp; 📁 **Columns:** {df.shape[1]}")
+
+    # Data types per column
+    st.markdown("#### 📌 Column Data Types")
+    col_dtype_df = pd.DataFrame({'Column': df.columns, 'Data Type': df.dtypes.values})
+    st.dataframe(col_dtype_df)
+
+    # Data type frequency
+    st.markdown("#### 📊 Data Type Frequency")
+    dtype_counts = df.dtypes.value_counts()
+    dtype_counts_df = pd.DataFrame({'Data Type': dtype_counts.index.astype(str), 'Count': dtype_counts.values})
+    st.dataframe(dtype_counts_df)
+
+
+
     # === Target Column Selection ===
     target_column = st.selectbox(
         "Select the target (classification) column:",
@@ -69,6 +89,7 @@ if uploaded_file is not None:
 
         # Standardize the training data
         scaler = StandardScaler()
+
         X_train_numeric = X_train.select_dtypes(include=np.number)
         X_val_numeric = X_val.select_dtypes(include=np.number)
 
