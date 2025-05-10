@@ -129,5 +129,63 @@ if uploaded_file is not None:
     })
     st.dataframe(summary_df)
 
+
+# === Final Test File Upload and Prediction ===
+    st.markdown("## 🔍 Apply Models to New Test Data")
+
+    test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
+
+    if test_file is not None:
+        try:
+            if test_file.name.endswith(".csv"):
+                df_test = pd.read_csv(test_file)
+            elif test_file.name.endswith((".xlsx", ".xls")):
+                df_test = pd.read_excel(test_file)
+            elif test_file.name.endswith(".json"):
+                df_test = pd.read_json(test_file)
+            else:
+                st.error("Unsupported file type.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error reading test file: {e}")
+            st.stop()
+
+        st.success("✅ Test file loaded successfully.")
+        st.dataframe(df_test.head())
+
+        # Drop target column if exists
+        if target_column in df_test.columns:
+            df_test = df_test.drop(columns=[target_column])
+
+        try:
+            if use_pca == "Yes":
+                df_test_scaled = scaler.transform(df_test.select_dtypes(include=np.number))
+                df_test_transformed = pd.DataFrame(pca.transform(df_test_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+            else:
+                df_test_transformed = df_test.copy()
+
+            # Make Predictions
+            test_pred_lr = lr_model.predict(df_test_transformed)
+            test_pred_rf = rf_model.predict(df_test_transformed)
+
+            # Combine predictions
+            df_results = df_test.copy()
+            df_results["Logistic_Prediction"] = test_pred_lr
+            df_results["RandomForest_Prediction"] = test_pred_rf
+
+            st.markdown("### 📄 Predictions on Uploaded Test Data")
+            st.dataframe(df_results)
+
+            # Download link
+            csv = df_results.to_csv(index=False).encode('utf-8')
+            st.download_button(
+                label="📥 Download Predictions as CSV",
+                data=csv,
+                file_name="classified_results.csv",
+                mime="text/csv",
+            )
+
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
 else:
     st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
