@@ -188,6 +188,33 @@ if uploaded_file is not None:
         st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
         st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
 
+    # === Elastic Net Logistic Regression ===
+    with st.expander("🧬 Elastic Net Logistic Regression"):
+        st.write("**Hyperparameters**")
+        enet_C = st.slider("Elastic Net: Regularization strength (C)", 0.01, 10.0, 1.0)
+        enet_max_iter = st.slider("Elastic Net: Max iterations", 100, 2000, 1000)
+        enet_l1_ratio = st.slider("Elastic Net: L1 Ratio (0=L2, 1=L1)", 0.0, 1.0, 0.5)
+
+        enet_model = LogisticRegression(
+            penalty='elasticnet',
+            C=enet_C,
+            l1_ratio=enet_l1_ratio,
+            solver='saga',  # 'saga' supports elasticnet
+            max_iter=enet_max_iter,
+            random_state=42
+        )
+        enet_model.fit(X_train_final, y_train)
+
+        # Training performance
+        y_pred_enet_train = enet_model.predict(X_train_final)
+        y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_enet_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_enet_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
 
 
 
@@ -211,7 +238,6 @@ if uploaded_file is not None:
 ######################################             Validation             ################################################
 ##########################################################################################################################
 
-
     # === Validation Metrics Summary ===
     st.subheader("📊 Final Validation Set Comparison")
 
@@ -220,17 +246,26 @@ if uploaded_file is not None:
     y_val_pred_rf = rf_model.predict(X_val_final)
     y_val_pred_ridge = ridge_model.predict(X_val_final)
     y_val_pred_lasso = lasso_model.predict(X_val_final)
+    y_val_pred_enet = enet_model.predict(X_val_final)
 
     # Accuracy scores
     acc_lr = accuracy_score(y_val, y_val_pred_lr)
     acc_rf = accuracy_score(y_val, y_val_pred_rf)
     acc_ridge = accuracy_score(y_val, y_val_pred_ridge)
     acc_lasso = accuracy_score(y_val, y_val_pred_lasso)
+    acc_enet = accuracy_score(y_val, y_val_pred_enet)
 
     summary_df = pd.DataFrame({
-        'Model': ['Logistic Regression', 'Random Forest', 'Ridge Logistic Regression', 'Lasso Logistic Regression'],
-        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge, acc_lasso]
+        'Model': [
+            'Logistic Regression',
+            'Random Forest',
+            'Ridge Logistic Regression',
+            'Lasso Logistic Regression',
+            'Elastic Net Logistic Regression'
+        ],
+        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge, acc_lasso, acc_enet]
     })
+
     st.dataframe(summary_df)
 
 
@@ -283,19 +318,39 @@ if uploaded_file is not None:
             test_pred_rf = rf_model.predict(df_test_transformed)
             test_pred_ridge = ridge_model.predict(df_test_transformed)
             test_pred_lasso = lasso_model.predict(df_test_transformed)
+            test_pred_enet = enet_model.predict(df_test_transformed)
+
+            # Prediction Probabilities
+            prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
 
 
 
             # Combine predictions
             # Combine predictions (and reattach target column if present)
             df_results = df_test.copy()
+
             if target_column_present:
                 df_results[target_column] = df_test_target
 
             df_results["Logistic_Prediction"] = test_pred_lr
+            df_results["Logistic_Prob"] = prob_pred_lr
+
             df_results["RandomForest_Prediction"] = test_pred_rf
+            df_results["RandomForest_Prob"] = prob_pred_rf
+
             df_results["Ridge_Prediction"] = test_pred_ridge
+            df_results["Ridge_Prob"] = prob_pred_ridge
+
             df_results["Lasso_Prediction"] = test_pred_lasso
+            df_results["Lasso_Prob"] = prob_pred_lasso
+
+            df_results["ElasticNet_Prediction"] = test_pred_enet
+            df_results["ElasticNet_Prob"] = prob_pred_enet
+
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
             st.dataframe(df_results)
