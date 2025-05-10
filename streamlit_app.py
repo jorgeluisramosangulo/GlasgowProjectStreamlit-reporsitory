@@ -646,14 +646,21 @@ if test_file is not None:
             mime_type = "text/csv"
 
         elif file_format == "XLSX":
-            from io import BytesIO
-            buffer = BytesIO()
-            with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
-                df_results.to_excel(writer, index=False, sheet_name="Predictions")
-                writer.save()
-            file_data = buffer.getvalue()
-            file_name = "classified_results.xlsx"
-            mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+            import io
+
+            output = io.BytesIO()
+            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
+                df_results.to_excel(writer, index=False, sheet_name='Predictions')
+
+            st.download_button(
+                label="📥 Download Predictions as Excel",
+                data=output.getvalue(),
+                file_name='classified_results.xlsx',
+                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+
+
 
         elif file_format == "JSON":
             file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
