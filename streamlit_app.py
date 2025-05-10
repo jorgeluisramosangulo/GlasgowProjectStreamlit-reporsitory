@@ -11,8 +11,18 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 
+
+##########################################################################################################################
+######################################    Presentation   #################################################################
+##########################################################################################################################
+
 st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
+
+
+##########################################################################################################################
+######################################    File Upload    #################################################################
+##########################################################################################################################
 
 # === File Upload ===
 uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "xls", "json"])
@@ -38,6 +48,11 @@ if uploaded_file is not None:
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
 
+##########################################################################################################################
+#################################        Dataset Overview    #############################################################
+##########################################################################################################################
+
+
     # === Dataset Overview ===
     st.markdown("### 📋 Dataset Overview")
     st.write(f"📃 **Rows:** {df.shape[0]} | 📄 **Columns:** {df.shape[1]}")
@@ -60,6 +75,11 @@ if uploaded_file is not None:
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
     X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
+
+
+##########################################################################################################################
+################################       PCA Step    #######################################################################
+##########################################################################################################################
 
     # === PCA Step ===
     use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
@@ -88,6 +108,10 @@ if uploaded_file is not None:
     else:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
+
+##########################################################################################################################
+###########################    Machine Learning Methods for Binary Classification     ####################################
+##########################################################################################################################
 
     # === Logistic Regression ===
     with st.expander("📊 Logistic Regression"):
@@ -133,6 +157,36 @@ if uploaded_file is not None:
         st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
 
 
+    # === Lasso Logistic Regression ===
+    from sklearn.metrics import (
+        accuracy_score, precision_score, recall_score,
+        f1_score, roc_auc_score
+    )
+
+    with st.expander("🧊 Lasso Logistic Regression (L1)"):
+        st.write("**Hyperparameters**")
+        lasso_C = st.slider("Lasso: Regularization strength (C)", 0.01, 10.0, 1.0)
+        lasso_max_iter = st.slider("Lasso: Max iterations", 100, 2000, 1000)
+
+        lasso_model = LogisticRegression(
+            penalty='l1',
+            C=lasso_C,
+            solver='liblinear',  # 'liblinear' supports L1
+            max_iter=lasso_max_iter,
+            random_state=42
+        )
+        lasso_model.fit(X_train_final, y_train)
+
+        # Training performance
+        y_pred_lasso_train = lasso_model.predict(X_train_final)
+        y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_lasso_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_lasso_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
 
 
 
@@ -152,25 +206,38 @@ if uploaded_file is not None:
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_rf))
 
+
+##########################################################################################################################
+######################################             Validation             ################################################
+##########################################################################################################################
+
+
     # === Validation Metrics Summary ===
     st.subheader("📊 Final Validation Set Comparison")
+
+    # Predictions
     y_val_pred_lr = lr_model.predict(X_val_final)
     y_val_pred_rf = rf_model.predict(X_val_final)
     y_val_pred_ridge = ridge_model.predict(X_val_final)
+    y_val_pred_lasso = lasso_model.predict(X_val_final)
 
+    # Accuracy scores
     acc_lr = accuracy_score(y_val, y_val_pred_lr)
     acc_rf = accuracy_score(y_val, y_val_pred_rf)
     acc_ridge = accuracy_score(y_val, y_val_pred_ridge)
+    acc_lasso = accuracy_score(y_val, y_val_pred_lasso)
 
     summary_df = pd.DataFrame({
-        'Model': ['Logistic Regression', 'Random Forest', 'Ridge Logistic Regression'],
-        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge]
+        'Model': ['Logistic Regression', 'Random Forest', 'Ridge Logistic Regression', 'Lasso Logistic Regression'],
+        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge, acc_lasso]
     })
     st.dataframe(summary_df)
 
 
 
-
+##########################################################################################################################
+######################################         Final Test File          ###############################################
+##########################################################################################################################
 
 
     
@@ -215,6 +282,9 @@ if uploaded_file is not None:
             test_pred_lr = lr_model.predict(df_test_transformed)
             test_pred_rf = rf_model.predict(df_test_transformed)
             test_pred_ridge = ridge_model.predict(df_test_transformed)
+            test_pred_lasso = lasso_model.predict(df_test_transformed)
+
+
 
             # Combine predictions
             # Combine predictions (and reattach target column if present)
@@ -225,6 +295,7 @@ if uploaded_file is not None:
             df_results["Logistic_Prediction"] = test_pred_lr
             df_results["RandomForest_Prediction"] = test_pred_rf
             df_results["Ridge_Prediction"] = test_pred_ridge
+            df_results["Lasso_Prediction"] = test_pred_lasso
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
             st.dataframe(df_results)
