@@ -484,122 +484,151 @@ if uploaded_file is not None:
 ##########################################################################################################################
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
     
-    # === Final Test File Upload and Prediction ===
-    st.markdown("## 🔍 Apply Models to New Test Data")
+# === Final Test File Upload and Prediction ===
+st.markdown("## 🔍 Apply Models to New Test Data")
 
-    test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
+test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
 
-    if test_file is not None:
-        try:
-            if test_file.name.endswith(".csv"):
-                df_test = pd.read_csv(test_file)
-            elif test_file.name.endswith((".xlsx", ".xls")):
-                df_test = pd.read_excel(test_file)
-            elif test_file.name.endswith(".json"):
-                df_test = pd.read_json(test_file)
-            else:
-                st.error("Unsupported file type.")
-                st.stop()
-        except Exception as e:
-            st.error(f"Error reading test file: {e}")
+if test_file is not None:
+    try:
+        if test_file.name.endswith(".csv"):
+            df_test = pd.read_csv(test_file)
+        elif test_file.name.endswith((".xlsx", ".xls")):
+            df_test = pd.read_excel(test_file)
+        elif test_file.name.endswith(".json"):
+            df_test = pd.read_json(test_file)
+        else:
+            st.error("Unsupported file type.")
             st.stop()
+    except Exception as e:
+        st.error(f"Error reading test file: {e}")
+        st.stop()
 
-        st.success("✅ Test file loaded successfully.")
-        st.dataframe(df_test.head())
+    st.success("✅ Test file loaded successfully.")
+    st.dataframe(df_test.head())
 
-        # Preserve target column if it exists (for reference in download)
-        target_column_present = target_column in df_test.columns
-        if target_column_present:
-            df_test_target = df_test[[target_column]].copy()
-            df_test = df_test.drop(columns=[target_column])
+    # Preserve original file
+    df_test_original = df_test.copy()
 
+    # Preserve target column if present
+    target_column_present = target_column in df_test.columns
+    if target_column_present:
+        df_test_target = df_test[[target_column]].copy()
+        df_test = df_test.drop(columns=[target_column])
 
-        try:
-            if use_pca == "Yes":
-                df_test_scaled = scaler.transform(df_test.select_dtypes(include=np.number))
-                df_test_transformed = pd.DataFrame(pca.transform(df_test_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-            else:
-                df_test_transformed = df_test.copy()
+    try:
+        # One-hot encode using same structure as training data
+        df_test_encoded = pd.get_dummies(df_test, drop_first=True)
 
-            # Make Predictions
-            test_pred_lr = lr_model.predict(df_test_transformed)
-            test_pred_rf = rf_model.predict(df_test_transformed)
-            test_pred_ridge = ridge_model.predict(df_test_transformed)
-            test_pred_lasso = lasso_model.predict(df_test_transformed)
-            test_pred_enet = enet_model.predict(df_test_transformed)
-            test_scores_pls = pls_model.predict(df_test_transformed).ravel()
-            test_pred_svm = svm_model.predict(df_test_transformed)
-            test_pred_tree = tree_model.predict(df_test_transformed)
-            test_pred_gbm = gbm_model.predict(df_test_transformed)
-            test_pred_nn = nn_model.predict(df_test_transformed)
+        # Align with training columns (fill missing with 0)
+        missing_cols = set(X_raw.columns) - set(df_test_encoded.columns)
+        for col in missing_cols:
+            df_test_encoded[col] = 0
 
+        # Reorder columns to match training set
+        df_test_encoded = df_test_encoded[X_raw.columns]
 
+        # Ensure float64 dtype
+        df_test_encoded = df_test_encoded.astype("float64")
 
-            # Prediction Probabilities
-            prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
-            test_pred_pls = (test_scores_pls >= 0.5).astype(int)
-            prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
-            prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
-
-
-
-            # Combine predictions
-            # Combine predictions (and reattach target column if present)
-            df_results = df_test.copy()
-
-            if target_column_present:
-                df_results[target_column] = df_test_target
-
-            df_results["Logistic_Prediction"] = test_pred_lr
-            df_results["Logistic_Prob"] = prob_pred_lr
-
-            df_results["RandomForest_Prediction"] = test_pred_rf
-            df_results["RandomForest_Prob"] = prob_pred_rf
-
-            df_results["Ridge_Prediction"] = test_pred_ridge
-            df_results["Ridge_Prob"] = prob_pred_ridge
-
-            df_results["Lasso_Prediction"] = test_pred_lasso
-            df_results["Lasso_Prob"] = prob_pred_lasso
-
-            df_results["ElasticNet_Prediction"] = test_pred_enet
-            df_results["ElasticNet_Prob"] = prob_pred_enet
-
-            df_results["PLSDA_Prediction"] = test_pred_pls
-            df_results["PLSDA_Prob"] = test_scores_pls
-
-            df_results["SVM_Prediction"] = test_pred_svm
-            df_results["SVM_Prob"] = prob_pred_svm
-
-            df_results["DecisionTree_Prediction"] = test_pred_tree
-            df_results["DecisionTree_Prob"] = prob_pred_tree
-
-            df_results["GBM_Prediction"] = test_pred_gbm
-            df_results["GBM_Prob"] = prob_pred_gbm
-
-            df_results["NN_Prediction"] = test_pred_nn
-            df_results["NN_Prob"] = prob_pred_nn
-
-            st.markdown("### 📄 Predictions on Uploaded Test Data")
-            st.dataframe(df_results)
-
-            # Download link
-            csv = df_results.to_csv(index=False).encode('utf-8')
-            st.download_button(
-                label="📥 Download Predictions as CSV",
-                data=csv,
-                file_name="classified_results.csv",
-                mime="text/csv",
+        # PCA transform if selected
+        if use_pca == "Yes":
+            df_test_scaled = scaler.transform(df_test_encoded)
+            df_test_transformed = pd.DataFrame(
+                pca.transform(df_test_scaled),
+                columns=[f"PC{i+1}" for i in range(n_components)]
             )
+        else:
+            df_test_transformed = df_test_encoded.copy()
 
-        except Exception as e:
-            st.error(f"Error during prediction: {e}")
-else:
-    st.warning("📂 Please upload a CSV, Excel, or JSON file to proceed.")
+        # === Predictions ===
+        test_pred_lr = lr_model.predict(df_test_transformed)
+        test_pred_rf = rf_model.predict(df_test_transformed)
+        test_pred_ridge = ridge_model.predict(df_test_transformed)
+        test_pred_lasso = lasso_model.predict(df_test_transformed)
+        test_pred_enet = enet_model.predict(df_test_transformed)
+        test_scores_pls = pls_model.predict(df_test_transformed).ravel()
+        test_pred_pls = (test_scores_pls >= 0.5).astype(int)
+        test_pred_svm = svm_model.predict(df_test_transformed)
+        test_pred_tree = tree_model.predict(df_test_transformed)
+        test_pred_gbm = gbm_model.predict(df_test_transformed)
+        test_pred_nn = nn_model.predict(df_test_transformed)
+
+        # === Probabilities ===
+        prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
+        prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
+
+        # === Build Final Results DataFrame ===
+        df_results = df_test_original.copy()
+        if target_column_present:
+            df_results[target_column] = df_test_target
+
+        df_results["Logistic_Prediction"] = test_pred_lr
+        df_results["Logistic_Prob"] = prob_pred_lr
+
+        df_results["RandomForest_Prediction"] = test_pred_rf
+        df_results["RandomForest_Prob"] = prob_pred_rf
+
+        df_results["Ridge_Prediction"] = test_pred_ridge
+        df_results["Ridge_Prob"] = prob_pred_ridge
+
+        df_results["Lasso_Prediction"] = test_pred_lasso
+        df_results["Lasso_Prob"] = prob_pred_lasso
+
+        df_results["ElasticNet_Prediction"] = test_pred_enet
+        df_results["ElasticNet_Prob"] = prob_pred_enet
+
+        df_results["PLSDA_Prediction"] = test_pred_pls
+        df_results["PLSDA_Prob"] = test_scores_pls
+
+        df_results["SVM_Prediction"] = test_pred_svm
+        df_results["SVM_Prob"] = prob_pred_svm
+
+        df_results["DecisionTree_Prediction"] = test_pred_tree
+        df_results["DecisionTree_Prob"] = prob_pred_tree
+
+        df_results["GBM_Prediction"] = test_pred_gbm
+        df_results["GBM_Prob"] = prob_pred_gbm
+
+        df_results["NN_Prediction"] = test_pred_nn
+        df_results["NN_Prob"] = prob_pred_nn
+
+        # === Show and Download ===
+        st.markdown("### 📄 Predictions on Uploaded Test Data")
+        st.dataframe(df_results)
+
+        csv = df_results.to_csv(index=False).encode("utf-8")
+        st.download_button(
+            label="📥 Download Predictions as CSV",
+            data=csv,
+            file_name="classified_results.csv",
+            mime="text/csv",
+        )
+
+    except Exception as e:
+        st.error(f"Error during prediction: {e}")
