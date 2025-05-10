@@ -16,7 +16,7 @@ from sklearn.metrics import classification_report, accuracy_score
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppp")
 st.info("This app builds a binary classification model!")
 
 
@@ -216,6 +216,25 @@ if uploaded_file is not None:
         st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
         st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
 
+    # === Partial Least Squares Discriminant Analysis (PLS-DA) ===
+    from sklearn.cross_decomposition import PLSRegression
+
+    with st.expander("🧪 Partial Least Squares Discriminant Analysis (PLS-DA)"):
+        pls_n_components = st.slider("PLS-DA: Number of Components", 1, min(X_train_final.shape[1], 10), 2)
+
+        pls_model = PLSRegression(n_components=pls_n_components)
+        pls_model.fit(X_train_final, y_train)
+
+        # Training performance
+        y_scores_train_pls = pls_model.predict(X_train_final).ravel()
+        y_pred_train_pls = (y_scores_train_pls >= 0.5).astype(int)
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_pls):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_train_pls):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
 
 
 
@@ -239,40 +258,59 @@ if uploaded_file is not None:
 ##########################################################################################################################
 
     # === Validation Metrics Summary ===
-    st.subheader("📊 Final Validation Set Comparison")
+    st.subheader("📊 Final Validation Set Comparison (Full Metrics)")
 
-    # Predictions
+    # Get predictions and probabilities for all models
     y_val_pred_lr = lr_model.predict(X_val_final)
+    y_val_prob_lr = lr_model.predict_proba(X_val_final)[:, 1]
+
     y_val_pred_rf = rf_model.predict(X_val_final)
+    y_val_prob_rf = rf_model.predict_proba(X_val_final)[:, 1]
+
     y_val_pred_ridge = ridge_model.predict(X_val_final)
+    y_val_prob_ridge = ridge_model.predict_proba(X_val_final)[:, 1]
+
     y_val_pred_lasso = lasso_model.predict(X_val_final)
+    y_val_prob_lasso = lasso_model.predict_proba(X_val_final)[:, 1]
+
     y_val_pred_enet = enet_model.predict(X_val_final)
+    y_val_prob_enet = enet_model.predict_proba(X_val_final)[:, 1]
 
-    # Accuracy scores
-    acc_lr = accuracy_score(y_val, y_val_pred_lr)
-    acc_rf = accuracy_score(y_val, y_val_pred_rf)
-    acc_ridge = accuracy_score(y_val, y_val_pred_ridge)
-    acc_lasso = accuracy_score(y_val, y_val_pred_lasso)
-    acc_enet = accuracy_score(y_val, y_val_pred_enet)
+    y_val_scores_pls = pls_model.predict(X_val_final).ravel()
+    y_val_pred_pls = (y_val_scores_pls >= 0.5).astype(int)
 
-    summary_df = pd.DataFrame({
-        'Model': [
-            'Logistic Regression',
-            'Random Forest',
-            'Ridge Logistic Regression',
-            'Lasso Logistic Regression',
-            'Elastic Net Logistic Regression'
-        ],
-        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge, acc_lasso, acc_enet]
-    })
+    # Helper function to compute metrics
+    def compute_metrics(y_true, y_pred, y_prob, model_name):
+        return {
+            'Model': model_name,
+            'Accuracy': accuracy_score(y_true, y_pred),
+            'Precision': precision_score(y_true, y_pred),
+            'Recall': recall_score(y_true, y_pred),
+            'F1-Score': f1_score(y_true, y_pred),
+            'AUC': roc_auc_score(y_true, y_prob)
+        }
 
-    st.dataframe(summary_df)
+    # Collect metrics for each model
+    metrics = [
+        compute_metrics(y_val, y_val_pred_lr, y_val_prob_lr, "Logistic Regression"),
+        compute_metrics(y_val, y_val_pred_rf, y_val_prob_rf, "Random Forest"),
+        compute_metrics(y_val, y_val_pred_ridge, y_val_prob_ridge, "Ridge Logistic Regression"),
+        compute_metrics(y_val, y_val_pred_lasso, y_val_prob_lasso, "Lasso Logistic Regression"),
+        compute_metrics(y_val, y_val_pred_enet, y_val_prob_enet, "Elastic Net Logistic Regression"),
+        compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA")
+    ]
+
+    # Create DataFrame and display
+    summary_df = pd.DataFrame(metrics)
+    st.dataframe(summary_df.style.format({"Accuracy": "{:.4f}", "Precision": "{:.4f}", "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"}))
+
 
 
 
 ##########################################################################################################################
-######################################         Final Test File          ###############################################
+######################################         Final Test File             ###############################################
 ##########################################################################################################################
+
 
 
     
@@ -319,6 +357,8 @@ if uploaded_file is not None:
             test_pred_ridge = ridge_model.predict(df_test_transformed)
             test_pred_lasso = lasso_model.predict(df_test_transformed)
             test_pred_enet = enet_model.predict(df_test_transformed)
+            test_scores_pls = pls_model.predict(df_test_transformed).ravel()
+
 
             # Prediction Probabilities
             prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
@@ -326,6 +366,7 @@ if uploaded_file is not None:
             prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
+            test_pred_pls = (test_scores_pls >= 0.5).astype(int)
 
 
 
@@ -350,6 +391,9 @@ if uploaded_file is not None:
 
             df_results["ElasticNet_Prediction"] = test_pred_enet
             df_results["ElasticNet_Prob"] = prob_pred_enet
+
+            df_results["PLSDA_Prediction"] = test_pred_pls
+            df_results["PLSDA_Prob"] = test_scores_pls
 
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
