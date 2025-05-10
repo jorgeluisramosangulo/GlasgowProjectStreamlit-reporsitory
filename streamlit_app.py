@@ -16,7 +16,7 @@ from sklearn.metrics import classification_report, accuracy_score
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appp")
+st.title("🤖 Binary Classification Apppppppppp")
 st.info("This app builds a binary classification model!")
 
 
@@ -266,6 +266,43 @@ if uploaded_file is not None:
 
 
 
+    # === Decision Tree Classifier ===
+    from sklearn.tree import DecisionTreeClassifier
+
+    with st.expander("🌲 Decision Tree"):
+        st.write("**Hyperparameters**")
+        tree_max_depth = st.slider("Decision Tree: Max Depth", 1, 20, 5)
+        tree_min_samples_split = st.slider("Decision Tree: Min Samples Split", 2, 20, 2)
+        tree_min_samples_leaf = st.slider("Decision Tree: Min Samples Leaf", 1, 20, 1)
+        tree_criterion = st.selectbox("Decision Tree: Criterion", ['gini', 'entropy'])
+
+        tree_model = DecisionTreeClassifier(
+            max_depth=tree_max_depth,
+            min_samples_split=tree_min_samples_split,
+            min_samples_leaf=tree_min_samples_leaf,
+            criterion=tree_criterion,
+            random_state=42
+        )
+        tree_model.fit(X_train_final, y_train)
+
+        y_pred_tree_train = tree_model.predict(X_train_final)
+        y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_tree_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_tree_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_tree_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_tree_train):.4f}")
+
+
+
+
+
+
+
+
+
     # === Random Forest ===
     with st.expander("🌳 Random Forest"):
         st.write("**Hyperparameters**")
@@ -314,6 +351,9 @@ if uploaded_file is not None:
     y_val_pred_svm = svm_model.predict(X_val_final)
     y_val_prob_svm = svm_model.predict_proba(X_val_final)[:, 1]
 
+    y_val_pred_tree = tree_model.predict(X_val_final)
+    y_val_prob_tree = tree_model.predict_proba(X_val_final)[:, 1]
+
     # Helper function to compute metrics
     def compute_metrics(y_true, y_pred, y_prob, model_name):
         return {
@@ -333,12 +373,16 @@ if uploaded_file is not None:
         compute_metrics(y_val, y_val_pred_lasso, y_val_prob_lasso, "Lasso Logistic Regression"),
         compute_metrics(y_val, y_val_pred_enet, y_val_prob_enet, "Elastic Net Logistic Regression"),
         compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA"),
-        compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine")
+        compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine"),
+        compute_metrics(y_val, y_val_pred_tree, y_val_prob_tree, "Decision Tree")
     ]
 
     # Create DataFrame and display
     summary_df = pd.DataFrame(metrics)
-    st.dataframe(summary_df.style.format({"Accuracy": "{:.4f}", "Precision": "{:.4f}", "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"}))
+    st.dataframe(summary_df.style.format({
+        "Accuracy": "{:.4f}", "Precision": "{:.4f}", 
+        "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
+    }))
 
 
 
@@ -346,6 +390,10 @@ if uploaded_file is not None:
 ##########################################################################################################################
 ######################################         Final Test File             ###############################################
 ##########################################################################################################################
+
+
+
+
 
 
 
@@ -399,6 +447,7 @@ if uploaded_file is not None:
             test_pred_enet = enet_model.predict(df_test_transformed)
             test_scores_pls = pls_model.predict(df_test_transformed).ravel()
             test_pred_svm = svm_model.predict(df_test_transformed)
+            test_pred_tree = tree_model.predict(df_test_transformed)
 
 
             # Prediction Probabilities
@@ -409,6 +458,7 @@ if uploaded_file is not None:
             prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
             test_pred_pls = (test_scores_pls >= 0.5).astype(int)
             prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
 
 
 
@@ -439,6 +489,9 @@ if uploaded_file is not None:
 
             df_results["SVM_Prediction"] = test_pred_svm
             df_results["SVM_Prob"] = prob_pred_svm
+
+            df_results["DecisionTree_Prediction"] = test_pred_tree
+            df_results["DecisionTree_Prob"] = prob_pred_tree
 
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
