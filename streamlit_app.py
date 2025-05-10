@@ -637,30 +637,13 @@ if test_file is not None:
         st.dataframe(df_results)
 
         # Select file format
-        file_format = st.selectbox("Select file format for download:", ["CSV", "XLSX", "JSON"])
+        file_format = st.selectbox("Select file format for download:", ["CSV", "JSON"])
 
         # Generate downloadable data based on selection
         if file_format == "CSV":
             file_data = df_results.to_csv(index=False).encode("utf-8")
             file_name = "classified_results.csv"
             mime_type = "text/csv"
-
-        elif file_format == "XLSX":
-
-            import io
-
-            output = io.BytesIO()
-            with pd.ExcelWriter(output, engine='xlsxwriter') as writer:
-                df_results.to_excel(writer, index=False, sheet_name='Predictions')
-
-            st.download_button(
-                label="📥 Download Predictions as Excel",
-                data=output.getvalue(),
-                file_name='classified_results.xlsx',
-                mime='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
-            )
-
-
 
         elif file_format == "JSON":
             file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
