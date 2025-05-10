@@ -151,9 +151,12 @@ if uploaded_file is not None:
         st.success("✅ Test file loaded successfully.")
         st.dataframe(df_test.head())
 
-        # Drop target column if exists
-        #if target_column in df_test.columns:
-        #    df_test = df_test.drop(columns=[target_column])
+        # Preserve target column if it exists (for reference in download)
+        target_column_present = target_column in df_test.columns
+        if target_column_present:
+            df_test_target = df_test[[target_column]].copy()
+            df_test = df_test.drop(columns=[target_column])
+
 
         try:
             if use_pca == "Yes":
@@ -167,7 +170,11 @@ if uploaded_file is not None:
             test_pred_rf = rf_model.predict(df_test_transformed)
 
             # Combine predictions
+            # Combine predictions (and reattach target column if present)
             df_results = df_test.copy()
+            if target_column_present:
+                df_results[target_column] = df_test_target
+
             df_results["Logistic_Prediction"] = test_pred_lr
             df_results["RandomForest_Prediction"] = test_pred_rf
 
