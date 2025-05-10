@@ -110,8 +110,8 @@ if uploaded_file is not None:
 
     with st.expander("🧱 Ridge Logistic Regression (L2)"):
         st.write("**Hyperparameters**")
-        ridge_C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
-        ridge_max_iter = st.slider("Max iterations", 100, 2000, 1000)
+        ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0)
+        ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000)
 
         ridge_model = LogisticRegression(
             penalty='l2',
