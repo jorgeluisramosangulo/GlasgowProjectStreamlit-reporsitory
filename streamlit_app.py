@@ -555,8 +555,21 @@ if test_file is not None:
         # Reorder columns to match training set
         df_test_encoded = df_test_encoded[X_raw.columns]
 
-        # Ensure float64 dtype
-        df_test_encoded = df_test_encoded.astype("float64")
+        
+        # Ensure float64
+        df_test_encoded = df_test_encoded.astype('float64')
+
+        # Check for and remove rows with missing or infinite values
+        df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
+        invalid_test_rows = df_test_encoded.isnull().any(axis=1)
+        if invalid_test_rows.any():
+            st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs or infinite values in test data.")
+            df_test_encoded = df_test_encoded[~invalid_test_rows]
+            df_test_original = df_test_original[~invalid_test_rows]
+            if target_column_present:
+                df_test_target = df_test_target[~invalid_test_rows]
+
+
 
         # PCA transform if selected
         if use_pca == "Yes":
