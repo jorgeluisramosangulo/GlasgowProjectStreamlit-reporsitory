@@ -35,7 +35,7 @@ st.info("This app builds a binary classification model using machine learning te
 ##########################################################################################################################
 
 # === File Upload ===
-uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "xls", "json"])
+uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "json"])
 
 if uploaded_file is not None:
     file_type = uploaded_file.name.split(".")[-1].lower()
@@ -43,7 +43,7 @@ if uploaded_file is not None:
     try:
         if file_type == "csv":
             df = pd.read_csv(uploaded_file)
-        elif file_type in ["xlsx", "xls"]:
+        elif file_type in ["xlsx"]:
             df = pd.read_excel(uploaded_file)
         elif file_type == "json":
             df = pd.read_json(uploaded_file)
@@ -512,7 +512,7 @@ if test_file is not None:
     try:
         if test_file.name.endswith(".csv"):
             df_test = pd.read_csv(test_file)
-        elif test_file.name.endswith((".xlsx", ".xls")):
+        elif test_file.name.endswith((".xlsx")):
             df_test = pd.read_excel(test_file)
         elif test_file.name.endswith(".json"):
             df_test = pd.read_json(test_file)
@@ -636,13 +636,38 @@ if test_file is not None:
         st.markdown("### 📄 Predictions on Uploaded Test Data")
         st.dataframe(df_results)
 
-        csv = df_results.to_csv(index=False).encode("utf-8")
+        # Select file format
+        file_format = st.selectbox("Select file format for download:", ["CSV", "XLSX", "JSON"])
+
+        # Generate downloadable data based on selection
+        if file_format == "CSV":
+            file_data = df_results.to_csv(index=False).encode("utf-8")
+            file_name = "classified_results.csv"
+            mime_type = "text/csv"
+
+        elif file_format == "XLSX":
+            from io import BytesIO
+            buffer = BytesIO()
+            with pd.ExcelWriter(buffer, engine="xlsxwriter") as writer:
+                df_results.to_excel(writer, index=False, sheet_name="Predictions")
+                writer.save()
+            file_data = buffer.getvalue()
+            file_name = "classified_results.xlsx"
+            mime_type = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+
+        elif file_format == "JSON":
+            file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
+            file_name = "classified_results.json"
+            mime_type = "application/json"
+
+        # Download button
         st.download_button(
-            label="📥 Download Predictions as CSV",
-            data=csv,
-            file_name="classified_results.csv",
-            mime="text/csv",
+            label=f"📥 Download Predictions as {file_format}",
+            data=file_data,
+            file_name=file_name,
+            mime=mime_type,
         )
+
 
     except Exception as e:
         st.error(f"Error during prediction: {e}")
