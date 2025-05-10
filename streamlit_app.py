@@ -16,7 +16,7 @@ from sklearn.metrics import classification_report, accuracy_score
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppp")
+st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
 
 
@@ -236,6 +236,33 @@ if uploaded_file is not None:
         st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
         st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
 
+    # === Support Vector Machine (SVM) ===
+    from sklearn.svm import SVC
+
+    with st.expander("🔲 Support Vector Machine (SVM)"):
+        st.write("**Hyperparameters**")
+        svm_kernel = st.selectbox("SVM: Kernel", ['linear', 'rbf', 'poly', 'sigmoid'], index=1)
+        svm_C = st.slider("SVM: Regularization parameter (C)", 0.01, 10.0, 1.0)
+        svm_gamma = st.selectbox("SVM: Gamma", ['scale', 'auto'])
+
+        svm_model = SVC(
+            C=svm_C,
+            kernel=svm_kernel,
+            gamma=svm_gamma,
+            probability=True,
+            random_state=42
+        )
+        svm_model.fit(X_train_final, y_train)
+
+        y_pred_svm_train = svm_model.predict(X_train_final)
+        y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_svm_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_svm_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_svm_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_svm_train):.4f}")
 
 
 
@@ -256,6 +283,11 @@ if uploaded_file is not None:
 ##########################################################################################################################
 ######################################             Validation             ################################################
 ##########################################################################################################################
+
+
+
+
+
 
     # === Validation Metrics Summary ===
     st.subheader("📊 Final Validation Set Comparison (Full Metrics)")
@@ -279,6 +311,9 @@ if uploaded_file is not None:
     y_val_scores_pls = pls_model.predict(X_val_final).ravel()
     y_val_pred_pls = (y_val_scores_pls >= 0.5).astype(int)
 
+    y_val_pred_svm = svm_model.predict(X_val_final)
+    y_val_prob_svm = svm_model.predict_proba(X_val_final)[:, 1]
+
     # Helper function to compute metrics
     def compute_metrics(y_true, y_pred, y_prob, model_name):
         return {
@@ -297,7 +332,8 @@ if uploaded_file is not None:
         compute_metrics(y_val, y_val_pred_ridge, y_val_prob_ridge, "Ridge Logistic Regression"),
         compute_metrics(y_val, y_val_pred_lasso, y_val_prob_lasso, "Lasso Logistic Regression"),
         compute_metrics(y_val, y_val_pred_enet, y_val_prob_enet, "Elastic Net Logistic Regression"),
-        compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA")
+        compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA"),
+        compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine")
     ]
 
     # Create DataFrame and display
@@ -310,6 +346,10 @@ if uploaded_file is not None:
 ##########################################################################################################################
 ######################################         Final Test File             ###############################################
 ##########################################################################################################################
+
+
+
+
 
 
 
@@ -358,6 +398,7 @@ if uploaded_file is not None:
             test_pred_lasso = lasso_model.predict(df_test_transformed)
             test_pred_enet = enet_model.predict(df_test_transformed)
             test_scores_pls = pls_model.predict(df_test_transformed).ravel()
+            test_pred_svm = svm_model.predict(df_test_transformed)
 
 
             # Prediction Probabilities
@@ -367,6 +408,7 @@ if uploaded_file is not None:
             prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
             test_pred_pls = (test_scores_pls >= 0.5).astype(int)
+            prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
 
 
 
@@ -394,6 +436,9 @@ if uploaded_file is not None:
 
             df_results["PLSDA_Prediction"] = test_pred_pls
             df_results["PLSDA_Prob"] = test_scores_pls
+
+            df_results["SVM_Prediction"] = test_pred_svm
+            df_results["SVM_Prob"] = prob_pred_svm
 
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
