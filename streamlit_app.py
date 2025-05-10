@@ -102,6 +102,43 @@ if uploaded_file is not None:
         st.text("Classification Report (Training Set):")
         st.text(classification_report(y_train, y_pred_lr))
 
+    # === Ridge Logistic Regression ===
+    from sklearn.metrics import (
+        accuracy_score, precision_score, recall_score,
+        f1_score, roc_auc_score
+    )
+
+    with st.expander("🧱 Ridge Logistic Regression (L2)"):
+        st.write("**Hyperparameters**")
+        ridge_C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
+        ridge_max_iter = st.slider("Max iterations", 100, 2000, 1000)
+
+        ridge_model = LogisticRegression(
+            penalty='l2',
+            C=ridge_C,
+            solver='lbfgs',
+            max_iter=ridge_max_iter,
+            random_state=42
+        )
+        ridge_model.fit(X_train_final, y_train)
+
+        y_pred_ridge_train = ridge_model.predict(X_train_final)
+        y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
+
+
+
+
+
+
+
+
     # === Random Forest ===
     with st.expander("🌳 Random Forest"):
         st.write("**Hyperparameters**")
@@ -119,15 +156,24 @@ if uploaded_file is not None:
     st.subheader("📊 Final Validation Set Comparison")
     y_val_pred_lr = lr_model.predict(X_val_final)
     y_val_pred_rf = rf_model.predict(X_val_final)
+    y_val_pred_ridge = ridge_model.predict(X_val_final)
 
     acc_lr = accuracy_score(y_val, y_val_pred_lr)
     acc_rf = accuracy_score(y_val, y_val_pred_rf)
+    acc_ridge = accuracy_score(y_val, y_val_pred_ridge)
 
     summary_df = pd.DataFrame({
-        'Model': ['Logistic Regression', 'Random Forest'],
-        'Accuracy on Validation Set': [acc_lr, acc_rf]
+        'Model': ['Logistic Regression', 'Random Forest', 'Ridge Logistic Regression'],
+        'Accuracy on Validation Set': [acc_lr, acc_rf, acc_ridge]
     })
     st.dataframe(summary_df)
+
+
+
+
+
+
+    
     # === Final Test File Upload and Prediction ===
     st.markdown("## 🔍 Apply Models to New Test Data")
 
@@ -168,6 +214,7 @@ if uploaded_file is not None:
             # Make Predictions
             test_pred_lr = lr_model.predict(df_test_transformed)
             test_pred_rf = rf_model.predict(df_test_transformed)
+            test_pred_ridge = ridge_model.predict(df_test_transformed)
 
             # Combine predictions
             # Combine predictions (and reattach target column if present)
@@ -177,6 +224,7 @@ if uploaded_file is not None:
 
             df_results["Logistic_Prediction"] = test_pred_lr
             df_results["RandomForest_Prediction"] = test_pred_rf
+            df_results["Ridge_Prediction"] = test_pred_ridge
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
             st.dataframe(df_results)
