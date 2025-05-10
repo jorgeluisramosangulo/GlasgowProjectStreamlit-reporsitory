@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 
-st.title("🤖 Binary Classification Appppp")
+st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
 
 # === File Upload ===
@@ -152,8 +152,8 @@ if uploaded_file is not None:
         st.dataframe(df_test.head())
 
         # Drop target column if exists
-        if target_column in df_test.columns:
-            df_test = df_test.drop(columns=[target_column])
+        #if target_column in df_test.columns:
+        #    df_test = df_test.drop(columns=[target_column])
 
         try:
             if use_pca == "Yes":
