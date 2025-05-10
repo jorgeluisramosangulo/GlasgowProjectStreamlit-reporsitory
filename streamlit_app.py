@@ -73,6 +73,19 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
+    # Convert target to integer labels
+    y_raw = pd.factorize(y_raw)[0].astype('int64')  # Guarantees int64
+
+    # Handle categorical features (one-hot encoding)
+    X_encoded = pd.get_dummies(X_raw, drop_first=True)
+
+    # Ensure float64 type
+    X_encoded = X_encoded.astype('float64')
+
+    # Final cleaned features
+    X_raw = X_encoded
+
+
     # === Train/Validation Split ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
