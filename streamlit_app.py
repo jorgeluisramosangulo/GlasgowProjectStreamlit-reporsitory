@@ -24,7 +24,6 @@ st.markdown("""
 **Author:** Jorge Ramos  
 **Student ID:** 2599173  
 **Project:** MSc Data Analytics – Binary Classification Dashboard  
-This app allows users to upload a dataset, preprocess it, train several classification models (Logistic Regression, Ridge, Random Forest), and apply the models to new test data for prediction and export.
 """)
 
 st.info("This app builds a binary classification model using machine learning techniques.")
