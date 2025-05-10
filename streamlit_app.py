@@ -10,13 +10,14 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
+from sklearn.ensemble import GradientBoostingClassifier
 
 
 ##########################################################################################################################
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppp")
+st.title("🤖 Binary Classification App")
 st.info("This app builds a binary classification model!")
 
 
@@ -297,12 +298,6 @@ if uploaded_file is not None:
 
 
 
-
-
-
-
-
-
     # === Random Forest ===
     with st.expander("🌳 Random Forest"):
         st.write("**Hyperparameters**")
@@ -317,9 +312,50 @@ if uploaded_file is not None:
         st.text(classification_report(y_train, y_pred_rf))
 
 
+
+
+
+
+    # === Gradient Boosting Machine (GBM) ===
+    
+
+    with st.expander("🚀 Gradient Boosting Machine (GBM)"):
+        st.write("**Hyperparameters**")
+        gbm_n_estimators = st.slider("GBM: Number of Estimators", 10, 500, 100)
+        gbm_learning_rate = st.slider("GBM: Learning Rate", 0.01, 1.0, 0.1, step=0.01)
+        gbm_max_depth = st.slider("GBM: Max Depth", 1, 10, 3)
+        gbm_subsample = st.slider("GBM: Subsample", 0.1, 1.0, 1.0, step=0.1)
+        gbm_min_samples_split = st.slider("GBM: Min Samples Split", 2, 20, 2)
+        gbm_min_samples_leaf = st.slider("GBM: Min Samples Leaf", 1, 20, 1)
+
+        gbm_model = GradientBoostingClassifier(
+            n_estimators=gbm_n_estimators,
+            learning_rate=gbm_learning_rate,
+            max_depth=gbm_max_depth,
+            subsample=gbm_subsample,
+            min_samples_split=gbm_min_samples_split,
+            min_samples_leaf=gbm_min_samples_leaf,
+            random_state=42
+        )
+        gbm_model.fit(X_train_final, y_train)
+
+        y_pred_gbm_train = gbm_model.predict(X_train_final)
+        y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_gbm_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_gbm_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_gbm_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_gbm_train):.4f}")
+
+
+
 ##########################################################################################################################
 ######################################             Validation             ################################################
 ##########################################################################################################################
+
+
 
 
 
@@ -354,6 +390,11 @@ if uploaded_file is not None:
     y_val_pred_tree = tree_model.predict(X_val_final)
     y_val_prob_tree = tree_model.predict_proba(X_val_final)[:, 1]
 
+    y_val_pred_gbm = gbm_model.predict(X_val_final)
+    y_val_prob_gbm = gbm_model.predict_proba(X_val_final)[:, 1]
+
+
+
     # Helper function to compute metrics
     def compute_metrics(y_true, y_pred, y_prob, model_name):
         return {
@@ -374,7 +415,8 @@ if uploaded_file is not None:
         compute_metrics(y_val, y_val_pred_enet, y_val_prob_enet, "Elastic Net Logistic Regression"),
         compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA"),
         compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine"),
-        compute_metrics(y_val, y_val_pred_tree, y_val_prob_tree, "Decision Tree")
+        compute_metrics(y_val, y_val_pred_tree, y_val_prob_tree, "Decision Tree"),
+        compute_metrics(y_val, y_val_pred_gbm, y_val_prob_gbm, "Gradient Boosting")
     ]
 
     # Create DataFrame and display
@@ -390,6 +432,10 @@ if uploaded_file is not None:
 ##########################################################################################################################
 ######################################         Final Test File             ###############################################
 ##########################################################################################################################
+
+
+
+
 
 
 
@@ -448,6 +494,7 @@ if uploaded_file is not None:
             test_scores_pls = pls_model.predict(df_test_transformed).ravel()
             test_pred_svm = svm_model.predict(df_test_transformed)
             test_pred_tree = tree_model.predict(df_test_transformed)
+            test_pred_gbm = gbm_model.predict(df_test_transformed)
 
 
             # Prediction Probabilities
@@ -459,6 +506,7 @@ if uploaded_file is not None:
             test_pred_pls = (test_scores_pls >= 0.5).astype(int)
             prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
 
 
 
@@ -492,6 +540,9 @@ if uploaded_file is not None:
 
             df_results["DecisionTree_Prediction"] = test_pred_tree
             df_results["DecisionTree_Prob"] = prob_pred_tree
+
+            df_results["GBM_Prediction"] = test_pred_gbm
+            df_results["GBM_Prob"] = prob_pred_gbm
 
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
