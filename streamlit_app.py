@@ -128,9 +128,7 @@ if uploaded_file is not None:
         'Accuracy on Validation Set': [acc_lr, acc_rf]
     })
     st.dataframe(summary_df)
-
-
-# === Final Test File Upload and Prediction ===
+    # === Final Test File Upload and Prediction ===
     st.markdown("## 🔍 Apply Models to New Test Data")
 
     test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
