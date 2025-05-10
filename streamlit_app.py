@@ -82,9 +82,18 @@ if uploaded_file is not None:
     # Ensure float64 type
     X_encoded = X_encoded.astype('float64')
 
+
+
     # Final cleaned features
     X_raw = X_encoded
 
+    # Check for and remove rows with missing or infinite values
+    X_raw.replace([np.inf, -np.inf], np.nan, inplace=True)
+    invalid_rows = X_raw.isnull().any(axis=1)
+    if invalid_rows.any():
+        st.warning(f"⚠️ Removed {invalid_rows.sum()} rows with NaNs or infinite values.")
+        X_raw = X_raw[~invalid_rows]
+        y_raw = y_raw[~invalid_rows]
 
     # === Train/Validation Split ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
