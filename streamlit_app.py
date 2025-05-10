@@ -11,7 +11,7 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppp")
 st.info("This app builds a binary classification model!")
 
 # === File Upload ===
