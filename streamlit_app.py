@@ -11,13 +11,14 @@ from sklearn.ensemble import RandomForestClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.ensemble import GradientBoostingClassifier
+from sklearn.neural_network import MLPClassifier
 
 
 ##########################################################################################################################
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppppp")
 st.info("This app builds a binary classification model!")
 
 
@@ -351,14 +352,46 @@ if uploaded_file is not None:
 
 
 
+    # === Neural Network (MLPClassifier) ===
+    
+
+    with st.expander("🧠 Neural Network (MLPClassifier)"):
+        st.write("**Hyperparameters**")
+        
+        nn_hidden_units = st.number_input("NN: Units in Hidden Layer", min_value=1, max_value=500, value=50)
+        nn_activation = st.selectbox("NN: Activation Function", ['relu', 'logistic', 'tanh'])
+        nn_solver = st.selectbox("NN: Solver", ['adam', 'sgd', 'lbfgs'])
+        nn_alpha = st.number_input("NN: L2 Penalty (alpha)", value=0.0001, format="%.5f")
+        nn_learning_rate_init = st.number_input("NN: Initial Learning Rate", value=0.001, format="%.5f")
+        nn_max_iter = st.slider("NN: Max Iterations", 100, 2000, 1000)
+
+        nn_model = MLPClassifier(
+            hidden_layer_sizes=(nn_hidden_units,),
+            activation=nn_activation,
+            solver=nn_solver,
+            alpha=nn_alpha,
+            learning_rate_init=nn_learning_rate_init,
+            max_iter=nn_max_iter,
+            random_state=42
+        )
+        nn_model.fit(X_train_final, y_train)
+
+        y_pred_nn_train = nn_model.predict(X_train_final)
+        y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
+
+        st.markdown("**📊 Training Set Performance**")
+        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
+        st.text(f"Precision: {precision_score(y_train, y_pred_nn_train):.4f}")
+        st.text(f"Recall:    {recall_score(y_train, y_pred_nn_train):.4f}")
+        st.text(f"F1-Score:  {f1_score(y_train, y_pred_nn_train):.4f}")
+        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
+
+
+
+
 ##########################################################################################################################
 ######################################             Validation             ################################################
 ##########################################################################################################################
-
-
-
-
-
 
 
 
@@ -393,6 +426,9 @@ if uploaded_file is not None:
     y_val_pred_gbm = gbm_model.predict(X_val_final)
     y_val_prob_gbm = gbm_model.predict_proba(X_val_final)[:, 1]
 
+    y_val_pred_nn = nn_model.predict(X_val_final)
+    y_val_prob_nn = nn_model.predict_proba(X_val_final)[:, 1]
+
 
 
     # Helper function to compute metrics
@@ -416,7 +452,8 @@ if uploaded_file is not None:
         compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA"),
         compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine"),
         compute_metrics(y_val, y_val_pred_tree, y_val_prob_tree, "Decision Tree"),
-        compute_metrics(y_val, y_val_pred_gbm, y_val_prob_gbm, "Gradient Boosting")
+        compute_metrics(y_val, y_val_pred_gbm, y_val_prob_gbm, "Gradient Boosting"),
+        compute_metrics(y_val, y_val_pred_nn, y_val_prob_nn, "Neural Network")
     ]
 
     # Create DataFrame and display
@@ -432,19 +469,6 @@ if uploaded_file is not None:
 ##########################################################################################################################
 ######################################         Final Test File             ###############################################
 ##########################################################################################################################
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
     
@@ -495,6 +519,8 @@ if uploaded_file is not None:
             test_pred_svm = svm_model.predict(df_test_transformed)
             test_pred_tree = tree_model.predict(df_test_transformed)
             test_pred_gbm = gbm_model.predict(df_test_transformed)
+            test_pred_nn = nn_model.predict(df_test_transformed)
+
 
 
             # Prediction Probabilities
@@ -507,6 +533,7 @@ if uploaded_file is not None:
             prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
             prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
+            prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
 
 
 
@@ -544,6 +571,8 @@ if uploaded_file is not None:
             df_results["GBM_Prediction"] = test_pred_gbm
             df_results["GBM_Prob"] = prob_pred_gbm
 
+            df_results["NN_Prediction"] = test_pred_nn
+            df_results["NN_Prob"] = prob_pred_nn
 
             st.markdown("### 📄 Predictions on Uploaded Test Data")
             st.dataframe(df_results)
