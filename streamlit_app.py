@@ -16,7 +16,7 @@ from sklearn.metrics import classification_report, accuracy_score
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appp")
 st.info("This app builds a binary classification model!")
 
 
