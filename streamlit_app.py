@@ -26,7 +26,7 @@ st.markdown("""
 **Project:** MSc Data Analytics – Binary Classification Dashboard  
 """)
 
-st.info("This app builds a binary classification model using machine learning techniques.")
+st.info("This app builds a binary classification model using 10 different machine learning different.")
 
 
 
