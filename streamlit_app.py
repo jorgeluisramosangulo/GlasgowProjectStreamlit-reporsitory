@@ -18,7 +18,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
