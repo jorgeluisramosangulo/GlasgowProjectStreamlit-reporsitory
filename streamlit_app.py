@@ -134,6 +134,26 @@ if uploaded_file is not None:
         n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
 
         pca = PCA(n_components=n_components)
+
+        # Get column names of the numeric features used
+        numeric_cols = X_train.select_dtypes(include=np.number).columns
+
+        # Fit PCA
+        pca = PCA(n_components=n_components)
+        X_train_pca = pca.fit_transform(X_train_scaled)
+
+        # Create a DataFrame showing how each original feature loads onto each PC
+        pca_components_df = pd.DataFrame(
+            pca.components_.T,
+            index=numeric_cols,
+            columns=[f'PC{i+1}' for i in range(n_components)]
+        )
+
+        st.markdown("### 🔍 PCA Component Loadings")
+        st.dataframe(pca_components_df.style.format("{:.3f}"))
+
+
+
         X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
         X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
         st.dataframe(X_train_final.head())
