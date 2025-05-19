@@ -109,28 +109,31 @@ if uploaded_file is not None:
     st.markdown("#### 📊 Data Type Frequency")
     st.dataframe(dtype_counts_df)
 
+    # === Target Selection ===
+    st.markdown("### 🎯 Step 2: Select Target Column")
+
     if "target_confirmed" not in st.session_state:
         st.session_state["target_confirmed"] = False
+    if "target_column" not in st.session_state:
+        st.session_state["target_column"] = None
 
-        # === Target Selection ===
-        st.markdown("### 🎯 Step 2: Select Target Column")
+    # UI
+    target_column_input = st.selectbox("Select the target column:", df.columns)
 
-        target_column = st.selectbox("Select the target column:", df.columns)
+    if st.button("✅ Confirm Target Selection"):
+        st.session_state["target_column"] = target_column_input
+        st.session_state["target_confirmed"] = True
+        st.rerun()
 
-        confirm_target = st.button("✅ Confirm Target Selection")
+    if not st.session_state["target_confirmed"]:
+        st.info("👈 Please confirm target column to continue.")
+        st.stop()
 
-        if confirm_target and target_column:
-            st.session_state["target_column"] = target_column
-            st.session_state["target_confirmed"] = True
-            st.rerun()
+    # ✅ Use confirmed value
+    target_column = st.session_state["target_column"]
+    X_raw = df.drop(columns=[target_column])
+    y_raw = df[target_column]
 
-        if not st.session_state["target_confirmed"]:
-            st.info("👈 Please confirm target column to continue.")
-            st.stop()
-
-        # Use confirmed value
-        X_raw = df.drop(columns=[st.session_state["target_column"]])
-        y_raw = df[st.session_state["target_column"]]
 
 
     # After confirmation, split data
