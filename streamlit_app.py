@@ -18,7 +18,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -188,202 +188,241 @@ if uploaded_file is not None:
 ###########################    Machine Learning Methods for Binary Classification     ####################################
 ##########################################################################################################################
 
-    # === Logistic Regression ===
-    with st.expander("📊 Logistic Regression"):
-        st.write("**Hyperparameters**")
-        C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
-        max_iter = st.slider("Max iterations", 100, 1000, 100)
+    # === Model Selection ===
+    st.markdown("### 🧠 Select ML Models to Train")
 
-        lr_model = LogisticRegression(C=C, max_iter=max_iter)
-        lr_model.fit(X_train_final, y_train)
+    all_models = [
+        "Logistic Regression",
+        "Ridge Logistic Regression",
+        "Lasso Logistic Regression",
+        "ElasticNet Logistic Regression",
+        "Random Forest",
+        "Decision Tree",
+        "Support Vector Machine",
+        "Gradient Boosting",
+        "PLS-DA",
+        "Neural Network"
+    ]
 
-        y_pred_lr = lr_model.predict(X_train_final)
-        st.text("Classification Report (Training Set):")
-        st.text(classification_report(y_train, y_pred_lr))
-
-    # === Ridge Logistic Regression ===
-    from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, roc_auc_score
+    selected_models = st.multiselect(
+        "Select models to include:",
+        options=all_models,
+        default=all_models  # or just a few preselected ones
     )
 
-    with st.expander("🧱 Ridge Logistic Regression (L2)"):
-        st.write("**Hyperparameters**")
-        ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0)
-        ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000)
+    if not selected_models:
+        st.warning("⚠️ Please select at least one model to proceed.")
+        st.stop()
 
-        ridge_model = LogisticRegression(
-            penalty='l2',
-            C=ridge_C,
-            solver='lbfgs',
-            max_iter=ridge_max_iter,
-            random_state=42
+    # Store in session state for later use in test file predictions
+    st.session_state["selected_models"] = selected_models
+
+
+
+    # === Logistic Regression ===
+    if "Logistic Regression" in selected_models:
+        with st.expander("📊 Logistic Regression"):
+            st.write("**Hyperparameters**")
+            C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0)
+            max_iter = st.slider("Max iterations", 100, 1000, 100)
+
+            lr_model = LogisticRegression(C=C, max_iter=max_iter)
+            lr_model.fit(X_train_final, y_train)
+
+            y_pred_lr = lr_model.predict(X_train_final)
+            st.text("Classification Report (Training Set):")
+            st.text(classification_report(y_train, y_pred_lr))
+
+    # === Ridge Logistic Regression ===
+    if "Ridge Logistic Regression" in selected_models:
+        from sklearn.metrics import (
+            accuracy_score, precision_score, recall_score,
+            f1_score, roc_auc_score
         )
-        ridge_model.fit(X_train_final, y_train)
 
-        y_pred_ridge_train = ridge_model.predict(X_train_final)
-        y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
+        with st.expander("🧱 Ridge Logistic Regression (L2)"):
+            st.write("**Hyperparameters**")
+            ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0)
+            ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000)
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
+            ridge_model = LogisticRegression(
+                penalty='l2',
+                C=ridge_C,
+                solver='lbfgs',
+                max_iter=ridge_max_iter,
+                random_state=42
+            )
+            ridge_model.fit(X_train_final, y_train)
+
+            y_pred_ridge_train = ridge_model.predict(X_train_final)
+            y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
 
 
     # === Lasso Logistic Regression ===
-    from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, roc_auc_score
-    )
-
-    with st.expander("🧊 Lasso Logistic Regression (L1)"):
-        st.write("**Hyperparameters**")
-        lasso_C = st.slider("Lasso: Regularization strength (C)", 0.01, 10.0, 1.0)
-        lasso_max_iter = st.slider("Lasso: Max iterations", 100, 2000, 1000)
-
-        lasso_model = LogisticRegression(
-            penalty='l1',
-            C=lasso_C,
-            solver='liblinear',  # 'liblinear' supports L1
-            max_iter=lasso_max_iter,
-            random_state=42
+    if "Lasso Logistic Regression" in selected_models:
+        from sklearn.metrics import (
+            accuracy_score, precision_score, recall_score,
+            f1_score, roc_auc_score
         )
-        lasso_model.fit(X_train_final, y_train)
 
-        # Training performance
-        y_pred_lasso_train = lasso_model.predict(X_train_final)
-        y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+        with st.expander("🧊 Lasso Logistic Regression (L1)"):
+            st.write("**Hyperparameters**")
+            lasso_C = st.slider("Lasso: Regularization strength (C)", 0.01, 10.0, 1.0)
+            lasso_max_iter = st.slider("Lasso: Max iterations", 100, 2000, 1000)
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_lasso_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_lasso_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
+            lasso_model = LogisticRegression(
+                penalty='l1',
+                C=lasso_C,
+                solver='liblinear',  # 'liblinear' supports L1
+                max_iter=lasso_max_iter,
+                random_state=42
+            )
+            lasso_model.fit(X_train_final, y_train)
+
+            # Training performance
+            y_pred_lasso_train = lasso_model.predict(X_train_final)
+            y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
 
     # === Elastic Net Logistic Regression ===
-    with st.expander("🧬 Elastic Net Logistic Regression"):
-        st.write("**Hyperparameters**")
-        enet_C = st.slider("Elastic Net: Regularization strength (C)", 0.01, 10.0, 1.0)
-        enet_max_iter = st.slider("Elastic Net: Max iterations", 100, 2000, 1000)
-        enet_l1_ratio = st.slider("Elastic Net: L1 Ratio (0=L2, 1=L1)", 0.0, 1.0, 0.5)
+    if "ElasticNet Logistic Regression" in selected_models:
+        with st.expander("🧬 Elastic Net Logistic Regression"):
+            st.write("**Hyperparameters**")
+            enet_C = st.slider("Elastic Net: Regularization strength (C)", 0.01, 10.0, 1.0)
+            enet_max_iter = st.slider("Elastic Net: Max iterations", 100, 2000, 1000)
+            enet_l1_ratio = st.slider("Elastic Net: L1 Ratio (0=L2, 1=L1)", 0.0, 1.0, 0.5)
 
-        enet_model = LogisticRegression(
-            penalty='elasticnet',
-            C=enet_C,
-            l1_ratio=enet_l1_ratio,
-            solver='saga',  # 'saga' supports elasticnet
-            max_iter=enet_max_iter,
-            random_state=42
-        )
-        enet_model.fit(X_train_final, y_train)
+            enet_model = LogisticRegression(
+                penalty='elasticnet',
+                C=enet_C,
+                l1_ratio=enet_l1_ratio,
+                solver='saga',  # 'saga' supports elasticnet
+                max_iter=enet_max_iter,
+                random_state=42
+            )
+            enet_model.fit(X_train_final, y_train)
 
-        # Training performance
-        y_pred_enet_train = enet_model.predict(X_train_final)
-        y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
+            # Training performance
+            y_pred_enet_train = enet_model.predict(X_train_final)
+            y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_enet_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_enet_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
 
     # === Partial Least Squares Discriminant Analysis (PLS-DA) ===
-    from sklearn.cross_decomposition import PLSRegression
+    if "PLS-DA" in selected_models:
+        from sklearn.cross_decomposition import PLSRegression
 
-    with st.expander("🧪 Partial Least Squares Discriminant Analysis (PLS-DA)"):
-        pls_n_components = st.slider("PLS-DA: Number of Components", 1, min(X_train_final.shape[1], 10), 2)
+        with st.expander("🧪 Partial Least Squares Discriminant Analysis (PLS-DA)"):
+            pls_n_components = st.slider("PLS-DA: Number of Components", 1, min(X_train_final.shape[1], 10), 2)
 
-        pls_model = PLSRegression(n_components=pls_n_components)
-        pls_model.fit(X_train_final, y_train)
+            pls_model = PLSRegression(n_components=pls_n_components)
+            pls_model.fit(X_train_final, y_train)
 
-        # Training performance
-        y_scores_train_pls = pls_model.predict(X_train_final).ravel()
-        y_pred_train_pls = (y_scores_train_pls >= 0.5).astype(int)
+            # Training performance
+            y_scores_train_pls = pls_model.predict(X_train_final).ravel()
+            y_pred_train_pls = (y_scores_train_pls >= 0.5).astype(int)
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_pls):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_train_pls):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
 
     # === Support Vector Machine (SVM) ===
-    from sklearn.svm import SVC
+    if "Support Vector Machine" in selected_models:
+        from sklearn.svm import SVC
 
-    with st.expander("🔲 Support Vector Machine (SVM)"):
-        st.write("**Hyperparameters**")
-        svm_kernel = st.selectbox("SVM: Kernel", ['linear', 'rbf', 'poly', 'sigmoid'], index=1)
-        svm_C = st.slider("SVM: Regularization parameter (C)", 0.01, 10.0, 1.0)
-        svm_gamma = st.selectbox("SVM: Gamma", ['scale', 'auto'])
+        with st.expander("🔲 Support Vector Machine (SVM)"):
+            st.write("**Hyperparameters**")
+            svm_kernel = st.selectbox("SVM: Kernel", ['linear', 'rbf', 'poly', 'sigmoid'], index=1)
+            svm_C = st.slider("SVM: Regularization parameter (C)", 0.01, 10.0, 1.0)
+            svm_gamma = st.selectbox("SVM: Gamma", ['scale', 'auto'])
 
-        svm_model = SVC(
-            C=svm_C,
-            kernel=svm_kernel,
-            gamma=svm_gamma,
-            probability=True,
-            random_state=42
-        )
-        svm_model.fit(X_train_final, y_train)
+            svm_model = SVC(
+                C=svm_C,
+                kernel=svm_kernel,
+                gamma=svm_gamma,
+                probability=True,
+                random_state=42
+            )
+            svm_model.fit(X_train_final, y_train)
 
-        y_pred_svm_train = svm_model.predict(X_train_final)
-        y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
+            y_pred_svm_train = svm_model.predict(X_train_final)
+            y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_svm_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_svm_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_svm_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_svm_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_svm_train):.4f}")
 
 
 
     # === Decision Tree Classifier ===
-    from sklearn.tree import DecisionTreeClassifier
+    if "Decision Tree" in selected_models:
+        from sklearn.tree import DecisionTreeClassifier
 
-    with st.expander("🌲 Decision Tree"):
-        st.write("**Hyperparameters**")
-        tree_max_depth = st.slider("Decision Tree: Max Depth", 1, 20, 5)
-        tree_min_samples_split = st.slider("Decision Tree: Min Samples Split", 2, 20, 2)
-        tree_min_samples_leaf = st.slider("Decision Tree: Min Samples Leaf", 1, 20, 1)
-        tree_criterion = st.selectbox("Decision Tree: Criterion", ['gini', 'entropy'])
+        with st.expander("🌲 Decision Tree"):
+            st.write("**Hyperparameters**")
+            tree_max_depth = st.slider("Decision Tree: Max Depth", 1, 20, 5)
+            tree_min_samples_split = st.slider("Decision Tree: Min Samples Split", 2, 20, 2)
+            tree_min_samples_leaf = st.slider("Decision Tree: Min Samples Leaf", 1, 20, 1)
+            tree_criterion = st.selectbox("Decision Tree: Criterion", ['gini', 'entropy'])
 
-        tree_model = DecisionTreeClassifier(
-            max_depth=tree_max_depth,
-            min_samples_split=tree_min_samples_split,
-            min_samples_leaf=tree_min_samples_leaf,
-            criterion=tree_criterion,
-            random_state=42
-        )
-        tree_model.fit(X_train_final, y_train)
+            tree_model = DecisionTreeClassifier(
+                max_depth=tree_max_depth,
+                min_samples_split=tree_min_samples_split,
+                min_samples_leaf=tree_min_samples_leaf,
+                criterion=tree_criterion,
+                random_state=42
+            )
+            tree_model.fit(X_train_final, y_train)
 
-        y_pred_tree_train = tree_model.predict(X_train_final)
-        y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
+            y_pred_tree_train = tree_model.predict(X_train_final)
+            y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
 
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_tree_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_tree_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_tree_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_tree_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_tree_train):.4f}")
 
 
 
     # === Random Forest ===
-    with st.expander("🌳 Random Forest"):
-        st.write("**Hyperparameters**")
-        n_estimators = st.slider("Number of trees", 10, 200, 100)
-        max_depth = st.slider("Max depth", 1, 20, 5)
+    if "Random Forest" in selected_models:
+        with st.expander("🌳 Random Forest"):
+            st.write("**Hyperparameters**")
+            n_estimators = st.slider("Number of trees", 10, 200, 100)
+            max_depth = st.slider("Max depth", 1, 20, 5)
 
-        rf_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
-        rf_model.fit(X_train_final, y_train)
+            rf_model = RandomForestClassifier(n_estimators=n_estimators, max_depth=max_depth, random_state=42)
+            rf_model.fit(X_train_final, y_train)
 
-        y_pred_rf = rf_model.predict(X_train_final)
-        st.text("Classification Report (Training Set):")
-        st.text(classification_report(y_train, y_pred_rf))
+            y_pred_rf = rf_model.predict(X_train_final)
+            st.text("Classification Report (Training Set):")
+            st.text(classification_report(y_train, y_pred_rf))
 
 
 
@@ -391,73 +430,71 @@ if uploaded_file is not None:
 
 
     # === Gradient Boosting Machine (GBM) ===
-    
+    if "Gradient Boosting" in selected_models:
+        with st.expander("🚀 Gradient Boosting Machine (GBM)"):
+            st.write("**Hyperparameters**")
+            gbm_n_estimators = st.slider("GBM: Number of Estimators", 10, 500, 100)
+            gbm_learning_rate = st.slider("GBM: Learning Rate", 0.01, 1.0, 0.1, step=0.01)
+            gbm_max_depth = st.slider("GBM: Max Depth", 1, 10, 3)
+            gbm_subsample = st.slider("GBM: Subsample", 0.1, 1.0, 1.0, step=0.1)
+            gbm_min_samples_split = st.slider("GBM: Min Samples Split", 2, 20, 2)
+            gbm_min_samples_leaf = st.slider("GBM: Min Samples Leaf", 1, 20, 1)
 
-    with st.expander("🚀 Gradient Boosting Machine (GBM)"):
-        st.write("**Hyperparameters**")
-        gbm_n_estimators = st.slider("GBM: Number of Estimators", 10, 500, 100)
-        gbm_learning_rate = st.slider("GBM: Learning Rate", 0.01, 1.0, 0.1, step=0.01)
-        gbm_max_depth = st.slider("GBM: Max Depth", 1, 10, 3)
-        gbm_subsample = st.slider("GBM: Subsample", 0.1, 1.0, 1.0, step=0.1)
-        gbm_min_samples_split = st.slider("GBM: Min Samples Split", 2, 20, 2)
-        gbm_min_samples_leaf = st.slider("GBM: Min Samples Leaf", 1, 20, 1)
+            gbm_model = GradientBoostingClassifier(
+                n_estimators=gbm_n_estimators,
+                learning_rate=gbm_learning_rate,
+                max_depth=gbm_max_depth,
+                subsample=gbm_subsample,
+                min_samples_split=gbm_min_samples_split,
+                min_samples_leaf=gbm_min_samples_leaf,
+                random_state=42
+            )
+            gbm_model.fit(X_train_final, y_train)
 
-        gbm_model = GradientBoostingClassifier(
-            n_estimators=gbm_n_estimators,
-            learning_rate=gbm_learning_rate,
-            max_depth=gbm_max_depth,
-            subsample=gbm_subsample,
-            min_samples_split=gbm_min_samples_split,
-            min_samples_leaf=gbm_min_samples_leaf,
-            random_state=42
-        )
-        gbm_model.fit(X_train_final, y_train)
+            y_pred_gbm_train = gbm_model.predict(X_train_final)
+            y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
 
-        y_pred_gbm_train = gbm_model.predict(X_train_final)
-        y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
-
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_gbm_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_gbm_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_gbm_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_gbm_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_gbm_train):.4f}")
 
 
 
     # === Neural Network (MLPClassifier) ===
-    
+    if "Neural Network" in selected_models:
+        with st.expander("🧠 Neural Network (MLPClassifier)"):
+            st.write("**Hyperparameters**")
+            
+            nn_hidden_units = st.number_input("NN: Units in Hidden Layer", min_value=1, max_value=500, value=50)
+            nn_activation = st.selectbox("NN: Activation Function", ['relu', 'logistic', 'tanh'])
+            nn_solver = st.selectbox("NN: Solver", ['adam', 'sgd', 'lbfgs'])
+            nn_alpha = st.number_input("NN: L2 Penalty (alpha)", value=0.0001, format="%.5f")
+            nn_learning_rate_init = st.number_input("NN: Initial Learning Rate", value=0.001, format="%.5f")
+            nn_max_iter = st.slider("NN: Max Iterations", 100, 2000, 1000)
 
-    with st.expander("🧠 Neural Network (MLPClassifier)"):
-        st.write("**Hyperparameters**")
-        
-        nn_hidden_units = st.number_input("NN: Units in Hidden Layer", min_value=1, max_value=500, value=50)
-        nn_activation = st.selectbox("NN: Activation Function", ['relu', 'logistic', 'tanh'])
-        nn_solver = st.selectbox("NN: Solver", ['adam', 'sgd', 'lbfgs'])
-        nn_alpha = st.number_input("NN: L2 Penalty (alpha)", value=0.0001, format="%.5f")
-        nn_learning_rate_init = st.number_input("NN: Initial Learning Rate", value=0.001, format="%.5f")
-        nn_max_iter = st.slider("NN: Max Iterations", 100, 2000, 1000)
+            nn_model = MLPClassifier(
+                hidden_layer_sizes=(nn_hidden_units,),
+                activation=nn_activation,
+                solver=nn_solver,
+                alpha=nn_alpha,
+                learning_rate_init=nn_learning_rate_init,
+                max_iter=nn_max_iter,
+                random_state=42
+            )
+            nn_model.fit(X_train_final, y_train)
 
-        nn_model = MLPClassifier(
-            hidden_layer_sizes=(nn_hidden_units,),
-            activation=nn_activation,
-            solver=nn_solver,
-            alpha=nn_alpha,
-            learning_rate_init=nn_learning_rate_init,
-            max_iter=nn_max_iter,
-            random_state=42
-        )
-        nn_model.fit(X_train_final, y_train)
+            y_pred_nn_train = nn_model.predict(X_train_final)
+            y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
 
-        y_pred_nn_train = nn_model.predict(X_train_final)
-        y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
-
-        st.markdown("**📊 Training Set Performance**")
-        st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
-        st.text(f"Precision: {precision_score(y_train, y_pred_nn_train):.4f}")
-        st.text(f"Recall:    {recall_score(y_train, y_pred_nn_train):.4f}")
-        st.text(f"F1-Score:  {f1_score(y_train, y_pred_nn_train):.4f}")
-        st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
 
 
 
@@ -468,43 +505,66 @@ if uploaded_file is not None:
 
 
 
-    # === Validation Metrics Summary ===
     st.subheader("📊 Final Validation Set Comparison (Full Metrics)")
 
-    # Get predictions and probabilities for all models
-    y_val_pred_lr = lr_model.predict(X_val_final)
-    y_val_prob_lr = lr_model.predict_proba(X_val_final)[:, 1]
+    # Retrieve selected models
+    selected_models = st.session_state.get("selected_models", [])
 
-    y_val_pred_rf = rf_model.predict(X_val_final)
-    y_val_prob_rf = rf_model.predict_proba(X_val_final)[:, 1]
+    # Define dictionary to store predictions and probabilities
+    val_predictions = {}
 
-    y_val_pred_ridge = ridge_model.predict(X_val_final)
-    y_val_prob_ridge = ridge_model.predict_proba(X_val_final)[:, 1]
+    # === Conditional Predictions by Model ===
+    if "Logistic Regression" in selected_models:
+        y_val_pred_lr = lr_model.predict(X_val_final)
+        y_val_prob_lr = lr_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Logistic Regression"] = (y_val_pred_lr, y_val_prob_lr)
 
-    y_val_pred_lasso = lasso_model.predict(X_val_final)
-    y_val_prob_lasso = lasso_model.predict_proba(X_val_final)[:, 1]
+    if "Random Forest" in selected_models:
+        y_val_pred_rf = rf_model.predict(X_val_final)
+        y_val_prob_rf = rf_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Random Forest"] = (y_val_pred_rf, y_val_prob_rf)
 
-    y_val_pred_enet = enet_model.predict(X_val_final)
-    y_val_prob_enet = enet_model.predict_proba(X_val_final)[:, 1]
+    if "Ridge Logistic Regression" in selected_models:
+        y_val_pred_ridge = ridge_model.predict(X_val_final)
+        y_val_prob_ridge = ridge_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Ridge Logistic Regression"] = (y_val_pred_ridge, y_val_prob_ridge)
 
-    y_val_scores_pls = pls_model.predict(X_val_final).ravel()
-    y_val_pred_pls = (y_val_scores_pls >= 0.5).astype(int)
+    if "Lasso Logistic Regression" in selected_models:
+        y_val_pred_lasso = lasso_model.predict(X_val_final)
+        y_val_prob_lasso = lasso_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Lasso Logistic Regression"] = (y_val_pred_lasso, y_val_prob_lasso)
 
-    y_val_pred_svm = svm_model.predict(X_val_final)
-    y_val_prob_svm = svm_model.predict_proba(X_val_final)[:, 1]
+    if "ElasticNet Logistic Regression" in selected_models:
+        y_val_pred_enet = enet_model.predict(X_val_final)
+        y_val_prob_enet = enet_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Elastic Net Logistic Regression"] = (y_val_pred_enet, y_val_prob_enet)
 
-    y_val_pred_tree = tree_model.predict(X_val_final)
-    y_val_prob_tree = tree_model.predict_proba(X_val_final)[:, 1]
+    if "PLS-DA" in selected_models:
+        y_val_scores_pls = pls_model.predict(X_val_final).ravel()
+        y_val_pred_pls = (y_val_scores_pls >= 0.5).astype(int)
+        val_predictions["PLS-DA"] = (y_val_pred_pls, y_val_scores_pls)
 
-    y_val_pred_gbm = gbm_model.predict(X_val_final)
-    y_val_prob_gbm = gbm_model.predict_proba(X_val_final)[:, 1]
+    if "Support Vector Machine" in selected_models:
+        y_val_pred_svm = svm_model.predict(X_val_final)
+        y_val_prob_svm = svm_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Support Vector Machine"] = (y_val_pred_svm, y_val_prob_svm)
 
-    y_val_pred_nn = nn_model.predict(X_val_final)
-    y_val_prob_nn = nn_model.predict_proba(X_val_final)[:, 1]
+    if "Decision Tree" in selected_models:
+        y_val_pred_tree = tree_model.predict(X_val_final)
+        y_val_prob_tree = tree_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Decision Tree"] = (y_val_pred_tree, y_val_prob_tree)
 
+    if "Gradient Boosting" in selected_models:
+        y_val_pred_gbm = gbm_model.predict(X_val_final)
+        y_val_prob_gbm = gbm_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Gradient Boosting"] = (y_val_pred_gbm, y_val_prob_gbm)
 
+    if "Neural Network" in selected_models:
+        y_val_pred_nn = nn_model.predict(X_val_final)
+        y_val_prob_nn = nn_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Neural Network"] = (y_val_pred_nn, y_val_prob_nn)
 
-    # Helper function to compute metrics
+    # === Helper to compute metrics ===
     def compute_metrics(y_true, y_pred, y_prob, model_name):
         return {
             'Model': model_name,
@@ -515,26 +575,18 @@ if uploaded_file is not None:
             'AUC': roc_auc_score(y_true, y_prob)
         }
 
-    # Collect metrics for each model
-    metrics = [
-        compute_metrics(y_val, y_val_pred_lr, y_val_prob_lr, "Logistic Regression"),
-        compute_metrics(y_val, y_val_pred_rf, y_val_prob_rf, "Random Forest"),
-        compute_metrics(y_val, y_val_pred_ridge, y_val_prob_ridge, "Ridge Logistic Regression"),
-        compute_metrics(y_val, y_val_pred_lasso, y_val_prob_lasso, "Lasso Logistic Regression"),
-        compute_metrics(y_val, y_val_pred_enet, y_val_prob_enet, "Elastic Net Logistic Regression"),
-        compute_metrics(y_val, y_val_pred_pls, y_val_scores_pls, "PLS-DA"),
-        compute_metrics(y_val, y_val_pred_svm, y_val_prob_svm, "Support Vector Machine"),
-        compute_metrics(y_val, y_val_pred_tree, y_val_prob_tree, "Decision Tree"),
-        compute_metrics(y_val, y_val_pred_gbm, y_val_prob_gbm, "Gradient Boosting"),
-        compute_metrics(y_val, y_val_pred_nn, y_val_prob_nn, "Neural Network")
-    ]
+    # === Build metrics list dynamically ===
+    metrics = []
+    for model_name, (y_pred, y_prob) in val_predictions.items():
+        metrics.append(compute_metrics(y_val, y_pred, y_prob, model_name))
 
-    # Create DataFrame and display
+    # === Display ===
     summary_df = pd.DataFrame(metrics)
     st.dataframe(summary_df.style.format({
-        "Accuracy": "{:.4f}", "Precision": "{:.4f}", 
+        "Accuracy": "{:.4f}", "Precision": "{:.4f}",
         "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
     }))
+
 
 
 
@@ -633,64 +685,76 @@ if test_file is not None:
         else:
             df_test_transformed = df_test_encoded.copy()
 
-        # === Predictions ===
-        test_pred_lr = lr_model.predict(df_test_transformed)
-        test_pred_rf = rf_model.predict(df_test_transformed)
-        test_pred_ridge = ridge_model.predict(df_test_transformed)
-        test_pred_lasso = lasso_model.predict(df_test_transformed)
-        test_pred_enet = enet_model.predict(df_test_transformed)
-        test_scores_pls = pls_model.predict(df_test_transformed).ravel()
-        test_pred_pls = (test_scores_pls >= 0.5).astype(int)
-        test_pred_svm = svm_model.predict(df_test_transformed)
-        test_pred_tree = tree_model.predict(df_test_transformed)
-        test_pred_gbm = gbm_model.predict(df_test_transformed)
-        test_pred_nn = nn_model.predict(df_test_transformed)
+        # === Retrieve selected models ===
+        selected_models = st.session_state.get("selected_models", [])
 
-        # === Probabilities ===
-        prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
-        prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
-
-        # === Build Final Results DataFrame ===
+        # === Initialize results DataFrame ===
         df_results = df_test_original.copy()
         if target_column_present:
             df_results[target_column] = df_test_target
 
-        df_results["Logistic_Prediction"] = test_pred_lr
-        df_results["Logistic_Prob"] = prob_pred_lr
+        # === Make Predictions and Add Columns Dynamically ===
 
-        df_results["RandomForest_Prediction"] = test_pred_rf
-        df_results["RandomForest_Prob"] = prob_pred_rf
+        if "Logistic Regression" in selected_models:
+            test_pred_lr = lr_model.predict(df_test_transformed)
+            prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["Logistic_Prediction"] = test_pred_lr
+            df_results["Logistic_Prob"] = prob_pred_lr
 
-        df_results["Ridge_Prediction"] = test_pred_ridge
-        df_results["Ridge_Prob"] = prob_pred_ridge
+        if "Random Forest" in selected_models:
+            test_pred_rf = rf_model.predict(df_test_transformed)
+            prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["RandomForest_Prediction"] = test_pred_rf
+            df_results["RandomForest_Prob"] = prob_pred_rf
 
-        df_results["Lasso_Prediction"] = test_pred_lasso
-        df_results["Lasso_Prob"] = prob_pred_lasso
+        if "Ridge Logistic Regression" in selected_models:
+            test_pred_ridge = ridge_model.predict(df_test_transformed)
+            prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["Ridge_Prediction"] = test_pred_ridge
+            df_results["Ridge_Prob"] = prob_pred_ridge
 
-        df_results["ElasticNet_Prediction"] = test_pred_enet
-        df_results["ElasticNet_Prob"] = prob_pred_enet
+        if "Lasso Logistic Regression" in selected_models:
+            test_pred_lasso = lasso_model.predict(df_test_transformed)
+            prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["Lasso_Prediction"] = test_pred_lasso
+            df_results["Lasso_Prob"] = prob_pred_lasso
 
-        df_results["PLSDA_Prediction"] = test_pred_pls
-        df_results["PLSDA_Prob"] = test_scores_pls
+        if "ElasticNet Logistic Regression" in selected_models:
+            test_pred_enet = enet_model.predict(df_test_transformed)
+            prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["ElasticNet_Prediction"] = test_pred_enet
+            df_results["ElasticNet_Prob"] = prob_pred_enet
 
-        df_results["SVM_Prediction"] = test_pred_svm
-        df_results["SVM_Prob"] = prob_pred_svm
+        if "PLS-DA" in selected_models:
+            test_scores_pls = pls_model.predict(df_test_transformed).ravel()
+            test_pred_pls = (test_scores_pls >= 0.5).astype(int)
+            df_results["PLSDA_Prediction"] = test_pred_pls
+            df_results["PLSDA_Prob"] = test_scores_pls
 
-        df_results["DecisionTree_Prediction"] = test_pred_tree
-        df_results["DecisionTree_Prob"] = prob_pred_tree
+        if "Support Vector Machine" in selected_models:
+            test_pred_svm = svm_model.predict(df_test_transformed)
+            prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["SVM_Prediction"] = test_pred_svm
+            df_results["SVM_Prob"] = prob_pred_svm
 
-        df_results["GBM_Prediction"] = test_pred_gbm
-        df_results["GBM_Prob"] = prob_pred_gbm
+        if "Decision Tree" in selected_models:
+            test_pred_tree = tree_model.predict(df_test_transformed)
+            prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["DecisionTree_Prediction"] = test_pred_tree
+            df_results["DecisionTree_Prob"] = prob_pred_tree
 
-        df_results["NN_Prediction"] = test_pred_nn
-        df_results["NN_Prob"] = prob_pred_nn
+        if "Gradient Boosting" in selected_models:
+            test_pred_gbm = gbm_model.predict(df_test_transformed)
+            prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["GBM_Prediction"] = test_pred_gbm
+            df_results["GBM_Prob"] = prob_pred_gbm
+
+        if "Neural Network" in selected_models:
+            test_pred_nn = nn_model.predict(df_test_transformed)
+            prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["NN_Prediction"] = test_pred_nn
+            df_results["NN_Prob"] = prob_pred_nn
+
 
         # === Show and Download ===
         st.markdown("### 📄 Predictions on Uploaded Test Data")
