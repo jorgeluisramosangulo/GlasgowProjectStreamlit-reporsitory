@@ -181,22 +181,22 @@ if uploaded_file is not None:
     # === Step 3: PCA Selection ===
     st.markdown("### 🧬 Step 3: PCA Dimensionality Reduction")
 
-    # Ensure PCA confirmation state exists
+    # Initialize session state
     if "pca_confirmed" not in st.session_state:
         st.session_state["pca_confirmed"] = False
+    if "pca_ready" not in st.session_state:
+        st.session_state["pca_ready"] = False
     if "use_pca" not in st.session_state:
         st.session_state["use_pca"] = "No"
 
-    # Let user choose
+    # First: ask if user wants PCA
     use_pca_input = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
 
-    # Confirm PCA selection
-    confirm_pca = st.button("✅ Confirm PCA Selection")
-
-    # Save decision and rerun
-    if confirm_pca:
+    # Confirm choice
+    if st.button("✅ Confirm PCA Selection"):
         st.session_state["use_pca"] = use_pca_input
         st.session_state["pca_confirmed"] = True
+        st.session_state["pca_ready"] = False  # Reset PCA confirmation
         st.rerun()
 
     # Wait until confirmed
@@ -204,18 +204,19 @@ if uploaded_file is not None:
         st.info("👈 Please confirm PCA selection to continue.")
         st.stop()
 
-    # === PCA logic ===
+    # Apply PCA logic
     use_pca = st.session_state["use_pca"]
     if use_pca == "Yes":
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
         X_val_scaled = scaler.transform(X_val.select_dtypes(include=np.number))
 
-        # Fit PCA
-        pca = PCA()
-        pca.fit(X_train_scaled)
+        # Fit PCA to show variance plot
+        pca_temp = PCA()
+        pca_temp.fit(X_train_scaled)
 
-        cum_var = np.cumsum(pca.explained_variance_ratio_)
+        # Show plot
+        cum_var = np.cumsum(pca_temp.explained_variance_ratio_)
         fig, ax = plt.subplots()
         ax.plot(range(1, len(cum_var) + 1), cum_var, marker='o')
         ax.set_title("Cumulative Explained Variance")
@@ -223,26 +224,38 @@ if uploaded_file is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
-        # Component slider
+        # Let user choose n_components
         n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
-        pca = PCA(n_components=n_components)
 
-        # Final transformation
-        X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-        X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+        # Button to confirm final PCA transform
+        if st.button("✅ Confirm PCA Parameters"):
+            final_pca = PCA(n_components=n_components)
+            X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+            X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
 
-        # Show and store
-        st.success(f"✅ PCA applied with {n_components} components.")
-        st.dataframe(X_train_final.head())
+            # Store
+            st.session_state["pca"] = final_pca
+            st.session_state["scaler"] = scaler
+            st.session_state["n_components"] = n_components
+            st.session_state["X_train_final"] = X_train_final
+            st.session_state["X_val_final"] = X_val_final
+            st.session_state["pca_ready"] = True
+            st.success(f"✅ PCA applied with {n_components} components.")
+            st.dataframe(X_train_final.head())
 
-        st.session_state["pca"] = pca
-        st.session_state["scaler"] = scaler
-        st.session_state["n_components"] = n_components
+        # Wait until PCA params are confirmed
+        if not st.session_state["pca_ready"]:
+            st.info("👈 Please confirm number of components to apply PCA.")
+            st.stop()
+        else:
+            X_train_final = st.session_state["X_train_final"]
+            X_val_final = st.session_state["X_val_final"]
 
     else:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
         st.success("✅ PCA skipped.")
+
 
 
 
