@@ -58,25 +58,30 @@ if uploaded_file is not None:
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
 
+
+
+
     # === Column Selection ===
-    st.markdown("### 📌 Select Columns to Include")
+    st.markdown("### 📌 Step 1: Select Columns to Include")
     selected_columns = st.multiselect(
         "Select the columns you want to use (you can leave out irrelevant or ID columns):",
         options=df.columns.tolist(),
         default=df.columns.tolist()
     )
 
-    if not selected_columns:
-        st.warning("⚠️ Please select at least one column to continue.")
+    proceed_columns = st.button("✅ Confirm Column Selection")
+
+    if not proceed_columns:
+        st.info("👈 Please confirm your column selection to continue.")
         st.stop()
 
     # Apply selection
     df = df[selected_columns]
-    st.write("✅ Columns selected:")
+    st.session_state["selected_columns"] = selected_columns
+
+    st.success("✅ Columns confirmed:")
     st.dataframe(df)
 
-    # Store selected columns for test file alignment
-    st.session_state["selected_columns"] = selected_columns
 
 
 
