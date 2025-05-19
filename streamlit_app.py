@@ -224,6 +224,17 @@ if uploaded_file is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
+            # === Show PCA component loadings (for interpretation) ===
+        loadings = pd.DataFrame(
+            pca_temp.components_.T,
+            index=X_train.select_dtypes(include=np.number).columns,
+            columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
+        )
+
+        st.markdown("### 📊 PCA Loadings: How Original Features Contribute to Each Principal Component")
+        st.dataframe(loadings.round(4))
+
+
         # Select number of components without triggering computation
         st.session_state["n_components_slider"] = st.slider(
             "Select number of principal components to keep",
