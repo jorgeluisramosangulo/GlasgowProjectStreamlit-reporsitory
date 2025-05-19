@@ -61,26 +61,31 @@ if uploaded_file is not None:
 
 
 
+    if "columns_confirmed" not in st.session_state:
+        st.session_state["columns_confirmed"] = False
+
     # === Column Selection ===
     st.markdown("### 📌 Step 1: Select Columns to Include")
+
     selected_columns = st.multiselect(
         "Select the columns you want to use (you can leave out irrelevant or ID columns):",
         options=df.columns.tolist(),
-        default=df.columns.tolist()
+        default=st.session_state.get("selected_columns", df.columns.tolist())
     )
 
-    proceed_columns = st.button("✅ Confirm Column Selection")
+    confirm_columns = st.button("✅ Confirm Column Selection")
 
-    if not proceed_columns:
-        st.info("👈 Please confirm your column selection to continue.")
+    if confirm_columns and selected_columns:
+        st.session_state["selected_columns"] = selected_columns
+        st.session_state["columns_confirmed"] = True
+        st.experimental_rerun()  # <== force rerun so next step shows
+
+    if not st.session_state["columns_confirmed"]:
+        st.info("👈 Please confirm column selection to continue.")
         st.stop()
 
-    # Apply selection
-    df = df[selected_columns]
-    st.session_state["selected_columns"] = selected_columns
+    df = df[st.session_state["selected_columns"]]  # apply confirmed selection
 
-    st.success("✅ Columns confirmed:")
-    st.dataframe(df)
 
 
 
@@ -104,17 +109,29 @@ if uploaded_file is not None:
     st.markdown("#### 📊 Data Type Frequency")
     st.dataframe(dtype_counts_df)
 
-    # === Step 2: Target Selection ===
-    st.markdown("### 🎯 Step 2: Select Target Column")
+    if "target_confirmed" not in st.session_state:
+        st.session_state["target_confirmed"] = False
 
-    target_column = st.selectbox("Select the target column:", df.columns)
+        # === Target Selection ===
+        st.markdown("### 🎯 Step 2: Select Target Column")
 
-    # Ask user to confirm selection before proceeding
-    proceed_target = st.button("✅ Confirm Target Selection")
+        target_column = st.selectbox("Select the target column:", df.columns)
 
-    if not proceed_target:
-        st.info("👈 Please confirm your target column selection to continue.")
-        st.stop()
+        confirm_target = st.button("✅ Confirm Target Selection")
+
+        if confirm_target and target_column:
+            st.session_state["target_column"] = target_column
+            st.session_state["target_confirmed"] = True
+            st.experimental_rerun()
+
+        if not st.session_state["target_confirmed"]:
+            st.info("👈 Please confirm target column to continue.")
+            st.stop()
+
+        # Use confirmed value
+        X_raw = df.drop(columns=[st.session_state["target_column"]])
+        y_raw = df[st.session_state["target_column"]]
+
 
     # After confirmation, split data
     X_raw = df.drop(columns=[target_column])
@@ -161,16 +178,31 @@ if uploaded_file is not None:
     # === Step 3: PCA Selection ===
     st.markdown("### 🧬 Step 3: PCA Dimensionality Reduction")
 
-    use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
+    # Ensure PCA confirmation state exists
+    if "pca_confirmed" not in st.session_state:
+        st.session_state["pca_confirmed"] = False
+    if "use_pca" not in st.session_state:
+        st.session_state["use_pca"] = "No"
 
-    # Confirm button
-    proceed_pca = st.button("✅ Confirm PCA Selection")
+    # Let user choose
+    use_pca_input = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
 
-    if not proceed_pca:
+    # Confirm PCA selection
+    confirm_pca = st.button("✅ Confirm PCA Selection")
+
+    # Save decision and rerun
+    if confirm_pca:
+        st.session_state["use_pca"] = use_pca_input
+        st.session_state["pca_confirmed"] = True
+        st.experimental_rerun()
+
+    # Wait until confirmed
+    if not st.session_state["pca_confirmed"]:
         st.info("👈 Please confirm PCA selection to continue.")
         st.stop()
 
-    # === PCA logic (runs only after user confirms) ===
+    # === PCA logic ===
+    use_pca = st.session_state["use_pca"]
     if use_pca == "Yes":
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
@@ -182,25 +214,24 @@ if uploaded_file is not None:
 
         cum_var = np.cumsum(pca.explained_variance_ratio_)
         fig, ax = plt.subplots()
-        ax.plot(range(1, len(cum_var)+1), cum_var, marker='o')
+        ax.plot(range(1, len(cum_var) + 1), cum_var, marker='o')
         ax.set_title("Cumulative Explained Variance")
         ax.set_xlabel("Number of Components")
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
-        # Let user choose # components
+        # Component slider
         n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
-
-        # Apply final PCA
         pca = PCA(n_components=n_components)
+
+        # Final transformation
         X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
         X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
 
+        # Show and store
         st.success(f"✅ PCA applied with {n_components} components.")
         st.dataframe(X_train_final.head())
 
-        # Store for test use
-        st.session_state["use_pca"] = "Yes"
         st.session_state["pca"] = pca
         st.session_state["scaler"] = scaler
         st.session_state["n_components"] = n_components
@@ -208,8 +239,8 @@ if uploaded_file is not None:
     else:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
-        st.session_state["use_pca"] = "No"
         st.success("✅ PCA skipped.")
+
 
 
 ##########################################################################################################################
@@ -219,40 +250,52 @@ if uploaded_file is not None:
     # === Step 4: Model Selection ===
     st.markdown("### 🧠 Step 4: Select ML Models to Train")
 
-    all_models = [
-        "Logistic Regression",
-        "Ridge Logistic Regression",
-        "Lasso Logistic Regression",
-        "ElasticNet Logistic Regression",
-        "Random Forest",
-        "Decision Tree",
-        "Support Vector Machine",
-        "Gradient Boosting",
-        "PLS-DA",
-        "Neural Network"
-    ]
+    # Initialize session state if not already done
+    if "models_confirmed" not in st.session_state:
+        st.session_state["models_confirmed"] = False
+    if "selected_models" not in st.session_state:
+        st.session_state["selected_models"] = []
 
-    selected_models = st.multiselect(
+    # Let user select models
+    model_selection_input = st.multiselect(
         "Select models to include:",
-        options=all_models,
-        default=all_models  # or []
+        options=[
+            "Logistic Regression",
+            "Ridge Logistic Regression",
+            "Lasso Logistic Regression",
+            "ElasticNet Logistic Regression",
+            "Random Forest",
+            "Decision Tree",
+            "Support Vector Machine",
+            "Gradient Boosting",
+            "PLS-DA",
+            "Neural Network"
+        ],
+        default=st.session_state.get("selected_models", []) or []
     )
 
-    # Button to confirm
-    proceed_models = st.button("✅ Confirm Model Selection")
+    # Confirm selection
+    confirm_models = st.button("✅ Confirm Model Selection")
 
-    if not proceed_models:
+    # On confirmation, store and rerun
+    if confirm_models:
+        if not model_selection_input:
+            st.warning("⚠️ Please select at least one model to continue.")
+            st.stop()
+
+        st.session_state["selected_models"] = model_selection_input
+        st.session_state["models_confirmed"] = True
+        st.experimental_rerun()
+
+    # Wait until confirmed
+    if not st.session_state["models_confirmed"]:
         st.info("👈 Please confirm your model selection to continue.")
         st.stop()
 
-    if not selected_models:
-        st.warning("⚠️ Please select at least one model to continue.")
-        st.stop()
+    # Use confirmed models
+    selected_models = st.session_state["selected_models"]
+    st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
 
-    # Store selection for use in validation/test sections
-    st.session_state["selected_models"] = selected_models
-
-    st.success(f"✅ {len(selected_models)} models selected and confirmed.")
 
 
 
