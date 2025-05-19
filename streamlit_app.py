@@ -43,7 +43,7 @@ if uploaded_file is not None:
     try:
         if file_type == "csv":
             df = pd.read_csv(uploaded_file)
-        elif file_type in ["xlsx"]:
+        elif file_type == "xlsx":
             df = pd.read_excel(uploaded_file)
         elif file_type == "json":
             df = pd.read_json(uploaded_file)
@@ -57,6 +57,29 @@ if uploaded_file is not None:
     st.success(f"✅ Successfully loaded {file_type.upper()} file.")
     st.write("Preview of your uploaded data:")
     st.dataframe(df)
+
+    # === Column Selection ===
+    st.markdown("### 📌 Select Columns to Include")
+    selected_columns = st.multiselect(
+        "Select the columns you want to use (you can leave out irrelevant or ID columns):",
+        options=df.columns.tolist(),
+        default=df.columns.tolist()
+    )
+
+    if not selected_columns:
+        st.warning("⚠️ Please select at least one column to continue.")
+        st.stop()
+
+    # Apply selection
+    df = df[selected_columns]
+    st.write("✅ Columns selected:")
+    st.dataframe(df)
+
+    # Store selected columns for test file alignment
+    st.session_state["selected_columns"] = selected_columns
+
+
+
 
 ##########################################################################################################################
 #################################        Dataset Overview    #############################################################
@@ -548,6 +571,23 @@ if test_file is not None:
 
     # Preserve original file
     df_test_original = df_test.copy()
+
+
+    # Use the same columns as in training
+    expected_columns = st.session_state.get("selected_columns")
+
+    if expected_columns is None:
+        st.error("Training columns not found. Please upload and process a training file first.")
+        st.stop()
+
+    # Check which expected columns are missing in test
+    missing_test_cols = set(expected_columns) - set(df_test.columns)
+    if missing_test_cols:
+        st.warning(f"⚠️ These expected columns are missing in the test set: {missing_test_cols}")
+
+    # Filter test set to only selected columns (fill missing with 0s)
+    df_test = df_test.reindex(columns=expected_columns, fill_value=0)
+
 
     # Preserve target column if present
     target_column_present = target_column in df_test.columns
