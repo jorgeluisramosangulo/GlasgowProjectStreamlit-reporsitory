@@ -78,7 +78,7 @@ if uploaded_file is not None:
     if confirm_columns and selected_columns:
         st.session_state["selected_columns"] = selected_columns
         st.session_state["columns_confirmed"] = True
-        st.experimental_rerun()  # <== force rerun so next step shows
+        st.rerun()  # <== force rerun so next step shows
 
     if not st.session_state["columns_confirmed"]:
         st.info("👈 Please confirm column selection to continue.")
@@ -122,7 +122,7 @@ if uploaded_file is not None:
         if confirm_target and target_column:
             st.session_state["target_column"] = target_column
             st.session_state["target_confirmed"] = True
-            st.experimental_rerun()
+            st.rerun()
 
         if not st.session_state["target_confirmed"]:
             st.info("👈 Please confirm target column to continue.")
@@ -194,7 +194,7 @@ if uploaded_file is not None:
     if confirm_pca:
         st.session_state["use_pca"] = use_pca_input
         st.session_state["pca_confirmed"] = True
-        st.experimental_rerun()
+        st.rerun()
 
     # Wait until confirmed
     if not st.session_state["pca_confirmed"]:
@@ -285,7 +285,7 @@ if uploaded_file is not None:
 
         st.session_state["selected_models"] = model_selection_input
         st.session_state["models_confirmed"] = True
-        st.experimental_rerun()
+        st.rerun()
 
     # Wait until confirmed
     if not st.session_state["models_confirmed"]:
