@@ -104,10 +104,27 @@ if uploaded_file is not None:
     st.markdown("#### 📊 Data Type Frequency")
     st.dataframe(dtype_counts_df)
 
-    # === Target Selection ===
+    # === Step 2: Target Selection ===
+    st.markdown("### 🎯 Step 2: Select Target Column")
+
     target_column = st.selectbox("Select the target column:", df.columns)
+
+    # Ask user to confirm selection before proceeding
+    proceed_target = st.button("✅ Confirm Target Selection")
+
+    if not proceed_target:
+        st.info("👈 Please confirm your target column selection to continue.")
+        st.stop()
+
+    # After confirmation, split data
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
+
+    # Optional: store in session_state
+    st.session_state["target_column"] = target_column
+
+    st.success(f"✅ Target column confirmed: `{target_column}`")
+
 
     # Convert target to integer labels
     y_raw = pd.factorize(y_raw)[0].astype('int64')  # Guarantees int64
@@ -141,13 +158,25 @@ if uploaded_file is not None:
 ################################       PCA Step    #######################################################################
 ##########################################################################################################################
 
-    # === PCA Step ===
-    use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"])
+    # === Step 3: PCA Selection ===
+    st.markdown("### 🧬 Step 3: PCA Dimensionality Reduction")
+
+    use_pca = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
+
+    # Confirm button
+    proceed_pca = st.button("✅ Confirm PCA Selection")
+
+    if not proceed_pca:
+        st.info("👈 Please confirm PCA selection to continue.")
+        st.stop()
+
+    # === PCA logic (runs only after user confirms) ===
     if use_pca == "Yes":
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
         X_val_scaled = scaler.transform(X_val.select_dtypes(include=np.number))
 
+        # Fit PCA
         pca = PCA()
         pca.fit(X_train_scaled)
 
@@ -159,42 +188,36 @@ if uploaded_file is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
+        # Let user choose # components
         n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
 
+        # Apply final PCA
         pca = PCA(n_components=n_components)
-
-        # Get column names of the numeric features used
-        numeric_cols = X_train.select_dtypes(include=np.number).columns
-
-        # Fit PCA
-        pca = PCA(n_components=n_components)
-        X_train_pca = pca.fit_transform(X_train_scaled)
-
-        # Create a DataFrame showing how each original feature loads onto each PC
-        pca_components_df = pd.DataFrame(
-            pca.components_.T,
-            index=numeric_cols,
-            columns=[f'PC{i+1}' for i in range(n_components)]
-        )
-
-        st.markdown("### 🔍 PCA Component Loadings")
-        st.dataframe(pca_components_df.style.format("{:.3f}"))
-
-
-
         X_train_final = pd.DataFrame(pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
         X_val_final = pd.DataFrame(pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+
+        st.success(f"✅ PCA applied with {n_components} components.")
         st.dataframe(X_train_final.head())
+
+        # Store for test use
+        st.session_state["use_pca"] = "Yes"
+        st.session_state["pca"] = pca
+        st.session_state["scaler"] = scaler
+        st.session_state["n_components"] = n_components
+
     else:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
+        st.session_state["use_pca"] = "No"
+        st.success("✅ PCA skipped.")
+
 
 ##########################################################################################################################
 ###########################    Machine Learning Methods for Binary Classification     ####################################
 ##########################################################################################################################
 
-    # === Model Selection ===
-    st.markdown("### 🧠 Select ML Models to Train")
+    # === Step 4: Model Selection ===
+    st.markdown("### 🧠 Step 4: Select ML Models to Train")
 
     all_models = [
         "Logistic Regression",
@@ -212,15 +235,25 @@ if uploaded_file is not None:
     selected_models = st.multiselect(
         "Select models to include:",
         options=all_models,
-        default=all_models  # or just a few preselected ones
+        default=all_models  # or []
     )
 
-    if not selected_models:
-        st.warning("⚠️ Please select at least one model to proceed.")
+    # Button to confirm
+    proceed_models = st.button("✅ Confirm Model Selection")
+
+    if not proceed_models:
+        st.info("👈 Please confirm your model selection to continue.")
         st.stop()
 
-    # Store in session state for later use in test file predictions
+    if not selected_models:
+        st.warning("⚠️ Please select at least one model to continue.")
+        st.stop()
+
+    # Store selection for use in validation/test sections
     st.session_state["selected_models"] = selected_models
+
+    st.success(f"✅ {len(selected_models)} models selected and confirmed.")
+
 
 
 
