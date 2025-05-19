@@ -18,7 +18,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -188,23 +188,23 @@ if uploaded_file is not None:
         st.session_state["pca_ready"] = False
     if "use_pca" not in st.session_state:
         st.session_state["use_pca"] = "No"
+    if "n_components_slider" not in st.session_state:
+        st.session_state["n_components_slider"] = 2
 
-    # First: ask if user wants PCA
+    # === Step 3.1: Ask user if PCA should be used ===
     use_pca_input = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
 
-    # Confirm choice
     if st.button("✅ Confirm PCA Selection"):
         st.session_state["use_pca"] = use_pca_input
         st.session_state["pca_confirmed"] = True
         st.session_state["pca_ready"] = False  # Reset PCA confirmation
         st.rerun()
 
-    # Wait until confirmed
     if not st.session_state["pca_confirmed"]:
         st.info("👈 Please confirm PCA selection to continue.")
         st.stop()
 
-    # Apply PCA logic
+    # === Step 3.2: Apply PCA ===
     use_pca = st.session_state["use_pca"]
     if use_pca == "Yes":
         scaler = StandardScaler()
@@ -215,7 +215,7 @@ if uploaded_file is not None:
         pca_temp = PCA()
         pca_temp.fit(X_train_scaled)
 
-        # Show plot
+        # Show explained variance plot
         cum_var = np.cumsum(pca_temp.explained_variance_ratio_)
         fig, ax = plt.subplots()
         ax.plot(range(1, len(cum_var) + 1), cum_var, marker='o')
@@ -224,16 +224,22 @@ if uploaded_file is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
-        # Let user choose n_components
-        n_components = st.slider("Select number of principal components to keep", 1, X_train_scaled.shape[1], 2)
+        # Select number of components without triggering computation
+        st.session_state["n_components_slider"] = st.slider(
+            "Select number of principal components to keep",
+            1,
+            X_train_scaled.shape[1],
+            value=st.session_state["n_components_slider"]
+        )
 
-        # Button to confirm final PCA transform
+        # Button to apply PCA based on slider
         if st.button("✅ Confirm PCA Parameters"):
+            n_components = st.session_state["n_components_slider"]
             final_pca = PCA(n_components=n_components)
             X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
             X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
 
-            # Store
+            # Store for later use
             st.session_state["pca"] = final_pca
             st.session_state["scaler"] = scaler
             st.session_state["n_components"] = n_components
@@ -243,7 +249,6 @@ if uploaded_file is not None:
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
-        # Wait until PCA params are confirmed
         if not st.session_state["pca_ready"]:
             st.info("👈 Please confirm number of components to apply PCA.")
             st.stop()
@@ -255,6 +260,7 @@ if uploaded_file is not None:
         X_train_final = X_train.copy()
         X_val_final = X_val.copy()
         st.success("✅ PCA skipped.")
+
 
 
 
