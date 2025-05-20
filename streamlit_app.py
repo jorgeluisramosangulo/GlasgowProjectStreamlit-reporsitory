@@ -12,7 +12,6 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
-from sklearn.decomposition import PCA
 
 
 
@@ -20,7 +19,7 @@ from sklearn.decomposition import PCA
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1010,7 +1009,15 @@ if test_file is not None:
 
 
         # PCA transform if selected
+        use_pca = st.session_state.get("use_pca", "No")
+
         if use_pca == "Yes":
+            # Retrieve trained PCA and scaler objects from session state
+            scaler = st.session_state["scaler"]
+            pca = st.session_state["pca"]
+            n_components = st.session_state["n_components"]
+
+            # Scale and transform test data
             df_test_scaled = scaler.transform(df_test_encoded)
             df_test_transformed = pd.DataFrame(
                 pca.transform(df_test_scaled),
@@ -1018,6 +1025,7 @@ if test_file is not None:
             )
         else:
             df_test_transformed = df_test_encoded.copy()
+
 
         # === Retrieve selected models ===
         selected_models = st.session_state.get("selected_models", [])
