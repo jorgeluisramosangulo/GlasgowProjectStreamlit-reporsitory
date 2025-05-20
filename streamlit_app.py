@@ -301,7 +301,8 @@ if uploaded_file is not None:
             "Support Vector Machine",
             "Gradient Boosting",
             "PLS-DA",
-            "Neural Network"
+            "Neural Network",
+            "Voting Classifier"
         ],
         default=st.session_state["selected_models"]
     )
@@ -776,6 +777,57 @@ if uploaded_file is not None:
                 st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
 
 
+    # === Voting Classifier (Soft Voting Only) ===
+    from sklearn.ensemble import VotingClassifier
+    from sklearn.metrics import (
+        accuracy_score, precision_score, recall_score,
+        f1_score, roc_auc_score
+    )
+
+    if "Voting Classifier" in selected_models:
+        with st.expander("🗳️ Voting Classifier (Soft Voting Ensemble)"):
+            st.write("**Soft voting averages predicted probabilities across models.**")
+            st.write("All models included must support `predict_proba()`.")
+
+            # Include only models that have been trained and selected
+            available_models = []
+            model_names = []
+
+            if "Logistic Regression" in selected_models and 'lr_model' in locals():
+                available_models.append(("lr", lr_model))
+                model_names.append("Logistic Regression")
+
+            if "Random Forest" in selected_models and 'rf_model' in locals():
+                available_models.append(("rf", rf_model))
+                model_names.append("Random Forest")
+
+            if "Neural Network" in selected_models and 'nn_model' in locals():
+                available_models.append(("nn", nn_model))
+                model_names.append("Neural Network")
+
+            if len(available_models) < 2:
+                st.warning("Please select at least two trained models to use VotingClassifier.")
+            else:
+                with st.spinner("Training Voting Classifier (soft)..."):
+                    voting_clf = VotingClassifier(
+                        estimators=available_models,
+                        voting="soft"
+                    )
+                    voting_clf.fit(X_train_final, y_train)
+
+                    y_pred_vote_train = voting_clf.predict(X_train_final)
+                    y_prob_vote_train = voting_clf.predict_proba(X_train_final)[:, 1]
+
+                    st.markdown("**📊 Training Set Performance**")
+                    st.text(f"Using Models: {', '.join(model_names)}")
+                    st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_vote_train):.4f}")
+                    st.text(f"Precision: {precision_score(y_train, y_pred_vote_train):.4f}")
+                    st.text(f"Recall:    {recall_score(y_train, y_pred_vote_train):.4f}")
+                    st.text(f"F1-Score:  {f1_score(y_train, y_pred_vote_train):.4f}")
+                    st.text(f"AUC:       {roc_auc_score(y_train, y_prob_vote_train):.4f}")
+
+
+
 
 ##########################################################################################################################
 ######################################             Validation             ################################################
@@ -837,6 +889,12 @@ if uploaded_file is not None:
         y_val_pred_nn = nn_model.predict(X_val_final)
         y_val_prob_nn = nn_model.predict_proba(X_val_final)[:, 1]
         val_predictions["Neural Network"] = (y_val_pred_nn, y_val_prob_nn)
+
+    if "Voting Classifier" in selected_models:
+        y_val_pred_vote = voting_clf.predict(X_val_final)
+        y_val_prob_vote = voting_clf.predict_proba(X_val_final)[:, 1]
+        val_predictions["Voting Classifier"] = (y_val_pred_vote, y_val_prob_vote)
+
 
     # === Helper to compute metrics ===
     def compute_metrics(y_true, y_pred, y_prob, model_name):
@@ -1022,6 +1080,14 @@ if test_file is not None:
             prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
             df_results["NN_Prediction"] = test_pred_nn
             df_results["NN_Prob"] = prob_pred_nn
+
+        if "Voting Classifier" in selected_models:
+            test_pred_vote = voting_clf.predict(df_test_transformed)
+            prob_pred_vote = voting_clf.predict_proba(df_test_transformed)[:, 1]
+            df_results["Vote_Prediction"] = test_pred_vote
+            df_results["Vote_Prob"] = prob_pred_vote
+
+
 
 
         # === Show and Download ===
