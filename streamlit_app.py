@@ -18,7 +18,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -293,7 +293,6 @@ if uploaded_file is not None:
     model_selection_input = st.multiselect(
         "Select models to include:",
         options=[
-            "Logistic Regression",
             "Ridge Logistic Regression",
             "Lasso Logistic Regression",
             "ElasticNet Logistic Regression",
@@ -326,21 +325,7 @@ if uploaded_file is not None:
     selected_models = st.session_state["selected_models"]
     st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
 
-    # === Train Models (only now) ===
-    if "Logistic Regression" in selected_models:
-        with st.expander("📊 Logistic Regression"):
-            st.write("**Hyperparameters**")
-            C = st.slider("Regularization strength (C)", 0.01, 10.0, 1.0, key="lr_C")
-            max_iter = st.slider("Max iterations", 100, 1000, 100, key="lr_max_iter")
-
-            with st.spinner("Training Logistic Regression..."):
-                lr_model = LogisticRegression(C=C, max_iter=max_iter)
-                lr_model.fit(X_train_final, y_train)
-
-                y_pred_lr = lr_model.predict(X_train_final)
-                st.text("Classification Report (Training Set):")
-                st.text(classification_report(y_train, y_pred_lr))
-
+    # === Train Models ===
 
     # === Ridge Logistic Regression ===
     if "Ridge Logistic Regression" in selected_models:
@@ -807,10 +792,6 @@ if uploaded_file is not None:
     val_predictions = {}
 
     # === Conditional Predictions by Model ===
-    if "Logistic Regression" in selected_models:
-        y_val_pred_lr = lr_model.predict(X_val_final)
-        y_val_prob_lr = lr_model.predict_proba(X_val_final)[:, 1]
-        val_predictions["Logistic Regression"] = (y_val_pred_lr, y_val_prob_lr)
 
     if "Random Forest" in selected_models:
         y_val_pred_rf = rf_model.predict(X_val_final)
@@ -987,12 +968,6 @@ if test_file is not None:
             df_results[target_column] = df_test_target
 
         # === Make Predictions and Add Columns Dynamically ===
-
-        if "Logistic Regression" in selected_models:
-            test_pred_lr = lr_model.predict(df_test_transformed)
-            prob_pred_lr = lr_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["Logistic_Prediction"] = test_pred_lr
-            df_results["Logistic_Prob"] = prob_pred_lr
 
         if "Random Forest" in selected_models:
             test_pred_rf = rf_model.predict(df_test_transformed)
