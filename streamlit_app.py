@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1073,6 +1073,59 @@ if test_file is not None:
 
     # Preserve target column if present
     target_column_present = target_column in df_test.columns
+
+
+
+
+    if not target_column_present:
+        st.error(f"❌ Target column '{target_column}' not found in test set. Please double-check column names.")
+        st.stop()
+
+    # Display class distribution before encoding
+    st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
+    st.dataframe(df_test[target_column].value_counts())
+
+    # Apply the same factorization logic used in training
+    # Use the same label order as the training target
+    if "label_classes_" not in st.session_state:
+        # First time factorization, store label order from training
+        y_raw = pd.factorize(df[target_column])[0]
+        st.session_state["label_classes_"] = pd.unique(df[target_column])
+
+    # Convert test target to numeric using the same label order
+    label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
+    df_test_target = df_test[[target_column]].copy()
+
+    # Check for unknown classes in test
+    unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
+    if unknown_classes:
+        st.warning(f"⚠️ The test set contains unseen target classes: {unknown_classes}. These rows will be excluded.")
+
+    # Encode and drop unseen
+    df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
+    df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({ "encoded_target": "int64" })
+
+    # Filter df_test_original to match cleaned target
+    df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
+    df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
+
+    # Final output
+    df_test_target_final = df_test_target["encoded_target"]
+
+    # Optional: Show mapped distribution
+    st.markdown("#### ✅ Encoded Target Value Distribution (After Mapping)")
+    st.dataframe(df_test_target_final.value_counts())
+
+
+
+
+
+
+
+
+
+
+
     if target_column_present:
         df_test_target = df_test[[target_column]].copy()
         df_test = df_test.drop(columns=[target_column])
