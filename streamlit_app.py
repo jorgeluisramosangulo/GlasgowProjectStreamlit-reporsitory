@@ -61,6 +61,10 @@ if uploaded_file is not None:
 
 
 
+##########################################################################################################################
+######################################    Delete Columns    ##############################################################
+##########################################################################################################################
+
 
     if "columns_confirmed" not in st.session_state:
         st.session_state["columns_confirmed"] = False
@@ -110,6 +114,11 @@ if uploaded_file is not None:
     st.markdown("#### 📊 Data Type Frequency")
     st.dataframe(dtype_counts_df)
 
+
+##########################################################################################################################
+#################################        Target Selection    #############################################################
+##########################################################################################################################
+
     # === Target Selection ===
     st.markdown("### 🎯 Step 2: Select Target Column")
 
@@ -121,11 +130,13 @@ if uploaded_file is not None:
     # UI
     target_column_input = st.selectbox("Select the target column:", df.columns)
 
+    # Confirm button
     if st.button("✅ Confirm Target Selection"):
         st.session_state["target_column"] = target_column_input
         st.session_state["target_confirmed"] = True
         st.rerun()
 
+    # Require confirmation before continuing
     if not st.session_state["target_confirmed"]:
         st.info("👈 Please confirm target column to continue.")
         st.stop()
@@ -135,7 +146,93 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
+    # Convert target to numerical if categorical
+    if y_raw.dtype == "object" or y_raw.dtype.name == "category":
+        y_raw = pd.factorize(y_raw)[0].astype('int64')  # Assign numeric labels
 
+    # Show class distribution
+    st.markdown("#### 📊 Target Value Distribution")
+
+    target_counts = pd.Series(y_raw).value_counts().sort_index()
+    target_percents = round(target_counts / len(y_raw) * 100, 2)
+
+    target_summary_df = pd.DataFrame({
+        "Class": target_counts.index,
+        "Count": target_counts.values,
+        "Percentage": target_percents.values
+    })
+
+    st.dataframe(target_summary_df)
+
+
+
+##########################################################################################################################
+################################       Feature Importance    #############################################################
+########################################################################################################################## 
+
+    # === Feature Importance ===
+    st.markdown("### 🧠 Optional: Explore Feature Importance")
+
+    # Preprocess (basic encoding)
+    X_encoded = pd.get_dummies(X_raw, drop_first=True).astype('float64')
+
+    # Let user select importance method
+    method = st.selectbox(
+        "Choose importance method:",
+        ["Random Forest", "Lasso (L1)", "Permutation (RF)", "Mutual Info"],
+        index=0
+    )
+
+    # Train/Test split (just for internal importance calc)
+    X_train_imp, X_val_imp, y_train_imp, y_val_imp = train_test_split(
+        X_encoded, y_raw, test_size=0.2, random_state=42
+    )
+
+    # Compute importances
+    importance_values = None
+    model_used = None
+
+    if method == "Random Forest":
+        from sklearn.ensemble import RandomForestClassifier
+        model_used = RandomForestClassifier(random_state=42)
+        model_used.fit(X_train_imp, y_train_imp)
+        importance_values = model_used.feature_importances_
+
+    elif method == "Lasso (L1)":
+        from sklearn.linear_model import LogisticRegression
+        model_used = LogisticRegression(penalty='l1', solver='liblinear', max_iter=1000)
+        model_used.fit(X_train_imp, y_train_imp)
+        importance_values = np.abs(model_used.coef_[0])
+
+    elif method == "Permutation (RF)":
+        from sklearn.ensemble import RandomForestClassifier
+        from sklearn.inspection import permutation_importance
+        rf = RandomForestClassifier(random_state=42)
+        rf.fit(X_train_imp, y_train_imp)
+        result = permutation_importance(rf, X_val_imp, y_val_imp, n_repeats=10, random_state=42)
+        importance_values = result.importances_mean
+
+    elif method == "Mutual Info":
+        from sklearn.feature_selection import mutual_info_classif
+        importance_values = mutual_info_classif(X_train_imp, y_train_imp, random_state=42)
+
+    # Create DataFrame
+    importance_df = pd.DataFrame({
+        "Feature": X_encoded.columns,
+        "Importance": importance_values
+    }).sort_values(by="Importance", ascending=False).reset_index(drop=True)
+
+    st.dataframe(importance_df.style.format({"Importance": "{:.4f}"}))
+
+    # Optional bar chart
+    if st.checkbox("📊 Show Top 10 Features as Bar Chart"):
+        st.bar_chart(importance_df.set_index("Feature").head(10))
+
+
+
+##########################################################################################################################
+#################################        Split Data Train and Validate    ################################################
+##########################################################################################################################
 
     # After confirmation, split data
     X_raw = df.drop(columns=[target_column])
@@ -1096,6 +1193,77 @@ if test_file is not None:
             prob_pred_vote = voting_clf.predict_proba(df_test_transformed)[:, 1]
             df_results["Vote_Prediction"] = test_pred_vote
             df_results["Vote_Prob"] = prob_pred_vote
+
+
+
+
+        # === Compute and Display Metrics on Test Data ===
+
+        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
+        test_predictions = {}
+
+        if "Ridge Logistic Regression" in selected_models:
+            test_predictions["Ridge Logistic Regression"] = (test_pred_ridge, prob_pred_ridge)
+
+        if "Lasso Logistic Regression" in selected_models:
+            test_predictions["Lasso Logistic Regression"] = (test_pred_lasso, prob_pred_lasso)
+
+        if "ElasticNet Logistic Regression" in selected_models:
+            test_predictions["ElasticNet Logistic Regression"] = (test_pred_enet, prob_pred_enet)
+
+        if "PLS-DA" in selected_models:
+            test_predictions["PLS-DA"] = (test_pred_pls, test_scores_pls)
+
+        if "Support Vector Machine" in selected_models:
+            test_predictions["Support Vector Machine"] = (test_pred_svm, prob_pred_svm)
+
+        if "Decision Tree" in selected_models:
+            test_predictions["Decision Tree"] = (test_pred_tree, prob_pred_tree)
+
+        if "Random Forest" in selected_models:
+            test_predictions["Random Forest"] = (test_pred_rf, prob_pred_rf)
+
+        if "Gradient Boosting" in selected_models:
+            test_predictions["Gradient Boosting"] = (test_pred_gbm, prob_pred_gbm)
+
+        if "Neural Network" in selected_models:
+            test_predictions["Neural Network"] = (test_pred_nn, prob_pred_nn)
+
+        if "Voting Classifier" in selected_models:
+            test_predictions["Voting Classifier"] = (test_pred_vote, prob_pred_vote)
+
+        # === If target is present, compute performance metrics ===
+        if target_column_present:
+            st.markdown("### 📊 Test Set Performance Metrics")
+
+            def compute_metrics(y_true, y_pred, y_prob, model_name):
+                return {
+                    'Model': model_name,
+                    'Accuracy': accuracy_score(y_true, y_pred),
+                    'Precision': precision_score(y_true, y_pred),
+                    'Recall': recall_score(y_true, y_pred),
+                    'F1-Score': f1_score(y_true, y_pred),
+                    'AUC': roc_auc_score(y_true, y_prob)
+                }
+
+            test_metrics = []
+            for model_name, (y_pred, y_prob) in test_predictions.items():
+                test_metrics.append(compute_metrics(df_test_target[target_column], y_pred, y_prob, model_name))
+
+            test_summary_df = pd.DataFrame(test_metrics)
+            st.dataframe(test_summary_df.style.format({
+                "Accuracy": "{:.4f}", "Precision": "{:.4f}",
+                "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
+            }))
+
+        else:
+            st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
+
+
+
+
+
 
 
 
