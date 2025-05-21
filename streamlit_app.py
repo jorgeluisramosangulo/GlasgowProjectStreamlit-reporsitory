@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppp")
+st.title("🤖 Binary Classification Appppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1027,108 +1027,96 @@ if uploaded_file is not None:
 
 
 
-    
-# === Final Test File Upload and Prediction ===
-st.markdown("## 🔍 Apply Models to New Test Data")
+    # === Final Test File Upload and Prediction ===
+    st.markdown("## 🔍 Apply Models to New Test Data")
 
-test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
+    test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
 
-if test_file is not None:
-    try:
-        if test_file.name.endswith(".csv"):
-            df_test = pd.read_csv(test_file)
-        elif test_file.name.endswith((".xlsx")):
-            df_test = pd.read_excel(test_file)
-        elif test_file.name.endswith(".json"):
-            df_test = pd.read_json(test_file)
-        else:
-            st.error("Unsupported file type.")
+    if test_file is not None:
+        try:
+            if test_file.name.endswith(".csv"):
+                df_test = pd.read_csv(test_file)
+            elif test_file.name.endswith(".xlsx"):
+                df_test = pd.read_excel(test_file)
+            elif test_file.name.endswith(".json"):
+                df_test = pd.read_json(test_file)
+            else:
+                st.error("Unsupported file type.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error reading test file: {e}")
             st.stop()
-    except Exception as e:
-        st.error(f"Error reading test file: {e}")
-        st.stop()
 
-    st.success("✅ Test file loaded successfully.")
-    st.dataframe(df_test.head())
+        st.success("✅ Test file loaded successfully.")
+        st.dataframe(df_test.head())
 
-    # Preserve original file
-    df_test_original = df_test.copy()
+        df_test_original = df_test.copy()
 
+        # === Columns from training ===
+        expected_columns = st.session_state.get("selected_columns")
+        if expected_columns is None:
+            st.error("Training columns not found. Please run the training section first.")
+            st.stop()
 
-    # Use the same columns as in training
-    expected_columns = st.session_state.get("selected_columns")
+        # Filter test set to training columns (fill missing with 0s)
+        df_test = df_test.reindex(columns=expected_columns, fill_value=0)
 
-    if expected_columns is None:
-        st.error("Training columns not found. Please upload and process a training file first.")
-        st.stop()
+        # === Encode features ===
+        df_test_encoded = pd.get_dummies(df_test, drop_first=True)
 
-    # Check which expected columns are missing in test
-    missing_test_cols = set(expected_columns) - set(df_test.columns)
-    if missing_test_cols:
-        st.warning(f"⚠️ These expected columns are missing in the test set: {missing_test_cols}")
+        # Align with training columns
+        missing_cols = set(X_raw.columns) - set(df_test_encoded.columns)
+        for col in missing_cols:
+            df_test_encoded[col] = 0
+        df_test_encoded = df_test_encoded[X_raw.columns].astype("float64")
 
-    # Filter test set to only selected columns (fill missing with 0s)
-    df_test = df_test.reindex(columns=expected_columns, fill_value=0)
+        # Remove bad rows
+        df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
+        invalid_test_rows = df_test_encoded.isnull().any(axis=1)
+        if invalid_test_rows.any():
+            st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs/infs.")
+            df_test_encoded = df_test_encoded[~invalid_test_rows]
+            df_test = df_test[~invalid_test_rows]
+            df_test_original = df_test_original[~invalid_test_rows]
 
+        # === Handle target ===
+        target_column = st.session_state.get("target_column", None)
+        target_column_present = target_column is not None and target_column in df_test.columns
 
-    # Preserve target column if present
-    target_column_present = target_column in df_test.columns
+        if target_column_present:
+            st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
+            st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
+            st.dataframe(df_test[target_column].value_counts())
 
+            df_test_target = df_test[[target_column]].copy()
 
+            if "label_classes_" in st.session_state:
+                label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
+                unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
+                if unknown_classes:
+                    st.warning(f"⚠️ Test data contains unseen target classes: {unknown_classes}. These rows will be dropped.")
 
+                df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
+                df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
-    if not target_column_present:
-        st.error(f"❌ Target column '{target_column}' not found in test set. Please double-check column names.")
-        st.stop()
+                # Align rows
+                df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
+                df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
 
-    # Display class distribution before encoding
-    st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
-    st.dataframe(df_test[target_column].value_counts())
-
-    # Apply the same factorization logic used in training
-    # Use the same label order as the training target
-    if "label_classes_" not in st.session_state:
-        # First time factorization, store label order from training
-        y_raw = pd.factorize(df[target_column])[0]
-        st.session_state["label_classes_"] = pd.unique(df[target_column])
-
-    # Convert test target to numeric using the same label order
-    label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
-    df_test_target = df_test[[target_column]].copy()
-
-    # Check for unknown classes in test
-    unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
-    if unknown_classes:
-        st.warning(f"⚠️ The test set contains unseen target classes: {unknown_classes}. These rows will be excluded.")
-
-    # Encode and drop unseen
-    df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
-    df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({ "encoded_target": "int64" })
-
-    # Filter df_test_original to match cleaned target
-    df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
-    df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
-
-    # Final output
-    df_test_target_final = df_test_target["encoded_target"]
-
-    # Optional: Show mapped distribution
-    st.markdown("#### ✅ Encoded Target Value Distribution (After Mapping)")
-    st.dataframe(df_test_target_final.value_counts())
+                df_test_target_final = df_test_target["encoded_target"]
+                st.markdown("#### ✅ Encoded Target Value Distribution")
+                st.dataframe(df_test_target_final.value_counts())
+            else:
+                st.warning("⚠️ Could not find label mapping from training. Skipping encoding.")
+                df_test_target_final = df_test_target[target_column]
+        else:
+            st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
+            target_column_present = False
 
 
 
 
 
-
-
-
-
-
-
-    if target_column_present:
-        df_test_target = df_test[[target_column]].copy()
-        df_test = df_test.drop(columns=[target_column])
 
     try:
         # One-hot encode using same structure as training data
@@ -1302,7 +1290,8 @@ if test_file is not None:
 
             test_metrics = []
             for model_name, (y_pred, y_prob) in test_predictions.items():
-                test_metrics.append(compute_metrics(df_test_target[target_column], y_pred, y_prob, model_name))
+                test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
+
 
             test_summary_df = pd.DataFrame(test_metrics)
             st.dataframe(test_summary_df.style.format({
