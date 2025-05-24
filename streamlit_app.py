@@ -113,6 +113,30 @@ if uploaded_file is not None:
     dtype_counts_df.columns = ['Data Type', 'Count']
     st.markdown("#### 📊 Data Type Frequency")
     st.dataframe(dtype_counts_df)
+    
+    # === Missing Values Summary ===
+    st.markdown("#### ❗ Missing Values per Column")
+
+    # Calculate missing values and percentages
+    missing_counts = df.isnull().sum()
+    missing_percent = 100 * df.isnull().mean()
+
+    # Filter only columns with missing values
+    missing_df = pd.DataFrame({
+        "Column": missing_counts.index,
+        "Missing Values": missing_counts.values,
+        "% Missing": missing_percent.values
+    }).query("`Missing Values` > 0").sort_values(by="Missing Values", ascending=False)
+
+    # Display table
+    if not missing_df.empty:
+        st.dataframe(missing_df.style.format({"% Missing": "{:.2f}%"}))
+        
+        # Optional bar chart visualization
+        if st.checkbox("📉 Show Missing Values Bar Chart"):
+            st.bar_chart(missing_df.set_index("Column")["% Missing"])
+    else:
+        st.success("✅ No missing values in the dataset.")
 
 
 ##########################################################################################################################
@@ -164,6 +188,144 @@ if uploaded_file is not None:
 
     st.dataframe(target_summary_df)
 
+
+##########################################################################################################################
+#################################        Data Visualization    ###########################################################
+##########################################################################################################################
+
+
+    # === Optional: Data Visualization ===
+    st.markdown("### 📊 Optional: Data Visualization")
+
+    enable_vis = st.checkbox("🔍 Enable Data Visualization?", value=False)
+
+    if enable_vis:
+        numeric_cols = df.select_dtypes(include='number').columns.tolist()
+        categorical_cols = df.select_dtypes(include='object').columns.tolist()
+        
+        st.markdown("#### 🎨 Visualization Options")
+
+        # Histogram Matrix (Target Legend)
+        if st.checkbox("1️⃣ Histogram Matrix (Target Legend)", value=False):
+            hist_cols = st.multiselect("Select columns to include", numeric_cols, default=numeric_cols[:3], key="hist_target")
+            if len(hist_cols) >= 2:
+                import seaborn as sns
+                import matplotlib.pyplot as plt
+                import pandas as pd
+                fig = sns.pairplot(df, vars=hist_cols, hue=target_column, kind="hist")
+                st.pyplot(fig)
+
+        # Histogram Matrix (Custom Legend)
+        if st.checkbox("2️⃣ Histogram Matrix (Custom Legend)", value=False):
+            hist_cols_custom = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="hist_custom_cols")
+            legend_col = st.selectbox("Choose categorical column for legend", categorical_cols, key="hist_custom_legend")
+            if len(hist_cols_custom) >= 2:
+                fig = sns.pairplot(df, vars=hist_cols_custom, hue=legend_col, kind="hist")
+                st.pyplot(fig)
+
+        # Scatter Matrix (Target)
+        if st.checkbox("3️⃣.1 Scatter Matrix (Target Legend)", value=False):
+            scatter_cols = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="scat_target")
+            if len(scatter_cols) >= 2:
+                fig = sns.pairplot(df, vars=scatter_cols, hue=target_column)
+                st.pyplot(fig)
+
+        # Scatter Matrix (Custom Legend)
+        if st.checkbox("3️⃣.2 Scatter Matrix (Custom Legend)", value=False):
+            scatter_cols_custom = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="scat_custom_cols")
+            legend_col_scat = st.selectbox("Legend column", categorical_cols, key="scat_custom_leg")
+            if len(scatter_cols_custom) >= 2:
+                fig = sns.pairplot(df, vars=scatter_cols_custom, hue=legend_col_scat)
+                st.pyplot(fig)
+
+        # Scatter Plot 2 Variables (Target)
+        if st.checkbox("4️⃣.1 Scatter Plot (Target Legend)", value=False):
+            xcol = st.selectbox("X Axis", numeric_cols, key="scatter_x_target")
+            ycol = st.selectbox("Y Axis", numeric_cols, key="scatter_y_target")
+            fig, ax = plt.subplots()
+            sns.scatterplot(data=df, x=xcol, y=ycol, hue=target_column, ax=ax)
+            st.pyplot(fig)
+
+        # Scatter Plot 2 Variables (Custom Legend)
+        if st.checkbox("4️⃣.2 Scatter Plot (Custom Legend)", value=False):
+            xcol = st.selectbox("X Axis", numeric_cols, key="scatter_x_custom")
+            ycol = st.selectbox("Y Axis", numeric_cols, key="scatter_y_custom")
+            legend_col = st.selectbox("Legend Column", categorical_cols, key="scatter_leg_custom")
+            fig, ax = plt.subplots()
+            sns.scatterplot(data=df, x=xcol, y=ycol, hue=legend_col, ax=ax)
+            st.pyplot(fig)
+
+        # Correlation (2 vars, Target Filter)
+        if st.checkbox("5️⃣.1 Correlation of Two Variables (Target Filter)", value=False):
+            xcol = st.selectbox("X Column", numeric_cols, key="corr_x1")
+            ycol = st.selectbox("Y Column", numeric_cols, key="corr_y1")
+            filter_opt = st.radio("Filter By Target?", ["No Filter", "Target = 0", "Target = 1"], key="corr_filter1")
+            df_corr = df.copy()
+            if filter_opt == "Target = 0":
+                df_corr = df[df[target_column] == 0]
+            elif filter_opt == "Target = 1":
+                df_corr = df[df[target_column] == 1]
+            corr_val = df_corr[[xcol, ycol]].corr().iloc[0, 1]
+            fig, ax = plt.subplots()
+            sns.scatterplot(data=df_corr, x=xcol, y=ycol, ax=ax)
+            ax.set_title(f"Correlation: {corr_val:.2f}")
+            st.pyplot(fig)
+
+        # Correlation (2 vars, Custom Filter)
+        if st.checkbox("5️⃣.2 Correlation of Two Variables (Custom Category Filter)", value=False):
+            xcol = st.selectbox("X Column", numeric_cols, key="corr_x2")
+            ycol = st.selectbox("Y Column", numeric_cols, key="corr_y2")
+            cat_filter = st.selectbox("Category Column", categorical_cols, key="corr_cat_col")
+            cat_val = st.selectbox("Filter Category", df[cat_filter].unique(), key="corr_cat_val")
+            df_corr = df[df[cat_filter] == cat_val]
+            corr_val = df_corr[[xcol, ycol]].corr().iloc[0, 1]
+            fig, ax = plt.subplots()
+            sns.scatterplot(data=df_corr, x=xcol, y=ycol, ax=ax)
+            ax.set_title(f"Correlation (filtered): {corr_val:.2f}")
+            st.pyplot(fig)
+
+        # Correlation Matrix of Selected Variables
+        if st.checkbox("6️⃣ Correlation Matrix (All Combinations)", value=False):
+            matrix_cols = st.multiselect("Choose numeric columns", numeric_cols, default=numeric_cols[:5], key="matrix_cols")
+            filter_opt = st.radio("Filter?", ["No Filter", "Target = 0", "Target = 1"], key="matrix_filter")
+            df_filt = df.copy()
+            if filter_opt == "Target = 0":
+                df_filt = df[df[target_column] == 0]
+            elif filter_opt == "Target = 1":
+                df_filt = df[df[target_column] == 1]
+            if len(matrix_cols) >= 2:
+                corr_matrix = df_filt[matrix_cols].corr()
+                fig, ax = plt.subplots(figsize=(10, 8))
+                sns.heatmap(corr_matrix, annot=True, fmt=".2f", cmap="coolwarm", ax=ax)
+                ax.set_title("Correlation Matrix")
+                st.pyplot(fig)
+
+        # === Summary Statistics & Box Plot for a Selected Column ===
+        if st.checkbox("📦 Summary Stats + Box Plot for One Column", value=False):
+            selected_column = st.selectbox("Select a numeric column:", numeric_cols, key="summary_col")
+
+            if selected_column:
+                st.markdown(f"### 📊 Summary Statistics for `{selected_column}`")
+
+                stats = df[selected_column].describe().to_frame().T
+                stats["median"] = df[selected_column].median()
+                stats = stats.rename(columns={
+                    "count": "Count",
+                    "mean": "Mean",
+                    "std": "Std Dev",
+                    "min": "Min",
+                    "25%": "25th Percentile",
+                    "50%": "50th Percentile",
+                    "75%": "75th Percentile",
+                    "max": "Max"
+                })
+                st.dataframe(stats)
+
+                st.markdown("### 📈 Box Plot")
+                fig, ax = plt.subplots()
+                sns.boxplot(x=df[selected_column], ax=ax)
+                ax.set_title(f"Box Plot of {selected_column}")
+                st.pyplot(fig)
 
 
 ##########################################################################################################################
@@ -270,6 +432,101 @@ if uploaded_file is not None:
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
     X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
+
+
+##########################################################################################################################
+#################################        Data Transformation (Before PCA)       ##########################################
+##########################################################################################################################
+
+    st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
+
+    apply_transformation = st.checkbox("🧪 Would you like to transform the data before PCA?", value=False)
+
+    if apply_transformation:
+        from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+
+        st.info("Transformations will apply to both training and validation sets consistently.")
+
+        # 1. Centering + Scaling
+        if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
+            col_to_scale = st.selectbox("Select column to scale", X_train.columns, key="scale_col")
+            scaler = MinMaxScaler()
+            X_train[col_to_scale] = scaler.fit_transform(X_train[[col_to_scale]])
+            X_val[col_to_scale] = scaler.transform(X_val[[col_to_scale]])
+
+            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+            sns.histplot(X_raw[col_to_scale], ax=ax[0], kde=True).set(title="Before Scaling")
+            sns.histplot(X_train[col_to_scale], ax=ax[1], kde=True).set(title="After Scaling")
+            st.pyplot(fig)
+
+        # 2. Standardization
+        if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
+            col_to_standardize = st.selectbox("Select column to standardize", X_train.columns, key="standardize_col")
+            std_scaler = StandardScaler()
+            X_train[col_to_standardize] = std_scaler.fit_transform(X_train[[col_to_standardize]])
+            X_val[col_to_standardize] = std_scaler.transform(X_val[[col_to_standardize]])
+
+            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+            sns.histplot(X_raw[col_to_standardize], ax=ax[0], kde=True).set(title="Before Standardization")
+            sns.histplot(X_train[col_to_standardize], ax=ax[1], kde=True).set(title="After Standardization")
+            st.pyplot(fig)
+
+        # 3. Create New Features
+        if st.checkbox("3️⃣ Create New Variable", value=False):
+            operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
+            col1 = st.selectbox("Select first column", X_train.columns, key="new_col1")
+            col2 = st.selectbox("Select second column (if applicable)", X_train.columns, key="new_col2")
+
+            if operation == "Add":
+                new_col = X_train[col1] + X_train[col2]
+            elif operation == "Subtract":
+                new_col = X_train[col1] - X_train[col2]
+            elif operation == "Multiply":
+                new_col = X_train[col1] * X_train[col2]
+            elif operation == "Divide":
+                new_col = X_train[col1] / (X_train[col2] + 1e-9)
+            elif operation == "Log":
+                new_col = np.log1p(X_train[col1])
+            elif operation == "Square":
+                new_col = X_train[col1] ** 2
+
+            new_col_name = st.text_input("New column name", value=f"{col1}_{operation}_{col2 if operation in ['Add', 'Subtract', 'Multiply', 'Divide'] else ''}")
+
+            if st.button("➕ Add New Feature"):
+                X_train[new_col_name] = new_col
+                X_val[new_col_name] = new_col  # replicate same transformation
+                st.success(f"Feature '{new_col_name}' added to both train and validation sets.")
+
+        # 4. Remove or Fix Outliers
+        if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
+            outlier_col = st.selectbox("Select column", X_train.columns, key="outlier_col")
+            method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
+
+            col_data = X_train[outlier_col]
+            q1, q3 = col_data.quantile([0.25, 0.75])
+            iqr = q3 - q1
+            lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+            outliers_train = ((col_data < lower) | (col_data > upper))
+            st.write(f"Outliers detected in training set: {outliers_train.sum()} / {len(col_data)}")
+
+            fig, ax = plt.subplots()
+            sns.boxplot(x=col_data, ax=ax)
+            ax.set_title("Boxplot with IQR Thresholds")
+            st.pyplot(fig)
+
+            if st.button("🧹 Remove Outliers (Train Only)"):
+                keep_indices = ~outliers_train
+                X_train = X_train[keep_indices]
+                y_train = y_train[keep_indices]
+                st.success("Outliers removed from training set.")
+
+    # Save transformations in session state if needed later
+    st.session_state["X_train"] = X_train.copy()
+    st.session_state["X_val"] = X_val.copy()
+    st.session_state["y_train"] = y_train.copy()
+    st.session_state["y_val"] = y_val.copy()
+
 
 
 ##########################################################################################################################
@@ -1628,309 +1885,284 @@ if uploaded_file is not None:
         st.dataframe(df_test.head())
 
         df_test_original = df_test.copy()
+        try:
+            # === Columns from training ===
+            expected_columns = st.session_state.get("selected_columns")
+            if expected_columns is None:
+                st.error("Training columns not found. Please run the training section first.")
+                st.stop()
 
-        # === Columns from training ===
-        expected_columns = st.session_state.get("selected_columns")
-        if expected_columns is None:
-            st.error("Training columns not found. Please run the training section first.")
-            st.stop()
+            # Filter test set to training columns (fill missing with 0s)
+            df_test = df_test.reindex(columns=expected_columns, fill_value=0)
 
-        # Filter test set to training columns (fill missing with 0s)
-        df_test = df_test.reindex(columns=expected_columns, fill_value=0)
+            # === Encode features ===
+            df_test_encoded = pd.get_dummies(df_test, drop_first=True)
 
-        # === Encode features ===
-        df_test_encoded = pd.get_dummies(df_test, drop_first=True)
+            # Align with training columns
+            missing_cols = set(st.session_state["X_raw"].columns) - set(df_test_encoded.columns)
+            for col in missing_cols:
+                df_test_encoded[col] = 0
+            df_test_encoded = df_test_encoded[st.session_state["X_raw"].columns].astype("float64")
 
-        # Align with training columns
-        missing_cols = set(X_raw.columns) - set(df_test_encoded.columns)
-        for col in missing_cols:
-            df_test_encoded[col] = 0
-        df_test_encoded = df_test_encoded[X_raw.columns].astype("float64")
+            # Remove bad rows
+            df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
+            invalid_test_rows = df_test_encoded.isnull().any(axis=1)
+            if invalid_test_rows.any():
+                st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs/infs.")
+                df_test_encoded = df_test_encoded[~invalid_test_rows]
+                df_test = df_test[~invalid_test_rows]
+                df_test_original = df_test_original[~invalid_test_rows]
 
-        # Remove bad rows
-        df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
-        invalid_test_rows = df_test_encoded.isnull().any(axis=1)
-        if invalid_test_rows.any():
-            st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs/infs.")
-            df_test_encoded = df_test_encoded[~invalid_test_rows]
-            df_test = df_test[~invalid_test_rows]
-            df_test_original = df_test_original[~invalid_test_rows]
+            # === Handle target ===
+            target_column = st.session_state.get("target_column", None)
+            target_column_present = target_column is not None and target_column in df_test.columns
 
-        # === Handle target ===
-        target_column = st.session_state.get("target_column", None)
-        target_column_present = target_column is not None and target_column in df_test.columns
-
-        if target_column_present:
-            st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
-            st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
-            st.dataframe(df_test[target_column].value_counts())
-
-            df_test_target = df_test[[target_column]].copy()
-
-            if "label_classes_" in st.session_state:
-                label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
-                unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
-                if unknown_classes:
-                    st.warning(f"⚠️ Test data contains unseen target classes: {unknown_classes}. These rows will be dropped.")
-
-                df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
-                df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
-
-                # Align rows
-                df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
-                df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
-
-                df_test_target_final = df_test_target["encoded_target"]
-                st.markdown("#### ✅ Encoded Target Value Distribution")
-                st.dataframe(df_test_target_final.value_counts())
-            else:
-                st.warning("⚠️ Could not find label mapping from training. Skipping encoding.")
-                df_test_target_final = df_test_target[target_column]
-        else:
-            st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
-            target_column_present = False
-
-
-
-
-
-
-    try:
-        # One-hot encode using same structure as training data
-        df_test_encoded = pd.get_dummies(df_test, drop_first=True)
-
-        # Align with training columns (fill missing with 0)
-        missing_cols = set(X_raw.columns) - set(df_test_encoded.columns)
-        for col in missing_cols:
-            df_test_encoded[col] = 0
-
-        # Reorder columns to match training set
-        df_test_encoded = df_test_encoded[X_raw.columns]
-
-        
-        # Ensure float64
-        df_test_encoded = df_test_encoded.astype('float64')
-
-        # Check for and remove rows with missing or infinite values
-        df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
-        invalid_test_rows = df_test_encoded.isnull().any(axis=1)
-        if invalid_test_rows.any():
-            st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs or infinite values in test data.")
-            df_test_encoded = df_test_encoded[~invalid_test_rows]
-            df_test_original = df_test_original[~invalid_test_rows]
             if target_column_present:
-                df_test_target = df_test_target[~invalid_test_rows]
+                st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
+                st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
+                st.dataframe(df_test[target_column].value_counts())
+
+                df_test_target = df_test[[target_column]].copy()
+
+                if "label_classes_" in st.session_state:
+                    label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
+                    unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
+                    if unknown_classes:
+                        st.warning(f"⚠️ Test data contains unseen target classes: {unknown_classes}. These rows will be dropped.")
+
+                    df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
+                    df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
+
+                    # Align rows
+                    df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
+                    df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
+
+                    df_test_target_final = df_test_target["encoded_target"]
+                    st.markdown("#### ✅ Encoded Target Value Distribution")
+                    st.dataframe(df_test_target_final.value_counts())
+                else:
+                    st.warning("⚠️ Could not find label mapping from training. Skipping encoding.")
+                    df_test_target_final = df_test_target[target_column]
+            else:
+                st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
+                target_column_present = False
+
+            # === Apply transformations from training ===
+            if "transform_pipeline" in st.session_state:
+                df_test_transformed = st.session_state["transform_pipeline"].transform(df_test_encoded)
+                df_test_transformed = pd.DataFrame(df_test_transformed, columns=df_test_encoded.columns)
+            else:
+                df_test_transformed = df_test_encoded.copy()
+
+
+            # PCA transform if selected
+            use_pca = st.session_state.get("use_pca", "No")
+
+            if use_pca == "Yes":
+                # Retrieve trained PCA and scaler objects from session state
+                scaler = st.session_state["scaler"]
+                pca = st.session_state["pca"]
+                n_components = st.session_state["n_components"]
+
+                # Scale and transform test data
+                df_test_scaled = scaler.transform(df_test_encoded)
+                df_test_transformed = pd.DataFrame(
+                    pca.transform(df_test_scaled),
+                    columns=[f"PC{i+1}" for i in range(n_components)]
+                )
+            else:
+                df_test_transformed = df_test_encoded.copy()
+
+
+            # === Retrieve selected models ===
+            selected_models = st.session_state.get("selected_models", [])
+
+            # === Initialize results DataFrame ===
+            df_results = df_test_original.copy()
+            if target_column_present:
+                df_results[target_column] = df_test_target
+
+            # === Make Predictions and Add Columns Dynamically ===
+
+            if "Random Forest" in selected_models:
+                test_pred_rf = rf_model.predict(df_test_transformed)
+                prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["RandomForest_Prediction"] = test_pred_rf
+                df_results["RandomForest_Prob"] = prob_pred_rf
+
+            if "Ridge Logistic Regression" in selected_models:
+                test_pred_ridge = ridge_model.predict(df_test_transformed)
+                prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["Ridge_Prediction"] = test_pred_ridge
+                df_results["Ridge_Prob"] = prob_pred_ridge
+
+            if "Lasso Logistic Regression" in selected_models:
+                test_pred_lasso = lasso_model.predict(df_test_transformed)
+                prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["Lasso_Prediction"] = test_pred_lasso
+                df_results["Lasso_Prob"] = prob_pred_lasso
+
+            if "ElasticNet Logistic Regression" in selected_models:
+                test_pred_enet = enet_model.predict(df_test_transformed)
+                prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["ElasticNet_Prediction"] = test_pred_enet
+                df_results["ElasticNet_Prob"] = prob_pred_enet
+
+            if "PLS-DA" in selected_models:
+                test_scores_pls = pls_model.predict(df_test_transformed).ravel()
+                test_pred_pls = (test_scores_pls >= 0.5).astype(int)
+                df_results["PLSDA_Prediction"] = test_pred_pls
+                df_results["PLSDA_Prob"] = test_scores_pls
+
+            if "K-Nearest Neighbors" in selected_models:
+                test_pred_knn = knn_model.predict(df_test_transformed)
+                prob_pred_knn = knn_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["KNN_Prediction"] = test_pred_knn
+                df_results["KNN_Prob"] = prob_pred_knn
+
+            if "Naive Bayes" in selected_models:
+                test_pred_nb = nb_model.predict(df_test_transformed)
+                prob_pred_nb = nb_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["NB_Prediction"] = test_pred_nb
+                df_results["NB_Prob"] = prob_pred_nb
+
+            if "Support Vector Machine" in selected_models:
+                test_pred_svm = svm_model.predict(df_test_transformed)
+                prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["SVM_Prediction"] = test_pred_svm
+                df_results["SVM_Prob"] = prob_pred_svm
+
+            if "Decision Tree" in selected_models:
+                test_pred_tree = tree_model.predict(df_test_transformed)
+                prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["DecisionTree_Prediction"] = test_pred_tree
+                df_results["DecisionTree_Prob"] = prob_pred_tree
+
+            if "Gradient Boosting" in selected_models:
+                test_pred_gbm = gbm_model.predict(df_test_transformed)
+                prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["GBM_Prediction"] = test_pred_gbm
+                df_results["GBM_Prob"] = prob_pred_gbm
+
+            if "Neural Network" in selected_models:
+                test_pred_nn = nn_model.predict(df_test_transformed)
+                prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
+                df_results["NN_Prediction"] = test_pred_nn
+                df_results["NN_Prob"] = prob_pred_nn
+
+            if "Voting Classifier" in selected_models:
+                test_pred_vote = voting_clf.predict(df_test_transformed)
+                prob_pred_vote = voting_clf.predict_proba(df_test_transformed)[:, 1]
+                df_results["Vote_Prediction"] = test_pred_vote
+                df_results["Vote_Prob"] = prob_pred_vote
 
 
 
-        # PCA transform if selected
-        use_pca = st.session_state.get("use_pca", "No")
 
-        if use_pca == "Yes":
-            # Retrieve trained PCA and scaler objects from session state
-            scaler = st.session_state["scaler"]
-            pca = st.session_state["pca"]
-            n_components = st.session_state["n_components"]
+            # === Compute and Display Metrics on Test Data ===
 
-            # Scale and transform test data
-            df_test_scaled = scaler.transform(df_test_encoded)
-            df_test_transformed = pd.DataFrame(
-                pca.transform(df_test_scaled),
-                columns=[f"PC{i+1}" for i in range(n_components)]
+            from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
+            test_predictions = {}
+
+            if "Ridge Logistic Regression" in selected_models:
+                test_predictions["Ridge Logistic Regression"] = (test_pred_ridge, prob_pred_ridge)
+
+            if "Lasso Logistic Regression" in selected_models:
+                test_predictions["Lasso Logistic Regression"] = (test_pred_lasso, prob_pred_lasso)
+
+            if "ElasticNet Logistic Regression" in selected_models:
+                test_predictions["ElasticNet Logistic Regression"] = (test_pred_enet, prob_pred_enet)
+
+            if "PLS-DA" in selected_models:
+                test_predictions["PLS-DA"] = (test_pred_pls, test_scores_pls)
+
+            if "K-Nearest Neighbors" in selected_models:
+                test_predictions["K-Nearest Neighbors"] = (test_pred_knn, prob_pred_knn)
+
+            if "Naive Bayes" in selected_models:
+                test_predictions["Naive Bayes"] = (test_pred_nb, prob_pred_nb)
+
+            if "Support Vector Machine" in selected_models:
+                test_predictions["Support Vector Machine"] = (test_pred_svm, prob_pred_svm)
+
+            if "Decision Tree" in selected_models:
+                test_predictions["Decision Tree"] = (test_pred_tree, prob_pred_tree)
+
+            if "Random Forest" in selected_models:
+                test_predictions["Random Forest"] = (test_pred_rf, prob_pred_rf)
+
+            if "Gradient Boosting" in selected_models:
+                test_predictions["Gradient Boosting"] = (test_pred_gbm, prob_pred_gbm)
+
+            if "Neural Network" in selected_models:
+                test_predictions["Neural Network"] = (test_pred_nn, prob_pred_nn)
+
+            if "Voting Classifier" in selected_models:
+                test_predictions["Voting Classifier"] = (test_pred_vote, prob_pred_vote)
+
+            # === If target is present, compute performance metrics ===
+            if target_column_present:
+                st.markdown("### 📊 Test Set Performance Metrics")
+
+                def compute_metrics(y_true, y_pred, y_prob, model_name):
+                    return {
+                        'Model': model_name,
+                        'Accuracy': accuracy_score(y_true, y_pred),
+                        'Precision': precision_score(y_true, y_pred),
+                        'Recall': recall_score(y_true, y_pred),
+                        'F1-Score': f1_score(y_true, y_pred),
+                        'AUC': roc_auc_score(y_true, y_prob)
+                    }
+
+                test_metrics = []
+                for model_name, (y_pred, y_prob) in test_predictions.items():
+                    test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
+
+
+                test_summary_df = pd.DataFrame(test_metrics)
+                st.dataframe(test_summary_df.style.format({
+                    "Accuracy": "{:.4f}", "Precision": "{:.4f}",
+                    "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
+                }))
+
+            else:
+                st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
+
+
+
+
+
+
+
+
+
+            # === Show and Download ===
+            st.markdown("### 📄 Predictions on Uploaded Test Data")
+            st.dataframe(df_results)
+
+            # Select file format
+            file_format = st.selectbox("Select file format for download:", ["CSV", "JSON"])
+
+            # Generate downloadable data based on selection
+            if file_format == "CSV":
+                file_data = df_results.to_csv(index=False).encode("utf-8")
+                file_name = "classified_results.csv"
+                mime_type = "text/csv"
+
+            elif file_format == "JSON":
+                file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
+                file_name = "classified_results.json"
+                mime_type = "application/json"
+
+            # Download button
+            st.download_button(
+                label=f"📥 Download Predictions as {file_format}",
+                data=file_data,
+                file_name=file_name,
+                mime=mime_type,
             )
-        else:
-            df_test_transformed = df_test_encoded.copy()
 
 
-        # === Retrieve selected models ===
-        selected_models = st.session_state.get("selected_models", [])
-
-        # === Initialize results DataFrame ===
-        df_results = df_test_original.copy()
-        if target_column_present:
-            df_results[target_column] = df_test_target
-
-        # === Make Predictions and Add Columns Dynamically ===
-
-        if "Random Forest" in selected_models:
-            test_pred_rf = rf_model.predict(df_test_transformed)
-            prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["RandomForest_Prediction"] = test_pred_rf
-            df_results["RandomForest_Prob"] = prob_pred_rf
-
-        if "Ridge Logistic Regression" in selected_models:
-            test_pred_ridge = ridge_model.predict(df_test_transformed)
-            prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["Ridge_Prediction"] = test_pred_ridge
-            df_results["Ridge_Prob"] = prob_pred_ridge
-
-        if "Lasso Logistic Regression" in selected_models:
-            test_pred_lasso = lasso_model.predict(df_test_transformed)
-            prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["Lasso_Prediction"] = test_pred_lasso
-            df_results["Lasso_Prob"] = prob_pred_lasso
-
-        if "ElasticNet Logistic Regression" in selected_models:
-            test_pred_enet = enet_model.predict(df_test_transformed)
-            prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["ElasticNet_Prediction"] = test_pred_enet
-            df_results["ElasticNet_Prob"] = prob_pred_enet
-
-        if "PLS-DA" in selected_models:
-            test_scores_pls = pls_model.predict(df_test_transformed).ravel()
-            test_pred_pls = (test_scores_pls >= 0.5).astype(int)
-            df_results["PLSDA_Prediction"] = test_pred_pls
-            df_results["PLSDA_Prob"] = test_scores_pls
-
-        if "K-Nearest Neighbors" in selected_models:
-            test_pred_knn = knn_model.predict(df_test_transformed)
-            prob_pred_knn = knn_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["KNN_Prediction"] = test_pred_knn
-            df_results["KNN_Prob"] = prob_pred_knn
-
-        if "Naive Bayes" in selected_models:
-            test_pred_nb = nb_model.predict(df_test_transformed)
-            prob_pred_nb = nb_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["NB_Prediction"] = test_pred_nb
-            df_results["NB_Prob"] = prob_pred_nb
-
-        if "Support Vector Machine" in selected_models:
-            test_pred_svm = svm_model.predict(df_test_transformed)
-            prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["SVM_Prediction"] = test_pred_svm
-            df_results["SVM_Prob"] = prob_pred_svm
-
-        if "Decision Tree" in selected_models:
-            test_pred_tree = tree_model.predict(df_test_transformed)
-            prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["DecisionTree_Prediction"] = test_pred_tree
-            df_results["DecisionTree_Prob"] = prob_pred_tree
-
-        if "Gradient Boosting" in selected_models:
-            test_pred_gbm = gbm_model.predict(df_test_transformed)
-            prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["GBM_Prediction"] = test_pred_gbm
-            df_results["GBM_Prob"] = prob_pred_gbm
-
-        if "Neural Network" in selected_models:
-            test_pred_nn = nn_model.predict(df_test_transformed)
-            prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
-            df_results["NN_Prediction"] = test_pred_nn
-            df_results["NN_Prob"] = prob_pred_nn
-
-        if "Voting Classifier" in selected_models:
-            test_pred_vote = voting_clf.predict(df_test_transformed)
-            prob_pred_vote = voting_clf.predict_proba(df_test_transformed)[:, 1]
-            df_results["Vote_Prediction"] = test_pred_vote
-            df_results["Vote_Prob"] = prob_pred_vote
-
-
-
-
-        # === Compute and Display Metrics on Test Data ===
-
-        from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-
-        test_predictions = {}
-
-        if "Ridge Logistic Regression" in selected_models:
-            test_predictions["Ridge Logistic Regression"] = (test_pred_ridge, prob_pred_ridge)
-
-        if "Lasso Logistic Regression" in selected_models:
-            test_predictions["Lasso Logistic Regression"] = (test_pred_lasso, prob_pred_lasso)
-
-        if "ElasticNet Logistic Regression" in selected_models:
-            test_predictions["ElasticNet Logistic Regression"] = (test_pred_enet, prob_pred_enet)
-
-        if "PLS-DA" in selected_models:
-            test_predictions["PLS-DA"] = (test_pred_pls, test_scores_pls)
-
-        if "K-Nearest Neighbors" in selected_models:
-            test_predictions["K-Nearest Neighbors"] = (test_pred_knn, prob_pred_knn)
-
-        if "Naive Bayes" in selected_models:
-            test_predictions["Naive Bayes"] = (test_pred_nb, prob_pred_nb)
-
-        if "Support Vector Machine" in selected_models:
-            test_predictions["Support Vector Machine"] = (test_pred_svm, prob_pred_svm)
-
-        if "Decision Tree" in selected_models:
-            test_predictions["Decision Tree"] = (test_pred_tree, prob_pred_tree)
-
-        if "Random Forest" in selected_models:
-            test_predictions["Random Forest"] = (test_pred_rf, prob_pred_rf)
-
-        if "Gradient Boosting" in selected_models:
-            test_predictions["Gradient Boosting"] = (test_pred_gbm, prob_pred_gbm)
-
-        if "Neural Network" in selected_models:
-            test_predictions["Neural Network"] = (test_pred_nn, prob_pred_nn)
-
-        if "Voting Classifier" in selected_models:
-            test_predictions["Voting Classifier"] = (test_pred_vote, prob_pred_vote)
-
-        # === If target is present, compute performance metrics ===
-        if target_column_present:
-            st.markdown("### 📊 Test Set Performance Metrics")
-
-            def compute_metrics(y_true, y_pred, y_prob, model_name):
-                return {
-                    'Model': model_name,
-                    'Accuracy': accuracy_score(y_true, y_pred),
-                    'Precision': precision_score(y_true, y_pred),
-                    'Recall': recall_score(y_true, y_pred),
-                    'F1-Score': f1_score(y_true, y_pred),
-                    'AUC': roc_auc_score(y_true, y_prob)
-                }
-
-            test_metrics = []
-            for model_name, (y_pred, y_prob) in test_predictions.items():
-                test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
-
-
-            test_summary_df = pd.DataFrame(test_metrics)
-            st.dataframe(test_summary_df.style.format({
-                "Accuracy": "{:.4f}", "Precision": "{:.4f}",
-                "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
-            }))
-
-        else:
-            st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
-
-
-
-
-
-
-
-
-
-        # === Show and Download ===
-        st.markdown("### 📄 Predictions on Uploaded Test Data")
-        st.dataframe(df_results)
-
-        # Select file format
-        file_format = st.selectbox("Select file format for download:", ["CSV", "JSON"])
-
-        # Generate downloadable data based on selection
-        if file_format == "CSV":
-            file_data = df_results.to_csv(index=False).encode("utf-8")
-            file_name = "classified_results.csv"
-            mime_type = "text/csv"
-
-        elif file_format == "JSON":
-            file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
-            file_name = "classified_results.json"
-            mime_type = "application/json"
-
-        # Download button
-        st.download_button(
-            label=f"📥 Download Predictions as {file_format}",
-            data=file_data,
-            file_name=file_name,
-            mime=mime_type,
-        )
-
-
-    except Exception as e:
-        st.error(f"Error during prediction: {e}")
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
