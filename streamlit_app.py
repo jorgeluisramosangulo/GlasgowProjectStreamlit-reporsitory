@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -27,7 +27,7 @@ st.markdown("""
 **Project:** MSc Data Analytics – Binary Classification Dashboard  
 """)
 
-st.info("This app builds a binary classification model using 10 different machine learning different.")
+st.info("This app builds a binary classification model using 12 different machine learning different.")
 
 
 
@@ -399,6 +399,8 @@ if uploaded_file is not None:
             "Support Vector Machine",
             "Gradient Boosting",
             "PLS-DA",
+            "K-Nearest Neighbors",
+            "Naive Bayes",
             "Neural Network",
             "Voting Classifier"
         ],
@@ -592,6 +594,84 @@ if uploaded_file is not None:
                 st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
                 st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
                 st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
+
+
+    # === K-Nearest Neighbors (KNN) ===
+    if "K-Nearest Neighbors" in selected_models:
+        from sklearn.neighbors import KNeighborsClassifier
+        from sklearn.metrics import (
+            accuracy_score, precision_score, recall_score,
+            f1_score, roc_auc_score
+        )
+
+        with st.expander("📍 K-Nearest Neighbors (KNN)"):
+            st.write("**Hyperparameters**")
+
+            knn_n_neighbors = st.slider(
+                "KNN: Number of Neighbors (k)",
+                min_value=1, max_value=50, value=5,
+                key="knn_n_neighbors"
+            )
+
+            knn_weights = st.selectbox(
+                "KNN: Weight Function",
+                options=["uniform", "distance"],
+                key="knn_weights"
+            )
+
+            knn_metric = st.selectbox(
+                "KNN: Distance Metric",
+                options=["minkowski", "euclidean", "manhattan"],
+                key="knn_metric"
+            )
+
+            with st.spinner("Training KNN..."):
+                knn_model = KNeighborsClassifier(
+                    n_neighbors=knn_n_neighbors,
+                    weights=knn_weights,
+                    metric=knn_metric
+                )
+                knn_model.fit(X_train_final, y_train)
+
+                y_pred_train_knn = knn_model.predict(X_train_final)
+                y_prob_train_knn = knn_model.predict_proba(X_train_final)[:, 1]
+
+                st.markdown("**📊 Training Set Performance**")
+                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_knn):.4f}")
+                st.text(f"Precision: {precision_score(y_train, y_pred_train_knn):.4f}")
+                st.text(f"Recall:    {recall_score(y_train, y_pred_train_knn):.4f}")
+                st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_knn):.4f}")
+                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_knn):.4f}")
+
+
+
+
+    # === Naive Bayes (Gaussian) ===
+    if "Naive Bayes" in selected_models:
+        from sklearn.naive_bayes import GaussianNB
+        from sklearn.metrics import (
+            accuracy_score, precision_score, recall_score,
+            f1_score, roc_auc_score
+        )
+
+        with st.expander("📦 Naive Bayes (GaussianNB)"):
+            st.write("Naive Bayes assumes feature independence and models each feature using a normal distribution.")
+
+            with st.spinner("Training Naive Bayes..."):
+                nb_model = GaussianNB()
+                nb_model.fit(X_train_final, y_train)
+
+                y_pred_train_nb = nb_model.predict(X_train_final)
+                y_prob_train_nb = nb_model.predict_proba(X_train_final)[:, 1]
+
+                st.markdown("**📊 Training Set Performance**")
+                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_nb):.4f}")
+                st.text(f"Precision: {precision_score(y_train, y_pred_train_nb):.4f}")
+                st.text(f"Recall:    {recall_score(y_train, y_pred_train_nb):.4f}")
+                st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_nb):.4f}")
+                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_nb):.4f}")
+
+
 
 
     # === Support Vector Machine (SVM) ===
@@ -891,17 +971,50 @@ if uploaded_file is not None:
             available_models = []
             model_names = []
 
-            if "Logistic Regression" in selected_models and 'lr_model' in locals():
-                available_models.append(("lr", lr_model))
-                model_names.append("Logistic Regression")
+            if "Ridge Logistic Regression" in selected_models and 'ridge_model' in locals():
+                available_models.append(("ridge", ridge_model))
+                model_names.append("Ridge Logistic Regression")
+
+            if "Lasso Logistic Regression" in selected_models and 'lasso_model' in locals():
+                available_models.append(("lasso", lasso_model))
+                model_names.append("Lasso Logistic Regression")
+
+            if "ElasticNet Logistic Regression" in selected_models and 'elastic_model' in locals():
+                available_models.append(("elastic", elastic_model))
+                model_names.append("ElasticNet Logistic Regression")
 
             if "Random Forest" in selected_models and 'rf_model' in locals():
                 available_models.append(("rf", rf_model))
                 model_names.append("Random Forest")
 
+            if "Decision Tree" in selected_models and 'dt_model' in locals():
+                available_models.append(("dt", dt_model))
+                model_names.append("Decision Tree")
+
+            if "Support Vector Machine" in selected_models and 'svm_model' in locals():
+                available_models.append(("svm", svm_model))
+                model_names.append("Support Vector Machine")
+
+            if "Gradient Boosting" in selected_models and 'gb_model' in locals():
+                available_models.append(("gb", gb_model))
+                model_names.append("Gradient Boosting")
+
+            if "PLS-DA" in selected_models and 'pls_model' in locals():
+                available_models.append(("pls", pls_model))
+                model_names.append("PLS-DA")
+
+            if "K-Nearest Neighbors" in selected_models and 'knn_model' in locals():
+                available_models.append(("knn", knn_model))
+                model_names.append("K-Nearest Neighbors")
+
+            if "Naive Bayes" in selected_models and 'nb_model' in locals():
+                available_models.append(("nb", nb_model))
+                model_names.append("Naive Bayes")
+
             if "Neural Network" in selected_models and 'nn_model' in locals():
                 available_models.append(("nn", nn_model))
                 model_names.append("Neural Network")
+
 
             if len(available_models) < 2:
                 st.warning("Please select at least two trained models to use VotingClassifier.")
@@ -967,6 +1080,16 @@ if uploaded_file is not None:
         y_val_scores_pls = pls_model.predict(X_val_final).ravel()
         y_val_pred_pls = (y_val_scores_pls >= 0.5).astype(int)
         val_predictions["PLS-DA"] = (y_val_pred_pls, y_val_scores_pls)
+
+    if "K-Nearest Neighbors" in selected_models:
+        y_val_pred_knn = knn_model.predict(X_val_final)
+        y_val_prob_knn = knn_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["K-Nearest Neighbors"] = (y_val_pred_knn, y_val_prob_knn)
+
+    if "Naive Bayes" in selected_models:
+        y_val_pred_nb = nb_model.predict(X_val_final)
+        y_val_prob_nb = nb_model.predict_proba(X_val_final)[:, 1]
+        val_predictions["Naive Bayes"] = (y_val_pred_nb, y_val_prob_nb)
 
     if "Support Vector Machine" in selected_models:
         y_val_pred_svm = svm_model.predict(X_val_final)
@@ -1205,6 +1328,18 @@ if uploaded_file is not None:
             df_results["PLSDA_Prediction"] = test_pred_pls
             df_results["PLSDA_Prob"] = test_scores_pls
 
+        if "K-Nearest Neighbors" in selected_models:
+            test_pred_knn = knn_model.predict(df_test_transformed)
+            prob_pred_knn = knn_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["KNN_Prediction"] = test_pred_knn
+            df_results["KNN_Prob"] = prob_pred_knn
+
+        if "Naive Bayes" in selected_models:
+            test_pred_nb = nb_model.predict(df_test_transformed)
+            prob_pred_nb = nb_model.predict_proba(df_test_transformed)[:, 1]
+            df_results["NB_Prediction"] = test_pred_nb
+            df_results["NB_Prob"] = prob_pred_nb
+
         if "Support Vector Machine" in selected_models:
             test_pred_svm = svm_model.predict(df_test_transformed)
             prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
@@ -1255,6 +1390,12 @@ if uploaded_file is not None:
 
         if "PLS-DA" in selected_models:
             test_predictions["PLS-DA"] = (test_pred_pls, test_scores_pls)
+
+        if "K-Nearest Neighbors" in selected_models:
+            test_predictions["K-Nearest Neighbors"] = (test_pred_knn, prob_pred_knn)
+
+        if "Naive Bayes" in selected_models:
+            test_predictions["Naive Bayes"] = (test_pred_nb, prob_pred_nb)
 
         if "Support Vector Machine" in selected_models:
             test_predictions["Support Vector Machine"] = (test_pred_svm, prob_pred_svm)
