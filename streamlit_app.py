@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -980,7 +980,7 @@ if uploaded_file is not None:
                 model_names.append("Lasso Logistic Regression")
 
             if "ElasticNet Logistic Regression" in selected_models and 'elastic_model' in locals():
-                available_models.append(("elastic", elastic_model))
+                available_models.append(("elastic", enet_model))
                 model_names.append("ElasticNet Logistic Regression")
 
             if "Random Forest" in selected_models and 'rf_model' in locals():
@@ -988,7 +988,7 @@ if uploaded_file is not None:
                 model_names.append("Random Forest")
 
             if "Decision Tree" in selected_models and 'dt_model' in locals():
-                available_models.append(("dt", dt_model))
+                available_models.append(("dt", tree_model))
                 model_names.append("Decision Tree")
 
             if "Support Vector Machine" in selected_models and 'svm_model' in locals():
@@ -996,12 +996,8 @@ if uploaded_file is not None:
                 model_names.append("Support Vector Machine")
 
             if "Gradient Boosting" in selected_models and 'gb_model' in locals():
-                available_models.append(("gb", gb_model))
+                available_models.append(("gb", gbm_model))
                 model_names.append("Gradient Boosting")
-
-            if "PLS-DA" in selected_models and 'pls_model' in locals():
-                available_models.append(("pls", pls_model))
-                model_names.append("PLS-DA")
 
             if "K-Nearest Neighbors" in selected_models and 'knn_model' in locals():
                 available_models.append(("knn", knn_model))
