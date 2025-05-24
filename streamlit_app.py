@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -428,28 +428,52 @@ if uploaded_file is not None:
 
     # === Train Models ===
 
-    # === Ridge Logistic Regression ===
+
+    # === Ridge Logistic Regression (with CV + Tuning) ===
     if "Ridge Logistic Regression" in selected_models:
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
-            f1_score, roc_auc_score
+            f1_score, roc_auc_score, make_scorer
         )
 
         with st.expander("🧱 Ridge Logistic Regression (L2)"):
             st.write("**Hyperparameters**")
-            ridge_C = st.slider(
-                "Ridge: Regularization strength (C)", 
-                0.01, 10.0, 1.0, 
-                key="ridge_C"
-            )
-            ridge_max_iter = st.slider(
-                "Ridge: Max iterations", 
-                100, 2000, 1000, 
-                step=100, 
-                key="ridge_max_iter"
-            )
 
-            with st.spinner("Training Ridge Logistic Regression..."):
+            # === Optional: Enable tuning ===
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning (Grid or Random Search)?", key="ridge_tuning")
+
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="ridge_search_method")
+
+                ridge_max_iter = st.slider("Ridge: Max Iterations", 100, 2000, 1000, step=100, key="ridge_max_iter")
+
+                c_range = st.slider("C Range (log scale)", 0.01, 10.0, (0.1, 5.0), step=0.1, key="ridge_c_range")
+                param_grid = {"C": np.logspace(np.log10(c_range[0]), np.log10(c_range[1]), num=10)}
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="ridge_cv_folds")
+
+                with st.spinner("Running hyperparameter tuning..."):
+                    base_model = LogisticRegression(
+                        penalty='l2', solver='lbfgs', max_iter=ridge_max_iter, random_state=42
+                    )
+
+                    if search_method == "Grid Search":
+                        ridge_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        ridge_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    ridge_search.fit(X_train_final, y_train)
+                    ridge_model = ridge_search.best_estimator_
+
+                    st.success(f"Best C: {ridge_model.C:.4f}")
+            else:
+                # Manual hyperparameters
+                ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0, key="ridge_C_manual")
+                ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000, step=100, key="ridge_iter_manual")
+
                 ridge_model = LogisticRegression(
                     penalty='l2',
                     C=ridge_C,
@@ -459,20 +483,38 @@ if uploaded_file is not None:
                 )
                 ridge_model.fit(X_train_final, y_train)
 
-                y_pred_ridge_train = ridge_model.predict(X_train_final)
-                y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
+            # === Training performance on full training set ===
+            y_pred_ridge_train = ridge_model.predict(X_train_final)
+            y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Ridge?", key="ridge_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        ridge_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
-    # === Lasso Logistic Regression ===
+    # === Lasso Logistic Regression (with CV + Tuning) ===
     if "Lasso Logistic Regression" in selected_models:
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -480,42 +522,84 @@ if uploaded_file is not None:
 
         with st.expander("🧊 Lasso Logistic Regression (L1)"):
             st.write("**Hyperparameters**")
-            lasso_C = st.slider(
-                "Lasso: Regularization strength (C)",
-                0.01, 10.0, 1.0,
-                key="lasso_C"
-            )
-            lasso_max_iter = st.slider(
-                "Lasso: Max iterations",
-                100, 2000, 1000,
-                step=100,
-                key="lasso_max_iter"
-            )
 
-            with st.spinner("Training Lasso Logistic Regression..."):
-                lasso_model = LogisticRegression(
-                    penalty='l1',
-                    C=lasso_C,
-                    solver='liblinear',  # 'liblinear' supports L1
-                    max_iter=lasso_max_iter,
-                    random_state=42
-                )
-                lasso_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning (Grid or Random Search)?", key="lasso_tuning")
 
-                # Training performance
-                y_pred_lasso_train = lasso_model.predict(X_train_final)
-                y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="lasso_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_lasso_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_lasso_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
+                lasso_max_iter = st.slider("Lasso: Max Iterations", 100, 2000, 1000, step=100, key="lasso_max_iter")
+
+                c_range = st.slider("C Range (log scale)", 0.01, 10.0, (0.1, 5.0), step=0.1, key="lasso_c_range")
+                param_grid = {"C": np.logspace(np.log10(c_range[0]), np.log10(c_range[1]), num=10)}
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="lasso_cv_folds")
+
+                with st.spinner("Running hyperparameter tuning..."):
+                    base_model = LogisticRegression(
+                        penalty='l1',
+                        solver='liblinear',  # Required for L1
+                        max_iter=lasso_max_iter,
+                        random_state=42
+                    )
+
+                    if search_method == "Grid Search":
+                        lasso_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        lasso_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    lasso_search.fit(X_train_final, y_train)
+                    lasso_model = lasso_search.best_estimator_
+
+                    st.success(f"Best C: {lasso_model.C:.4f}")
+
+            else:
+                lasso_C = st.slider("Lasso: Regularization strength (C)", 0.01, 10.0, 1.0, key="lasso_C_manual")
+                lasso_max_iter = st.slider("Lasso: Max iterations", 100, 2000, 1000, step=100, key="lasso_iter_manual")
+
+                with st.spinner("Training Lasso Logistic Regression..."):
+                    lasso_model = LogisticRegression(
+                        penalty='l1',
+                        C=lasso_C,
+                        solver='liblinear',
+                        max_iter=lasso_max_iter,
+                        random_state=42
+                    )
+                    lasso_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_lasso_train = lasso_model.predict(X_train_final)
+            y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_lasso_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_lasso_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Lasso?", key="lasso_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        lasso_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
-    # === Elastic Net Logistic Regression ===
+
+    # === Elastic Net Logistic Regression (with CV + Tuning) ===
     if "ElasticNet Logistic Regression" in selected_models:
+        from sklearn.linear_model import LogisticRegression
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -523,82 +607,170 @@ if uploaded_file is not None:
 
         with st.expander("🧬 Elastic Net Logistic Regression"):
             st.write("**Hyperparameters**")
-            enet_C = st.slider(
-                "Elastic Net: Regularization strength (C)",
-                0.01, 10.0, 1.0,
-                key="enet_C"
-            )
-            enet_max_iter = st.slider(
-                "Elastic Net: Max iterations",
-                100, 2000, 1000,
-                step=100,
-                key="enet_max_iter"
-            )
-            enet_l1_ratio = st.slider(
-                "Elastic Net: L1 Ratio (0=L2, 1=L1)",
-                0.0, 1.0, 0.5,
-                step=0.01,
-                key="enet_l1_ratio"
-            )
 
-            with st.spinner("Training Elastic Net Logistic Regression..."):
-                enet_model = LogisticRegression(
-                    penalty='elasticnet',
-                    C=enet_C,
-                    l1_ratio=enet_l1_ratio,
-                    solver='saga',  # Required for elasticnet
-                    max_iter=enet_max_iter,
-                    random_state=42
-                )
-                enet_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning (Grid or Random Search)?", key="enet_tuning")
 
-                y_pred_enet_train = enet_model.predict(X_train_final)
-                y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="enet_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_enet_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_enet_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
+                enet_max_iter = st.slider("Elastic Net: Max Iterations", 100, 2000, 1000, step=100, key="enet_max_iter")
+
+                # Grid for C and l1_ratio
+                c_range = st.slider("C Range (log scale)", 0.01, 10.0, (0.1, 5.0), step=0.1, key="enet_c_range")
+                l1_range = st.slider("L1 Ratio Range", 0.0, 1.0, (0.2, 0.8), step=0.1, key="enet_l1_range")
+
+                param_grid = {
+                    "C": np.logspace(np.log10(c_range[0]), np.log10(c_range[1]), num=5),
+                    "l1_ratio": np.linspace(l1_range[0], l1_range[1], num=5)
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="enet_cv_folds")
+
+                with st.spinner("Running hyperparameter tuning..."):
+                    base_model = LogisticRegression(
+                        penalty='elasticnet',
+                        solver='saga',
+                        max_iter=enet_max_iter,
+                        random_state=42
+                    )
+
+                    if search_method == "Grid Search":
+                        enet_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        enet_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    enet_search.fit(X_train_final, y_train)
+                    enet_model = enet_search.best_estimator_
+
+                    st.success(f"Best C: {enet_model.C:.4f}, L1 Ratio: {enet_model.l1_ratio:.2f}")
+
+            else:
+                enet_C = st.slider("Elastic Net: Regularization strength (C)", 0.01, 10.0, 1.0, key="enet_C_manual")
+                enet_max_iter = st.slider("Elastic Net: Max iterations", 100, 2000, 1000, step=100, key="enet_iter_manual")
+                enet_l1_ratio = st.slider("Elastic Net: L1 Ratio (0=L2, 1=L1)", 0.0, 1.0, 0.5, step=0.01, key="enet_l1_ratio_manual")
+
+                with st.spinner("Training Elastic Net Logistic Regression..."):
+                    enet_model = LogisticRegression(
+                        penalty='elasticnet',
+                        C=enet_C,
+                        l1_ratio=enet_l1_ratio,
+                        solver='saga',
+                        max_iter=enet_max_iter,
+                        random_state=42
+                    )
+                    enet_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_enet_train = enet_model.predict(X_train_final)
+            y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_enet_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_enet_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Elastic Net?", key="enet_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        enet_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
 
 
     # === Partial Least Squares Discriminant Analysis (PLS-DA) ===
     if "PLS-DA" in selected_models:
         from sklearn.cross_decomposition import PLSRegression
+        from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_val_predict, cross_validate
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
-            f1_score, roc_auc_score
+            f1_score, roc_auc_score, make_scorer
         )
 
         with st.expander("🧪 Partial Least Squares Discriminant Analysis (PLS-DA)"):
-            pls_n_components = st.slider(
-                "PLS-DA: Number of Components",
-                1,
-                min(X_train_final.shape[1], 10),
-                2,
-                key="pls_n_components"
-            )
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for n_components?", key="pls_tuning")
 
-            with st.spinner("Training PLS-DA..."):
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="pls_search_method")
+
+                max_comp_limit = min(X_train_final.shape[1], 10)
+                n_components_range = st.slider(
+                    "Range of Components to Search",
+                    1, max_comp_limit, (2, max_comp_limit),
+                    key="pls_comp_range"
+                )
+
+                comp_grid = {"n_components": list(range(n_components_range[0], n_components_range[1] + 1))}
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="pls_cv_folds")
+
+                with st.spinner("Running PLS-DA hyperparameter tuning..."):
+                    pls_base = PLSRegression()
+                    if search_method == "Grid Search":
+                        pls_search = GridSearchCV(pls_base, comp_grid, cv=n_folds, scoring='r2')  # r2 as proxy
+                    else:
+                        pls_search = RandomizedSearchCV(pls_base, comp_grid, n_iter=5, cv=n_folds,
+                                                        scoring='r2', random_state=42)
+
+                    pls_search.fit(X_train_final, y_train)
+                    pls_model = pls_search.best_estimator_
+                    st.success(f"Best n_components: {pls_model.n_components}")
+
+            else:
+                pls_n_components = st.slider(
+                    "PLS-DA: Number of Components",
+                    1,
+                    min(X_train_final.shape[1], 10),
+                    2,
+                    key="pls_n_components"
+                )
                 pls_model = PLSRegression(n_components=pls_n_components)
                 pls_model.fit(X_train_final, y_train)
 
-                # Training performance
-                y_scores_train_pls = pls_model.predict(X_train_final).ravel()
-                y_pred_train_pls = (y_scores_train_pls >= 0.5).astype(int)
+            # === Global metrics (always computed) ===
+            y_scores_train_pls = pls_model.predict(X_train_final).ravel()
+            y_pred_train_pls = (y_scores_train_pls >= 0.5).astype(int)
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_pls):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_train_pls):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_pls):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_scores_train_pls):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation for PLS-DA ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for PLS-DA?", key="pls_run_cv"):
+                with st.spinner("Running cross-validation..."):
+                    # We'll use cross_val_predict to get scores for ROC AUC
+                    y_scores_cv_pls = cross_val_predict(
+                        pls_model, X_train_final, y_train,
+                        cv=10, method="predict"
+                    ).ravel()
+                    y_pred_cv_pls = (y_scores_cv_pls >= 0.5).astype(int)
+
+                    st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                    st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_cv_pls):.4f}")
+                    st.text(f"Precision: {precision_score(y_train, y_pred_cv_pls):.4f}")
+                    st.text(f"Recall:    {recall_score(y_train, y_pred_cv_pls):.4f}")
+                    st.text(f"F1-Score:  {f1_score(y_train, y_pred_cv_pls):.4f}")
+                    st.text(f"AUC:       {roc_auc_score(y_train, y_scores_cv_pls):.4f}")
 
 
-    # === K-Nearest Neighbors (KNN) ===
+
+    # === K-Nearest Neighbors (KNN) with CV + Tuning ===
     if "K-Nearest Neighbors" in selected_models:
         from sklearn.neighbors import KNeighborsClassifier
+        from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -607,48 +779,83 @@ if uploaded_file is not None:
         with st.expander("📍 K-Nearest Neighbors (KNN)"):
             st.write("**Hyperparameters**")
 
-            knn_n_neighbors = st.slider(
-                "KNN: Number of Neighbors (k)",
-                min_value=1, max_value=50, value=5,
-                key="knn_n_neighbors"
-            )
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning?", key="knn_tuning")
 
-            knn_weights = st.selectbox(
-                "KNN: Weight Function",
-                options=["uniform", "distance"],
-                key="knn_weights"
-            )
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="knn_search_method")
 
-            knn_metric = st.selectbox(
-                "KNN: Distance Metric",
-                options=["minkowski", "euclidean", "manhattan"],
-                key="knn_metric"
-            )
+                n_range = st.slider("k Range", 1, 50, (3, 15), step=1, key="knn_k_range")
+                weight_options = ["uniform", "distance"]
+                metric_options = ["minkowski", "euclidean", "manhattan"]
 
-            with st.spinner("Training KNN..."):
-                knn_model = KNeighborsClassifier(
-                    n_neighbors=knn_n_neighbors,
-                    weights=knn_weights,
-                    metric=knn_metric
-                )
-                knn_model.fit(X_train_final, y_train)
+                param_grid = {
+                    "n_neighbors": list(range(n_range[0], n_range[1] + 1)),
+                    "weights": weight_options,
+                    "metric": metric_options
+                }
 
-                y_pred_train_knn = knn_model.predict(X_train_final)
-                y_prob_train_knn = knn_model.predict_proba(X_train_final)[:, 1]
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="knn_cv_folds")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_knn):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_train_knn):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_train_knn):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_knn):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_knn):.4f}")
+                with st.spinner("Running KNN hyperparameter tuning..."):
+                    base_model = KNeighborsClassifier()
+                    if search_method == "Grid Search":
+                        knn_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        knn_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    knn_search.fit(X_train_final, y_train)
+                    knn_model = knn_search.best_estimator_
+
+                    st.success(f"Best Parameters: k={knn_model.n_neighbors}, weights={knn_model.weights}, metric={knn_model.metric}")
+
+            else:
+                knn_n_neighbors = st.slider("KNN: Number of Neighbors (k)", min_value=1, max_value=50, value=5, key="knn_n_neighbors")
+                knn_weights = st.selectbox("KNN: Weight Function", options=["uniform", "distance"], key="knn_weights")
+                knn_metric = st.selectbox("KNN: Distance Metric", options=["minkowski", "euclidean", "manhattan"], key="knn_metric")
+
+                with st.spinner("Training KNN..."):
+                    knn_model = KNeighborsClassifier(
+                        n_neighbors=knn_n_neighbors,
+                        weights=knn_weights,
+                        metric=knn_metric
+                    )
+                    knn_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_train_knn = knn_model.predict(X_train_final)
+            y_prob_train_knn = knn_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_knn):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_train_knn):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_train_knn):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_knn):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_knn):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for KNN?", key="knn_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        knn_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
 
-    # === Naive Bayes (Gaussian) ===
+
+    # === Naive Bayes (GaussianNB) with CV + Tuning ===
     if "Naive Bayes" in selected_models:
         from sklearn.naive_bayes import GaussianNB
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -657,26 +864,71 @@ if uploaded_file is not None:
         with st.expander("📦 Naive Bayes (GaussianNB)"):
             st.write("Naive Bayes assumes feature independence and models each feature using a normal distribution.")
 
-            with st.spinner("Training Naive Bayes..."):
-                nb_model = GaussianNB()
-                nb_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Naive Bayes?", key="nb_tuning")
 
-                y_pred_train_nb = nb_model.predict(X_train_final)
-                y_prob_train_nb = nb_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="nb_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_nb):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_train_nb):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_train_nb):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_nb):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_nb):.4f}")
+                # Log-space for numerical stability range
+                smoothing_range = st.slider(
+                    "Variance Smoothing Range (log scale)", -12, -2, (-9, -6),
+                    key="nb_smoothing_range"
+                )
+                smoothing_values = np.logspace(smoothing_range[0], smoothing_range[1], num=5)
+                param_grid = {"var_smoothing": smoothing_values}
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="nb_cv_folds")
+
+                with st.spinner("Running hyperparameter tuning for Naive Bayes..."):
+                    base_model = GaussianNB()
+                    if search_method == "Grid Search":
+                        nb_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        nb_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=5,
+                                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    nb_search.fit(X_train_final, y_train)
+                    nb_model = nb_search.best_estimator_
+
+                    st.success(f"Best var_smoothing: {nb_model.var_smoothing:.1e}")
+            else:
+                with st.spinner("Training Naive Bayes..."):
+                    nb_model = GaussianNB()
+                    nb_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_train_nb = nb_model.predict(X_train_final)
+            y_prob_train_nb = nb_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_nb):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_train_nb):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_train_nb):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_train_nb):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_train_nb):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Naive Bayes?", key="nb_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        nb_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
 
-    # === Support Vector Machine (SVM) ===
+    # === Support Vector Machine (SVM) with CV + Tuning ===
     if "Support Vector Machine" in selected_models:
         from sklearn.svm import SVC
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -684,49 +936,87 @@ if uploaded_file is not None:
 
         with st.expander("🔲 Support Vector Machine (SVM)"):
             st.write("**Hyperparameters**")
-            svm_kernel = st.selectbox(
-                "SVM: Kernel",
-                ['linear', 'rbf', 'poly', 'sigmoid'],
-                index=1,
-                key="svm_kernel"
-            )
-            svm_C = st.slider(
-                "SVM: Regularization parameter (C)",
-                0.01, 10.0, 1.0,
-                key="svm_C"
-            )
-            svm_gamma = st.selectbox(
-                "SVM: Gamma",
-                ['scale', 'auto'],
-                key="svm_gamma"
-            )
 
-            with st.spinner("Training Support Vector Machine..."):
-                svm_model = SVC(
-                    C=svm_C,
-                    kernel=svm_kernel,
-                    gamma=svm_gamma,
-                    probability=True,
-                    random_state=42
-                )
-                svm_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for SVM?", key="svm_tuning")
 
-                y_pred_svm_train = svm_model.predict(X_train_final)
-                y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="svm_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_svm_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_svm_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_svm_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_svm_train):.4f}")
+                c_range = st.slider("C Range", 0.01, 10.0, (0.1, 5.0), step=0.1, key="svm_c_range")
+                kernel_options = ['linear', 'rbf', 'poly', 'sigmoid']
+                gamma_options = ['scale', 'auto']
+
+                param_grid = {
+                    "C": np.linspace(c_range[0], c_range[1], 5),
+                    "kernel": kernel_options,
+                    "gamma": gamma_options
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="svm_cv_folds")
+
+                with st.spinner("Running SVM hyperparameter tuning..."):
+                    base_model = SVC(probability=True, random_state=42)
+
+                    if search_method == "Grid Search":
+                        svm_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        svm_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    svm_search.fit(X_train_final, y_train)
+                    svm_model = svm_search.best_estimator_
+
+                    st.success(f"Best Parameters: C={svm_model.C}, kernel={svm_model.kernel}, gamma={svm_model.gamma}")
+
+            else:
+                svm_kernel = st.selectbox("SVM: Kernel", ['linear', 'rbf', 'poly', 'sigmoid'], index=1, key="svm_kernel")
+                svm_C = st.slider("SVM: Regularization parameter (C)", 0.01, 10.0, 1.0, key="svm_C")
+                svm_gamma = st.selectbox("SVM: Gamma", ['scale', 'auto'], key="svm_gamma")
+
+                with st.spinner("Training Support Vector Machine..."):
+                    svm_model = SVC(
+                        C=svm_C,
+                        kernel=svm_kernel,
+                        gamma=svm_gamma,
+                        probability=True,
+                        random_state=42
+                    )
+                    svm_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_svm_train = svm_model.predict(X_train_final)
+            y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_svm_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_svm_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for SVM?", key="svm_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        svm_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
 
-    # === Decision Tree Classifier ===
+
+    # === Decision Tree Classifier with CV + Tuning ===
     if "Decision Tree" in selected_models:
         from sklearn.tree import DecisionTreeClassifier
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -734,97 +1024,181 @@ if uploaded_file is not None:
 
         with st.expander("🌲 Decision Tree"):
             st.write("**Hyperparameters**")
-            tree_max_depth = st.slider(
-                "Decision Tree: Max Depth",
-                1, 20, 5,
-                key="tree_max_depth"
-            )
-            tree_min_samples_split = st.slider(
-                "Decision Tree: Min Samples Split",
-                2, 20, 2,
-                key="tree_min_samples_split"
-            )
-            tree_min_samples_leaf = st.slider(
-                "Decision Tree: Min Samples Leaf",
-                1, 20, 1,
-                key="tree_min_samples_leaf"
-            )
-            tree_criterion = st.selectbox(
-                "Decision Tree: Criterion",
-                ['gini', 'entropy'],
-                key="tree_criterion"
-            )
 
-            with st.spinner("Training Decision Tree..."):
-                tree_model = DecisionTreeClassifier(
-                    max_depth=tree_max_depth,
-                    min_samples_split=tree_min_samples_split,
-                    min_samples_leaf=tree_min_samples_leaf,
-                    criterion=tree_criterion,
-                    random_state=42
-                )
-                tree_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Decision Tree?", key="tree_tuning")
 
-                y_pred_tree_train = tree_model.predict(X_train_final)
-                y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="tree_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_tree_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_tree_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_tree_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_tree_train):.4f}")
+                depth_range = st.slider("Max Depth Range", 1, 20, (3, 10), key="tree_depth_range")
+                split_range = st.slider("Min Samples Split Range", 2, 20, (2, 10), key="tree_split_range")
+                leaf_range = st.slider("Min Samples Leaf Range", 1, 20, (1, 5), key="tree_leaf_range")
+                criterion_options = ['gini', 'entropy']
+
+                param_grid = {
+                    "max_depth": list(range(depth_range[0], depth_range[1] + 1)),
+                    "min_samples_split": list(range(split_range[0], split_range[1] + 1)),
+                    "min_samples_leaf": list(range(leaf_range[0], leaf_range[1] + 1)),
+                    "criterion": criterion_options
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="tree_cv_folds")
+
+                with st.spinner("Running Decision Tree hyperparameter tuning..."):
+                    base_model = DecisionTreeClassifier(random_state=42)
+
+                    if search_method == "Grid Search":
+                        tree_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        tree_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    tree_search.fit(X_train_final, y_train)
+                    tree_model = tree_search.best_estimator_
+
+                    st.success(
+                        f"Best Params: depth={tree_model.max_depth}, "
+                        f"split={tree_model.min_samples_split}, leaf={tree_model.min_samples_leaf}, "
+                        f"criterion={tree_model.criterion}"
+                    )
+
+            else:
+                tree_max_depth = st.slider("Decision Tree: Max Depth", 1, 20, 5, key="tree_max_depth")
+                tree_min_samples_split = st.slider("Decision Tree: Min Samples Split", 2, 20, 2, key="tree_min_samples_split")
+                tree_min_samples_leaf = st.slider("Decision Tree: Min Samples Leaf", 1, 20, 1, key="tree_min_samples_leaf")
+                tree_criterion = st.selectbox("Decision Tree: Criterion", ['gini', 'entropy'], key="tree_criterion")
+
+                with st.spinner("Training Decision Tree..."):
+                    tree_model = DecisionTreeClassifier(
+                        max_depth=tree_max_depth,
+                        min_samples_split=tree_min_samples_split,
+                        min_samples_leaf=tree_min_samples_leaf,
+                        criterion=tree_criterion,
+                        random_state=42
+                    )
+                    tree_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_tree_train = tree_model.predict(X_train_final)
+            y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_tree_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_tree_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Decision Tree?", key="tree_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        tree_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
-    # === Random Forest ===
+
+    # === Random Forest Classifier with CV + Tuning ===
     if "Random Forest" in selected_models:
         from sklearn.ensemble import RandomForestClassifier
+        from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
-            f1_score, roc_auc_score, classification_report
+            f1_score, roc_auc_score
         )
 
         with st.expander("🌳 Random Forest"):
             st.write("**Hyperparameters**")
-            n_estimators = st.slider(
-                "Number of trees",
-                10, 200, 100,
-                key="rf_n_estimators"
-            )
-            max_depth = st.slider(
-                "Max depth",
-                1, 20, 5,
-                key="rf_max_depth"
-            )
 
-            with st.spinner("Training Random Forest..."):
-                rf_model = RandomForestClassifier(
-                    n_estimators=n_estimators,
-                    max_depth=max_depth,
-                    random_state=42
-                )
-                rf_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Random Forest?", key="rf_tuning")
 
-                y_pred_rf = rf_model.predict(X_train_final)
-                y_prob_rf = rf_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="rf_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_rf):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_rf):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_rf):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_rf):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_rf):.4f}")
+                tree_range = st.slider("Number of Trees (n_estimators)", 10, 200, (50, 150), step=10, key="rf_n_range")
+                depth_range = st.slider("Max Depth", 1, 20, (3, 10), key="rf_depth_range")
+                leaf_range = st.slider("Min Samples Leaf", 1, 20, (1, 5), key="rf_leaf_range")
+
+                param_grid = {
+                    "n_estimators": list(range(tree_range[0], tree_range[1] + 1, 10)),
+                    "max_depth": list(range(depth_range[0], depth_range[1] + 1, 1)),
+                    "min_samples_leaf": list(range(leaf_range[0], leaf_range[1] + 1, 1))
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="rf_cv_folds")
+
+                with st.spinner("Running Random Forest hyperparameter tuning..."):
+                    base_model = RandomForestClassifier(random_state=42)
+
+                    if search_method == "Grid Search":
+                        rf_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        rf_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    rf_search.fit(X_train_final, y_train)
+                    rf_model = rf_search.best_estimator_
+
+                    st.success(
+                        f"Best Parameters: "
+                        f"n_estimators={rf_model.n_estimators}, "
+                        f"max_depth={rf_model.max_depth}, "
+                        f"min_samples_leaf={rf_model.min_samples_leaf}"
+                    )
+
+            else:
+                n_estimators = st.slider("Number of Trees", 10, 200, 100, key="rf_n_estimators")
+                max_depth = st.slider("Max Depth", 1, 20, 5, key="rf_max_depth")
+
+                with st.spinner("Training Random Forest..."):
+                    rf_model = RandomForestClassifier(
+                        n_estimators=n_estimators,
+                        max_depth=max_depth,
+                        random_state=42
+                    )
+                    rf_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_rf = rf_model.predict(X_train_final)
+            y_prob_rf = rf_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_rf):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_rf):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_rf):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_rf):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_rf):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Random Forest?", key="rf_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        rf_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
-
-
-
-
-    # === Gradient Boosting Machine (GBM) ===
+    # === Gradient Boosting Machine (GBM) with CV + Tuning ===
     if "Gradient Boosting" in selected_models:
         from sklearn.ensemble import GradientBoostingClassifier
+        from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -832,67 +1206,98 @@ if uploaded_file is not None:
 
         with st.expander("🚀 Gradient Boosting Machine (GBM)"):
             st.write("**Hyperparameters**")
-            gbm_n_estimators = st.slider(
-                "GBM: Number of Estimators",
-                10, 500, 100,
-                key="gbm_n_estimators"
-            )
-            gbm_learning_rate = st.slider(
-                "GBM: Learning Rate",
-                0.01, 1.0, 0.1,
-                step=0.01,
-                key="gbm_learning_rate"
-            )
-            gbm_max_depth = st.slider(
-                "GBM: Max Depth",
-                1, 10, 3,
-                key="gbm_max_depth"
-            )
-            gbm_subsample = st.slider(
-                "GBM: Subsample",
-                0.1, 1.0, 1.0,
-                step=0.1,
-                key="gbm_subsample"
-            )
-            gbm_min_samples_split = st.slider(
-                "GBM: Min Samples Split",
-                2, 20, 2,
-                key="gbm_min_samples_split"
-            )
-            gbm_min_samples_leaf = st.slider(
-                "GBM: Min Samples Leaf",
-                1, 20, 1,
-                key="gbm_min_samples_leaf"
-            )
 
-            with st.spinner("Training Gradient Boosting Machine..."):
-                gbm_model = GradientBoostingClassifier(
-                    n_estimators=gbm_n_estimators,
-                    learning_rate=gbm_learning_rate,
-                    max_depth=gbm_max_depth,
-                    subsample=gbm_subsample,
-                    min_samples_split=gbm_min_samples_split,
-                    min_samples_leaf=gbm_min_samples_leaf,
-                    random_state=42
-                )
-                gbm_model.fit(X_train_final, y_train)
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for GBM?", key="gbm_tuning")
 
-                y_pred_gbm_train = gbm_model.predict(X_train_final)
-                y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="gbm_search_method")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_gbm_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_gbm_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_gbm_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_gbm_train):.4f}")
+                n_estimators_range = st.slider("Number of Estimators", 10, 500, (50, 200), step=10, key="gbm_n_range")
+                learning_rates = st.slider("Learning Rate Range", 0.01, 1.0, (0.05, 0.3), step=0.01, key="gbm_lr_range")
+                max_depth_range = st.slider("Max Depth", 1, 10, (2, 6), key="gbm_depth_range")
+                subsample_range = st.slider("Subsample Range", 0.1, 1.0, (0.5, 1.0), step=0.1, key="gbm_sub_range")
+                split_range = st.slider("Min Samples Split", 2, 20, (2, 10), key="gbm_split_range")
+                leaf_range = st.slider("Min Samples Leaf", 1, 20, (1, 5), key="gbm_leaf_range")
+
+                param_grid = {
+                    "n_estimators": list(range(n_estimators_range[0], n_estimators_range[1] + 1, 10)),
+                    "learning_rate": np.linspace(learning_rates[0], learning_rates[1], 5),
+                    "max_depth": list(range(max_depth_range[0], max_depth_range[1] + 1)),
+                    "subsample": np.linspace(subsample_range[0], subsample_range[1], 5),
+                    "min_samples_split": list(range(split_range[0], split_range[1] + 1)),
+                    "min_samples_leaf": list(range(leaf_range[0], leaf_range[1] + 1))
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="gbm_cv_folds")
+
+                with st.spinner("Running GBM hyperparameter tuning..."):
+                    base_model = GradientBoostingClassifier(random_state=42)
+
+                    if search_method == "Grid Search":
+                        gbm_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        gbm_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                        cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    gbm_search.fit(X_train_final, y_train)
+                    gbm_model = gbm_search.best_estimator_
+
+                    st.success("Best Parameters Selected via Tuning.")
+
+            else:
+                gbm_n_estimators = st.slider("GBM: Number of Estimators", 10, 500, 100, key="gbm_n_estimators")
+                gbm_learning_rate = st.slider("GBM: Learning Rate", 0.01, 1.0, 0.1, step=0.01, key="gbm_learning_rate")
+                gbm_max_depth = st.slider("GBM: Max Depth", 1, 10, 3, key="gbm_max_depth")
+                gbm_subsample = st.slider("GBM: Subsample", 0.1, 1.0, 1.0, step=0.1, key="gbm_subsample")
+                gbm_min_samples_split = st.slider("GBM: Min Samples Split", 2, 20, 2, key="gbm_min_samples_split")
+                gbm_min_samples_leaf = st.slider("GBM: Min Samples Leaf", 1, 20, 1, key="gbm_min_samples_leaf")
+
+                with st.spinner("Training Gradient Boosting Machine..."):
+                    gbm_model = GradientBoostingClassifier(
+                        n_estimators=gbm_n_estimators,
+                        learning_rate=gbm_learning_rate,
+                        max_depth=gbm_max_depth,
+                        subsample=gbm_subsample,
+                        min_samples_split=gbm_min_samples_split,
+                        min_samples_leaf=gbm_min_samples_leaf,
+                        random_state=42
+                    )
+                    gbm_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_gbm_train = gbm_model.predict(X_train_final)
+            y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_gbm_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_gbm_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for GBM?", key="gbm_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        gbm_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
 
 
-    # === Neural Network (MLPClassifier) ===
+
+    # === Neural Network (MLPClassifier) with CV + Tuning ===
     if "Neural Network" in selected_models:
         from sklearn.neural_network import MLPClassifier
+        from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
         from sklearn.metrics import (
             accuracy_score, precision_score, recall_score,
             f1_score, roc_auc_score
@@ -901,62 +1306,99 @@ if uploaded_file is not None:
         with st.expander("🧠 Neural Network (MLPClassifier)"):
             st.write("**Hyperparameters**")
 
-            nn_hidden_units = st.number_input(
-                "NN: Units in Hidden Layer",
-                min_value=1, max_value=500, value=50,
-                key="nn_hidden_units"
-            )
-            nn_activation = st.selectbox(
-                "NN: Activation Function",
-                ['relu', 'logistic', 'tanh'],
-                key="nn_activation"
-            )
-            nn_solver = st.selectbox(
-                "NN: Solver",
-                ['adam', 'sgd', 'lbfgs'],
-                key="nn_solver"
-            )
-            nn_alpha = st.number_input(
-                "NN: L2 Penalty (alpha)",
-                value=0.0001, format="%.5f",
-                key="nn_alpha"
-            )
-            nn_learning_rate_init = st.number_input(
-                "NN: Initial Learning Rate",
-                value=0.001, format="%.5f",
-                key="nn_lr_init"
-            )
-            nn_max_iter = st.slider(
-                "NN: Max Iterations",
-                100, 2000, 1000,
-                key="nn_max_iter"
-            )
+            enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Neural Network?", key="nn_tuning")
 
-            with st.spinner("Training Neural Network..."):
-                nn_model = MLPClassifier(
-                    hidden_layer_sizes=(nn_hidden_units,),
-                    activation=nn_activation,
-                    solver=nn_solver,
-                    alpha=nn_alpha,
-                    learning_rate_init=nn_learning_rate_init,
-                    max_iter=nn_max_iter,
-                    random_state=42
-                )
-                nn_model.fit(X_train_final, y_train)
+            if enable_tuning:
+                search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="nn_search_method")
 
-                y_pred_nn_train = nn_model.predict(X_train_final)
-                y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
+                hidden_layer_options = [(32,), (64,), (128,), (64, 32), (128, 64)]
+                activation_options = ['relu', 'logistic', 'tanh']
+                alpha_range = st.slider("L2 Penalty (log scale)", -6, -1, (-4, -2), key="nn_alpha_range")
+                lr_range = st.slider("Initial Learning Rate (log scale)", -5, -1, (-4, -2), key="nn_lr_range")
+                max_iter = st.slider("Max Iterations", 100, 2000, 1000, key="nn_cv_max_iter")
 
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_nn_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_nn_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_nn_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
+                param_grid = {
+                    "hidden_layer_sizes": hidden_layer_options,
+                    "activation": activation_options,
+                    "alpha": np.logspace(alpha_range[0], alpha_range[1], num=5),
+                    "learning_rate_init": np.logspace(lr_range[0], lr_range[1], num=5),
+                }
+
+                n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="nn_cv_folds")
+
+                with st.spinner("Running Neural Network hyperparameter tuning..."):
+                    base_model = MLPClassifier(
+                        solver='adam',  # consistent default
+                        max_iter=max_iter,
+                        random_state=42
+                    )
+
+                    if search_method == "Grid Search":
+                        nn_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                    else:
+                        nn_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                    nn_search.fit(X_train_final, y_train)
+                    nn_model = nn_search.best_estimator_
+
+                    st.success(
+                        f"Best Parameters: layers={nn_model.hidden_layer_sizes}, "
+                        f"activation={nn_model.activation}, "
+                        f"alpha={nn_model.alpha:.5f}, lr={nn_model.learning_rate_init:.5f}"
+                    )
+
+            else:
+                nn_hidden_units = st.number_input("NN: Units in Hidden Layer", min_value=1, max_value=500, value=50, key="nn_hidden_units")
+                nn_activation = st.selectbox("NN: Activation Function", ['relu', 'logistic', 'tanh'], key="nn_activation")
+                nn_solver = st.selectbox("NN: Solver", ['adam', 'sgd', 'lbfgs'], key="nn_solver")
+                nn_alpha = st.number_input("NN: L2 Penalty (alpha)", value=0.0001, format="%.5f", key="nn_alpha")
+                nn_learning_rate_init = st.number_input("NN: Initial Learning Rate", value=0.001, format="%.5f", key="nn_lr_init")
+                nn_max_iter = st.slider("NN: Max Iterations", 100, 2000, 1000, key="nn_max_iter")
+
+                with st.spinner("Training Neural Network..."):
+                    nn_model = MLPClassifier(
+                        hidden_layer_sizes=(nn_hidden_units,),
+                        activation=nn_activation,
+                        solver=nn_solver,
+                        alpha=nn_alpha,
+                        learning_rate_init=nn_learning_rate_init,
+                        max_iter=nn_max_iter,
+                        random_state=42
+                    )
+                    nn_model.fit(X_train_final, y_train)
+
+            # === Global metrics (always computed) ===
+            y_pred_nn_train = nn_model.predict(X_train_final)
+            y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
+
+            st.markdown("**📊 Training Set Performance**")
+            st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"Precision: {precision_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"Recall:    {recall_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"F1-Score:  {f1_score(y_train, y_pred_nn_train):.4f}")
+            st.text(f"AUC:       {roc_auc_score(y_train, y_prob_nn_train):.4f}")
+
+            # === Optional: 10-Fold Cross-Validation ===
+            if st.checkbox("🔁 Run 10-Fold Cross-Validation for Neural Network?", key="nn_run_cv"):
+                scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                with st.spinner("Running cross-validation..."):
+                    cv_results = cross_validate(
+                        nn_model, X_train_final, y_train,
+                        cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                    )
+
+                st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                for metric in scoring:
+                    mean_score = cv_results[f'test_{metric}'].mean()
+                    std_score = cv_results[f'test_{metric}'].std()
+                    st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
-    # === Voting Classifier (Soft Voting Only) ===
+
+    # === Voting Classifier (Soft Voting Only) with CV ===
     from sklearn.ensemble import VotingClassifier
+    from sklearn.model_selection import cross_validate
     from sklearn.metrics import (
         accuracy_score, precision_score, recall_score,
         f1_score, roc_auc_score
@@ -965,12 +1407,12 @@ if uploaded_file is not None:
     if "Voting Classifier" in selected_models:
         with st.expander("🗳️ Voting Classifier (Soft Voting Ensemble)"):
             st.write("**Soft voting averages predicted probabilities across models.**")
-            st.write("All models included must support `predict_proba()`.")
+            st.write("All models included must support `predict_proba()`. At least 2 models required.")
 
-            # Include only models that have been trained and selected
             available_models = []
             model_names = []
 
+            # === Add models if selected and defined ===
             if "Ridge Logistic Regression" in selected_models and 'ridge_model' in locals():
                 available_models.append(("ridge", ridge_model))
                 model_names.append("Ridge Logistic Regression")
@@ -979,7 +1421,7 @@ if uploaded_file is not None:
                 available_models.append(("lasso", lasso_model))
                 model_names.append("Lasso Logistic Regression")
 
-            if "ElasticNet Logistic Regression" in selected_models and 'elastic_model' in locals():
+            if "ElasticNet Logistic Regression" in selected_models and 'enet_model' in locals():
                 available_models.append(("elastic", enet_model))
                 model_names.append("ElasticNet Logistic Regression")
 
@@ -987,7 +1429,7 @@ if uploaded_file is not None:
                 available_models.append(("rf", rf_model))
                 model_names.append("Random Forest")
 
-            if "Decision Tree" in selected_models and 'dt_model' in locals():
+            if "Decision Tree" in selected_models and 'tree_model' in locals():
                 available_models.append(("dt", tree_model))
                 model_names.append("Decision Tree")
 
@@ -995,7 +1437,7 @@ if uploaded_file is not None:
                 available_models.append(("svm", svm_model))
                 model_names.append("Support Vector Machine")
 
-            if "Gradient Boosting" in selected_models and 'gb_model' in locals():
+            if "Gradient Boosting" in selected_models and 'gbm_model' in locals():
                 available_models.append(("gb", gbm_model))
                 model_names.append("Gradient Boosting")
 
@@ -1011,9 +1453,9 @@ if uploaded_file is not None:
                 available_models.append(("nn", nn_model))
                 model_names.append("Neural Network")
 
-
+            # === Train Voting Classifier if enough models are available ===
             if len(available_models) < 2:
-                st.warning("Please select at least two trained models to use VotingClassifier.")
+                st.warning("Please select at least two trained models that support probability outputs.")
             else:
                 with st.spinner("Training Voting Classifier (soft)..."):
                     voting_clf = VotingClassifier(
@@ -1032,6 +1474,22 @@ if uploaded_file is not None:
                     st.text(f"Recall:    {recall_score(y_train, y_pred_vote_train):.4f}")
                     st.text(f"F1-Score:  {f1_score(y_train, y_pred_vote_train):.4f}")
                     st.text(f"AUC:       {roc_auc_score(y_train, y_prob_vote_train):.4f}")
+
+                # === Optional: 10-Fold Cross-Validation ===
+                if st.checkbox("🔁 Run 10-Fold Cross-Validation for Voting Classifier?", key="vote_run_cv"):
+                    scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                    with st.spinner("Running cross-validation..."):
+                        cv_results = cross_validate(
+                            voting_clf, X_train_final, y_train,
+                            cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                        )
+
+                    st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                    for metric in scoring:
+                        mean_score = cv_results[f'test_{metric}'].mean()
+                        std_score = cv_results[f'test_{metric}'].std()
+                        st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
 
 
 
