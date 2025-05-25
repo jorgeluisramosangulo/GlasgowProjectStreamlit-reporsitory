@@ -12,6 +12,8 @@ from sklearn.linear_model import LogisticRegression
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
+from imblearn.over_sampling import SMOTE, RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
 
 
 
@@ -19,7 +21,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -533,10 +535,39 @@ if uploaded_file is not None:
                 y_train = y_train[keep_indices]
                 st.success("Outliers removed from training set.")
 
+
+
+            st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
+
+            imbalance_strategy = st.radio(
+                "Choose a resampling method:", 
+                ["None", "Undersampling", "Oversampling", "SMOTE"],
+                index=0
+            )
+
+            if imbalance_strategy == "Undersampling":
+                sampler = RandomUnderSampler(random_state=42)
+            elif imbalance_strategy == "Oversampling":
+                sampler = RandomOverSampler(random_state=42)
+            elif imbalance_strategy == "SMOTE":
+                sampler = SMOTE(random_state=42)
+            else:
+                sampler = None
+
+            if sampler:
+                X_train_resampled, y_train_resampled = sampler.fit_resample(X_train, y_train)
+                st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
+                st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
+            else:
+                X_train_resampled = X_train.copy()
+                y_train_resampled = y_train.copy()
+
+
     # Save transformations in session state if needed later
-    st.session_state["X_train"] = X_train.copy()
+
+    st.session_state["X_train"] = X_train_resampled.copy()
+    st.session_state["y_train"] = y_train_resampled.copy()
     st.session_state["X_val"] = X_val.copy()
-    st.session_state["y_train"] = y_train.copy()
     st.session_state["y_val"] = y_val.copy()
 
 
@@ -575,8 +606,9 @@ if uploaded_file is not None:
     use_pca = st.session_state["use_pca"]
     if use_pca == "Yes":
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(X_train.select_dtypes(include=np.number))
-        X_val_scaled = scaler.transform(X_val.select_dtypes(include=np.number))
+        X_train_scaled = scaler.fit_transform(st.session_state["X_train"].select_dtypes(include=np.number))
+        X_val_scaled = scaler.transform(st.session_state["X_val"].select_dtypes(include=np.number))
+
 
         # Fit PCA to show variance plot
         pca_temp = PCA()
@@ -594,7 +626,7 @@ if uploaded_file is not None:
             # === Show PCA component loadings (for interpretation) ===
         loadings = pd.DataFrame(
             pca_temp.components_.T,
-            index=X_train.select_dtypes(include=np.number).columns,
+            index=st.session_state["X_train"].select_dtypes(include=np.number).columns,
             columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
         )
 
@@ -635,8 +667,8 @@ if uploaded_file is not None:
             X_val_final = st.session_state["X_val_final"]
 
     else:
-        X_train_final = X_train.copy()
-        X_val_final = X_val.copy()
+        X_train_final = st.session_state["X_train"].copy()
+        X_val_final = st.session_state["X_val"].copy()
         st.success("✅ PCA skipped.")
 
 
