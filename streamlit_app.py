@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -170,9 +170,11 @@ if uploaded_file is not None:
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    # Convert target to numerical if categorical
-    if y_raw.dtype == "object" or y_raw.dtype.name == "category":
-        y_raw = pd.factorize(y_raw)[0].astype('int64')  # Assign numeric labels
+    # === Validate target column ===
+    unique_vals = y_raw.dropna().unique()
+    if len(unique_vals) != 2 or not set(unique_vals).issubset({0, 1}):
+        st.error("❌ Target column must contain exactly two values: 0 and 1.")
+        st.stop()
 
     # Show class distribution
     st.markdown("#### 📊 Target Value Distribution")
@@ -187,6 +189,7 @@ if uploaded_file is not None:
     })
 
     st.dataframe(target_summary_df)
+
 
 
 ##########################################################################################################################
@@ -405,7 +408,6 @@ if uploaded_file is not None:
 
     st.success(f"✅ Target column confirmed: `{target_column}`")
 
-
     # Convert target to integer labels
     y_raw = pd.factorize(y_raw)[0].astype('int64')  # Guarantees int64
 
@@ -414,8 +416,6 @@ if uploaded_file is not None:
 
     # Ensure float64 type
     X_encoded = X_encoded.astype('float64')
-
-
 
     # Final cleaned features
     X_raw = X_encoded
@@ -428,10 +428,14 @@ if uploaded_file is not None:
         X_raw = X_raw[~invalid_rows]
         y_raw = y_raw[~invalid_rows]
 
+    # ✅ Store processed training columns for later use in test section
+    st.session_state["X_raw"] = X_raw.copy()
+
     # === Train/Validation Split ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
     X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
+
 
 
 ##########################################################################################################################
