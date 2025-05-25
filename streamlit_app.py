@@ -21,7 +21,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -458,8 +458,14 @@ if uploaded_file is not None:
 
     if apply_transformation:
         from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+        from imblearn.over_sampling import SMOTE, RandomOverSampler
+        from imblearn.under_sampling import RandomUnderSampler
 
         st.info("Transformations will apply to both training and validation sets consistently.")
+
+        # Always start with current train/val from earlier step
+        X_train_resampled = X_train.copy()
+        y_train_resampled = y_train.copy()
 
         # 1. Centering + Scaling
         if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
@@ -535,40 +541,35 @@ if uploaded_file is not None:
                 y_train = y_train[keep_indices]
                 st.success("Outliers removed from training set.")
 
+        # 5. Optional Class Imbalance Handling (ALWAYS visible if apply_transformation)
+        st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
 
+        imbalance_strategy = st.radio(
+            "Choose a resampling method:",
+            ["None", "Undersampling", "Oversampling", "SMOTE"],
+            index=0
+        )
 
-            st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
+        if imbalance_strategy == "Undersampling":
+            sampler = RandomUnderSampler(random_state=42)
+        elif imbalance_strategy == "Oversampling":
+            sampler = RandomOverSampler(random_state=42)
+        elif imbalance_strategy == "SMOTE":
+            sampler = SMOTE(random_state=42)
+        else:
+            sampler = None
 
-            imbalance_strategy = st.radio(
-                "Choose a resampling method:", 
-                ["None", "Undersampling", "Oversampling", "SMOTE"],
-                index=0
-            )
+        if sampler:
+            X_train_resampled, y_train_resampled = sampler.fit_resample(X_train, y_train)
+            st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
+            st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
 
-            if imbalance_strategy == "Undersampling":
-                sampler = RandomUnderSampler(random_state=42)
-            elif imbalance_strategy == "Oversampling":
-                sampler = RandomOverSampler(random_state=42)
-            elif imbalance_strategy == "SMOTE":
-                sampler = SMOTE(random_state=42)
-            else:
-                sampler = None
-
-            if sampler:
-                X_train_resampled, y_train_resampled = sampler.fit_resample(X_train, y_train)
-                st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
-                st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
-            else:
-                X_train_resampled = X_train.copy()
-                y_train_resampled = y_train.copy()
-
-
-    # Save transformations in session state if needed later
-
+    # Save results (resampled or not)
     st.session_state["X_train"] = X_train_resampled.copy()
     st.session_state["y_train"] = y_train_resampled.copy()
     st.session_state["X_val"] = X_val.copy()
     st.session_state["y_val"] = y_val.copy()
+
 
 
 
