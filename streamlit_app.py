@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -143,6 +143,7 @@ if uploaded_file is not None:
 #################################        Target Selection    #############################################################
 ##########################################################################################################################
 
+    
     # === Target Selection ===
     st.markdown("### 🎯 Step 2: Select Target Column")
 
@@ -176,6 +177,9 @@ if uploaded_file is not None:
         st.error("❌ Target column must contain exactly two values: 0 and 1.")
         st.stop()
 
+    # Save label mapping for test-time consistency (optional here but safe)
+    st.session_state["label_classes_"] = sorted(unique_vals)
+
     # Show class distribution
     st.markdown("#### 📊 Target Value Distribution")
 
@@ -189,6 +193,7 @@ if uploaded_file is not None:
     })
 
     st.dataframe(target_summary_df)
+
 
 
 
@@ -1917,6 +1922,7 @@ if uploaded_file is not None:
                 df_test = df_test[~invalid_test_rows]
                 df_test_original = df_test_original[~invalid_test_rows]
 
+            
             # === Handle target ===
             target_column = st.session_state.get("target_column", None)
             target_column_present = target_column is not None and target_column in df_test.columns
@@ -1929,11 +1935,18 @@ if uploaded_file is not None:
                 df_test_target = df_test[[target_column]].copy()
 
                 if "label_classes_" in st.session_state:
-                    label_map = {label: idx for idx, label in enumerate(st.session_state["label_classes_"])}
-                    unknown_classes = set(df_test_target[target_column].unique()) - set(label_map.keys())
-                    if unknown_classes:
-                        st.warning(f"⚠️ Test data contains unseen target classes: {unknown_classes}. These rows will be dropped.")
+                    label_classes = st.session_state["label_classes_"]
 
+                    # Validate values
+                    unique_test_vals = df_test_target[target_column].dropna().unique()
+                    if len(unique_test_vals) != 2 or not set(unique_test_vals).issubset(set(label_classes)):
+                        st.error(f"❌ Target column must contain exactly the values: {label_classes}. Found: {list(unique_test_vals)}")
+                        st.stop()
+
+                    # Build consistent label map
+                    label_map = {label: idx for idx, label in enumerate(label_classes)}
+
+                    # Encode
                     df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
                     df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
@@ -1947,9 +1960,11 @@ if uploaded_file is not None:
                 else:
                     st.warning("⚠️ Could not find label mapping from training. Skipping encoding.")
                     df_test_target_final = df_test_target[target_column]
+
             else:
                 st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
                 target_column_present = False
+
 
             # === Apply transformations from training ===
             if "transform_pipeline" in st.session_state:
@@ -2105,24 +2120,31 @@ if uploaded_file is not None:
             if "Voting Classifier" in selected_models:
                 test_predictions["Voting Classifier"] = (test_pred_vote, prob_pred_vote)
 
+
             # === If target is present, compute performance metrics ===
             if target_column_present:
                 st.markdown("### 📊 Test Set Performance Metrics")
 
                 def compute_metrics(y_true, y_pred, y_prob, model_name):
+                    # Sanity check: predicted probabilities should correlate positively with class 1
+                    auc_score = roc_auc_score(y_true, y_prob)
+
+                    # Optional: if AUC is inverted (less than 0.5), log a warning
+                    if auc_score < 0.5:
+                        st.warning(f"⚠️ AUC for {model_name} is {auc_score:.4f}, indicating a possible label inversion.")
+
                     return {
                         'Model': model_name,
                         'Accuracy': accuracy_score(y_true, y_pred),
                         'Precision': precision_score(y_true, y_pred),
                         'Recall': recall_score(y_true, y_pred),
                         'F1-Score': f1_score(y_true, y_pred),
-                        'AUC': roc_auc_score(y_true, y_prob)
+                        'AUC': auc_score
                     }
 
                 test_metrics = []
                 for model_name, (y_pred, y_prob) in test_predictions.items():
                     test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
-
 
                 test_summary_df = pd.DataFrame(test_metrics)
                 st.dataframe(test_summary_df.style.format({
@@ -2132,6 +2154,7 @@ if uploaded_file is not None:
 
             else:
                 st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
+
 
 
 
