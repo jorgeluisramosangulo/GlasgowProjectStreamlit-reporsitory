@@ -1998,8 +1998,9 @@ if uploaded_file is not None:
 
             # === Initialize results DataFrame ===
             df_results = df_test_original.copy()
-            if target_column_present:
-                df_results[target_column] = df_test_target
+            if target_column_present and 'df_test_target_final' in locals():
+                df_results[target_column] = df_test_target_final.reset_index(drop=True)
+
 
             # === Make Predictions and Add Columns Dynamically ===
 
