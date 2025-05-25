@@ -415,6 +415,8 @@ if uploaded_file is not None:
 
     # Convert target to integer labels
     y_raw = pd.factorize(y_raw)[0].astype('int64')  # Guarantees int64
+    st.session_state["label_classes_"] = [0, 1]     
+
 
     # Handle categorical features (one-hot encoding)
     X_encoded = pd.get_dummies(X_raw, drop_first=True)
