@@ -21,7 +21,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -453,6 +453,10 @@ if uploaded_file is not None:
 ##########################################################################################################################
 
     st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
+
+    # ✅ Always initialize fallback copies
+    X_train_resampled = X_train.copy()
+    y_train_resampled = y_train.copy()
 
     apply_transformation = st.checkbox("🧪 Would you like to transform the data before PCA?", value=False)
 
