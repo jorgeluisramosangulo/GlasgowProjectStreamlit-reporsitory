@@ -19,7 +19,7 @@ from sklearn.neural_network import MLPClassifier
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -413,9 +413,10 @@ if uploaded_file is not None:
 
     st.success(f"✅ Target column confirmed: `{target_column}`")
 
-    # Convert target to integer labels
-    y_raw = pd.factorize(y_raw)[0].astype('int64')  # Guarantees int64
-    st.session_state["label_classes_"] = [0, 1]     
+    # Convert target to integer labels   
+    y_raw, label_classes = pd.factorize(y_raw)
+    y_raw = y_raw.astype('int64')
+    st.session_state["label_classes_"] = label_classes.tolist()
 
 
     # Handle categorical features (one-hot encoding)
@@ -1939,24 +1940,31 @@ if uploaded_file is not None:
                 if "label_classes_" in st.session_state:
                     label_classes = st.session_state["label_classes_"]
 
-                    # Validate values
-                    unique_test_vals = df_test_target[target_column].dropna().unique()
-                    if len(unique_test_vals) != 2 or not set(unique_test_vals).issubset(set(label_classes)):
-                        st.error(f"❌ Target column must contain exactly the values: {label_classes}. Found: {list(unique_test_vals)}")
+                    # Validate that test target contains exactly the same labels
+                    test_labels = set(df_test_target[target_column].dropna().unique())
+                    expected_labels = set(label_classes)
+
+                    if test_labels != expected_labels:
+                        st.error(
+                            f"❌ Test set target labels must exactly match training labels {sorted(expected_labels)}.\n"
+                            f"Found: {sorted(test_labels)}"
+                        )
                         st.stop()
 
-                    # Build consistent label map
+                    # Build consistent label mapping
                     label_map = {label: idx for idx, label in enumerate(label_classes)}
 
-                    # Encode
+                    # Apply encoding
                     df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
                     df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
-                    # Align rows
+                    # Align rows in all related dataframes
                     df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
                     df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
 
+                    # Store encoded target for metrics
                     df_test_target_final = df_test_target["encoded_target"]
+
                     st.markdown("#### ✅ Encoded Target Value Distribution")
                     st.dataframe(df_test_target_final.value_counts())
                 else:
@@ -1966,6 +1974,7 @@ if uploaded_file is not None:
             else:
                 st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
                 target_column_present = False
+
 
 
             # === Apply transformations from training ===
