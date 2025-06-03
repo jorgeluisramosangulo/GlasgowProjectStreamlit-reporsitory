@@ -43,7 +43,7 @@ use_sample = st.radio("How would you like to provide your dataset?", ["Use sampl
 df = None
 
 if use_sample == "Use sample dataset":
-    dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+    dataset_names = ["titanic train", "heart_disease train", "breast cancer train", "creditcard train", "diabetes train", "banknote train"]
     format_options = ["csv", "xlsx", "json"]
     stage_options = ["train"]  # Only show train here
 
@@ -1949,7 +1949,7 @@ if df is not None:
     df_test = None
 
     if use_sample_test == "Use sample test file":
-        dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+        dataset_names = ["titanic test", "heart_disease test", "breast cancer test", "creditcard test", "diabetes test", "banknote test"]
         format_options = ["csv", "xlsx", "json"]
 
         dataset = st.selectbox("Select test dataset", dataset_names, key="test_dataset")
