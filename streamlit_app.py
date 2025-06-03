@@ -21,7 +21,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppppppppppp")
+st.title("🤖 Binary Classification Apppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
