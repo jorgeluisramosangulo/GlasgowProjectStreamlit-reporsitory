@@ -1,77 +1,849 @@
-{"Pregnancies":9,"Glucose":124,"BloodPressure":70,"SkinThickness":33,"Insulin":402,"BMI":35.4,"DiabetesPedigreeFunction":0.282,"Age":34,"Outcome":0}
-{"Pregnancies":1,"Glucose":131,"BloodPressure":64,"SkinThickness":14,"Insulin":415,"BMI":23.7,"DiabetesPedigreeFunction":0.389,"Age":21,"Outcome":0}
-{"Pregnancies":1,"Glucose":115,"BloodPressure":70,"SkinThickness":30,"Insulin":96,"BMI":34.6,"DiabetesPedigreeFunction":0.529,"Age":32,"Outcome":1}
-{"Pregnancies":0,"Glucose":100,"BloodPressure":70,"SkinThickness":26,"Insulin":50,"BMI":30.8,"DiabetesPedigreeFunction":0.597,"Age":21,"Outcome":0}
-{"Pregnancies":1,"Glucose":101,"BloodPressure":50,"SkinThickness":15,"Insulin":36,"BMI":24.2,"DiabetesPedigreeFunction":0.526,"Age":26,"Outcome":0}
-{"Pregnancies":0,"Glucose":91,"BloodPressure":80,"SkinThickness":0,"Insulin":0,"BMI":32.4,"DiabetesPedigreeFunction":0.601,"Age":27,"Outcome":0}
-{"Pregnancies":3,"Glucose":99,"BloodPressure":54,"SkinThickness":19,"Insulin":86,"BMI":25.6,"DiabetesPedigreeFunction":0.154,"Age":24,"Outcome":0}
-{"Pregnancies":7,"Glucose":133,"BloodPressure":84,"SkinThickness":0,"Insulin":0,"BMI":40.2,"DiabetesPedigreeFunction":0.696,"Age":37,"Outcome":0}
-{"Pregnancies":1,"Glucose":71,"BloodPressure":78,"SkinThickness":50,"Insulin":45,"BMI":33.2,"DiabetesPedigreeFunction":0.422,"Age":21,"Outcome":0}
-{"Pregnancies":7,"Glucose":125,"BloodPressure":86,"SkinThickness":0,"Insulin":0,"BMI":37.6,"DiabetesPedigreeFunction":0.304,"Age":51,"Outcome":0}
-{"Pregnancies":0,"Glucose":101,"BloodPressure":76,"SkinThickness":0,"Insulin":0,"BMI":35.7,"DiabetesPedigreeFunction":0.198,"Age":26,"Outcome":0}
-{"Pregnancies":4,"Glucose":141,"BloodPressure":74,"SkinThickness":0,"Insulin":0,"BMI":27.6,"DiabetesPedigreeFunction":0.244,"Age":40,"Outcome":0}
-{"Pregnancies":1,"Glucose":90,"BloodPressure":62,"SkinThickness":18,"Insulin":59,"BMI":25.1,"DiabetesPedigreeFunction":1.268,"Age":25,"Outcome":0}
-{"Pregnancies":2,"Glucose":100,"BloodPressure":70,"SkinThickness":52,"Insulin":57,"BMI":40.5,"DiabetesPedigreeFunction":0.677,"Age":25,"Outcome":0}
-{"Pregnancies":3,"Glucose":96,"BloodPressure":78,"SkinThickness":39,"Insulin":0,"BMI":37.3,"DiabetesPedigreeFunction":0.238,"Age":40,"Outcome":0}
-{"Pregnancies":3,"Glucose":158,"BloodPressure":70,"SkinThickness":30,"Insulin":328,"BMI":35.5,"DiabetesPedigreeFunction":0.344,"Age":35,"Outcome":1}
-{"Pregnancies":2,"Glucose":120,"BloodPressure":76,"SkinThickness":37,"Insulin":105,"BMI":39.7,"DiabetesPedigreeFunction":0.215,"Age":29,"Outcome":0}
-{"Pregnancies":2,"Glucose":71,"BloodPressure":70,"SkinThickness":27,"Insulin":0,"BMI":28.0,"DiabetesPedigreeFunction":0.586,"Age":22,"Outcome":0}
-{"Pregnancies":3,"Glucose":102,"BloodPressure":44,"SkinThickness":20,"Insulin":94,"BMI":30.8,"DiabetesPedigreeFunction":0.4,"Age":26,"Outcome":0}
-{"Pregnancies":0,"Glucose":151,"BloodPressure":90,"SkinThickness":46,"Insulin":0,"BMI":42.1,"DiabetesPedigreeFunction":0.371,"Age":21,"Outcome":1}
-{"Pregnancies":2,"Glucose":117,"BloodPressure":90,"SkinThickness":19,"Insulin":71,"BMI":25.2,"DiabetesPedigreeFunction":0.313,"Age":21,"Outcome":0}
-{"Pregnancies":6,"Glucose":105,"BloodPressure":80,"SkinThickness":28,"Insulin":0,"BMI":32.5,"DiabetesPedigreeFunction":0.878,"Age":26,"Outcome":0}
-{"Pregnancies":2,"Glucose":106,"BloodPressure":64,"SkinThickness":35,"Insulin":119,"BMI":30.5,"DiabetesPedigreeFunction":1.4,"Age":34,"Outcome":0}
-{"Pregnancies":0,"Glucose":137,"BloodPressure":68,"SkinThickness":14,"Insulin":148,"BMI":24.8,"DiabetesPedigreeFunction":0.143,"Age":21,"Outcome":0}
-{"Pregnancies":2,"Glucose":100,"BloodPressure":68,"SkinThickness":25,"Insulin":71,"BMI":38.5,"DiabetesPedigreeFunction":0.324,"Age":26,"Outcome":0}
-{"Pregnancies":0,"Glucose":95,"BloodPressure":85,"SkinThickness":25,"Insulin":36,"BMI":37.4,"DiabetesPedigreeFunction":0.247,"Age":24,"Outcome":1}
-{"Pregnancies":1,"Glucose":119,"BloodPressure":44,"SkinThickness":47,"Insulin":63,"BMI":35.5,"DiabetesPedigreeFunction":0.28,"Age":25,"Outcome":0}
-{"Pregnancies":2,"Glucose":197,"BloodPressure":70,"SkinThickness":45,"Insulin":543,"BMI":30.5,"DiabetesPedigreeFunction":0.158,"Age":53,"Outcome":1}
-{"Pregnancies":8,"Glucose":91,"BloodPressure":82,"SkinThickness":0,"Insulin":0,"BMI":35.6,"DiabetesPedigreeFunction":0.587,"Age":68,"Outcome":0}
-{"Pregnancies":0,"Glucose":101,"BloodPressure":65,"SkinThickness":28,"Insulin":0,"BMI":24.6,"DiabetesPedigreeFunction":0.237,"Age":22,"Outcome":0}
-{"Pregnancies":0,"Glucose":179,"BloodPressure":90,"SkinThickness":27,"Insulin":0,"BMI":44.1,"DiabetesPedigreeFunction":0.686,"Age":23,"Outcome":1}
-{"Pregnancies":5,"Glucose":116,"BloodPressure":74,"SkinThickness":29,"Insulin":0,"BMI":32.3,"DiabetesPedigreeFunction":0.66,"Age":35,"Outcome":1}
-{"Pregnancies":0,"Glucose":126,"BloodPressure":86,"SkinThickness":27,"Insulin":120,"BMI":27.4,"DiabetesPedigreeFunction":0.515,"Age":21,"Outcome":0}
-{"Pregnancies":4,"Glucose":154,"BloodPressure":72,"SkinThickness":29,"Insulin":126,"BMI":31.3,"DiabetesPedigreeFunction":0.338,"Age":37,"Outcome":0}
-{"Pregnancies":5,"Glucose":115,"BloodPressure":98,"SkinThickness":0,"Insulin":0,"BMI":52.9,"DiabetesPedigreeFunction":0.209,"Age":28,"Outcome":1}
-{"Pregnancies":3,"Glucose":106,"BloodPressure":54,"SkinThickness":21,"Insulin":158,"BMI":30.9,"DiabetesPedigreeFunction":0.292,"Age":24,"Outcome":0}
-{"Pregnancies":9,"Glucose":130,"BloodPressure":70,"SkinThickness":0,"Insulin":0,"BMI":34.2,"DiabetesPedigreeFunction":0.652,"Age":45,"Outcome":1}
-{"Pregnancies":7,"Glucose":81,"BloodPressure":78,"SkinThickness":40,"Insulin":48,"BMI":46.7,"DiabetesPedigreeFunction":0.261,"Age":42,"Outcome":0}
-{"Pregnancies":4,"Glucose":103,"BloodPressure":60,"SkinThickness":33,"Insulin":192,"BMI":24.0,"DiabetesPedigreeFunction":0.966,"Age":33,"Outcome":0}
-{"Pregnancies":3,"Glucose":107,"BloodPressure":62,"SkinThickness":13,"Insulin":48,"BMI":22.9,"DiabetesPedigreeFunction":0.678,"Age":23,"Outcome":1}
-{"Pregnancies":5,"Glucose":99,"BloodPressure":54,"SkinThickness":28,"Insulin":83,"BMI":34.0,"DiabetesPedigreeFunction":0.499,"Age":30,"Outcome":0}
-{"Pregnancies":5,"Glucose":136,"BloodPressure":82,"SkinThickness":0,"Insulin":0,"BMI":0.0,"DiabetesPedigreeFunction":0.64,"Age":69,"Outcome":0}
-{"Pregnancies":0,"Glucose":131,"BloodPressure":66,"SkinThickness":40,"Insulin":0,"BMI":34.3,"DiabetesPedigreeFunction":0.196,"Age":22,"Outcome":1}
-{"Pregnancies":2,"Glucose":141,"BloodPressure":58,"SkinThickness":34,"Insulin":128,"BMI":25.4,"DiabetesPedigreeFunction":0.699,"Age":24,"Outcome":0}
-{"Pregnancies":4,"Glucose":147,"BloodPressure":74,"SkinThickness":25,"Insulin":293,"BMI":34.9,"DiabetesPedigreeFunction":0.385,"Age":30,"Outcome":0}
-{"Pregnancies":13,"Glucose":76,"BloodPressure":60,"SkinThickness":0,"Insulin":0,"BMI":32.8,"DiabetesPedigreeFunction":0.18,"Age":41,"Outcome":0}
-{"Pregnancies":0,"Glucose":137,"BloodPressure":40,"SkinThickness":35,"Insulin":168,"BMI":43.1,"DiabetesPedigreeFunction":2.288,"Age":33,"Outcome":1}
-{"Pregnancies":15,"Glucose":136,"BloodPressure":70,"SkinThickness":32,"Insulin":110,"BMI":37.1,"DiabetesPedigreeFunction":0.153,"Age":43,"Outcome":1}
-{"Pregnancies":11,"Glucose":138,"BloodPressure":76,"SkinThickness":0,"Insulin":0,"BMI":33.2,"DiabetesPedigreeFunction":0.42,"Age":35,"Outcome":0}
-{"Pregnancies":1,"Glucose":71,"BloodPressure":48,"SkinThickness":18,"Insulin":76,"BMI":20.4,"DiabetesPedigreeFunction":0.323,"Age":22,"Outcome":0}
-{"Pregnancies":1,"Glucose":87,"BloodPressure":78,"SkinThickness":27,"Insulin":32,"BMI":34.6,"DiabetesPedigreeFunction":0.101,"Age":22,"Outcome":0}
-{"Pregnancies":7,"Glucose":147,"BloodPressure":76,"SkinThickness":0,"Insulin":0,"BMI":39.4,"DiabetesPedigreeFunction":0.257,"Age":43,"Outcome":1}
-{"Pregnancies":2,"Glucose":99,"BloodPressure":70,"SkinThickness":16,"Insulin":44,"BMI":20.4,"DiabetesPedigreeFunction":0.235,"Age":27,"Outcome":0}
-{"Pregnancies":0,"Glucose":117,"BloodPressure":80,"SkinThickness":31,"Insulin":53,"BMI":45.2,"DiabetesPedigreeFunction":0.089,"Age":24,"Outcome":0}
-{"Pregnancies":7,"Glucose":150,"BloodPressure":66,"SkinThickness":42,"Insulin":342,"BMI":34.7,"DiabetesPedigreeFunction":0.718,"Age":42,"Outcome":0}
-{"Pregnancies":8,"Glucose":154,"BloodPressure":78,"SkinThickness":32,"Insulin":0,"BMI":32.4,"DiabetesPedigreeFunction":0.443,"Age":45,"Outcome":1}
-{"Pregnancies":4,"Glucose":115,"BloodPressure":72,"SkinThickness":0,"Insulin":0,"BMI":28.9,"DiabetesPedigreeFunction":0.376,"Age":46,"Outcome":1}
-{"Pregnancies":2,"Glucose":107,"BloodPressure":74,"SkinThickness":30,"Insulin":100,"BMI":33.6,"DiabetesPedigreeFunction":0.404,"Age":23,"Outcome":0}
-{"Pregnancies":1,"Glucose":89,"BloodPressure":24,"SkinThickness":19,"Insulin":25,"BMI":27.8,"DiabetesPedigreeFunction":0.559,"Age":21,"Outcome":0}
-{"Pregnancies":1,"Glucose":97,"BloodPressure":64,"SkinThickness":19,"Insulin":82,"BMI":18.2,"DiabetesPedigreeFunction":0.299,"Age":21,"Outcome":0}
-{"Pregnancies":1,"Glucose":109,"BloodPressure":56,"SkinThickness":21,"Insulin":135,"BMI":25.2,"DiabetesPedigreeFunction":0.833,"Age":23,"Outcome":0}
-{"Pregnancies":7,"Glucose":105,"BloodPressure":0,"SkinThickness":0,"Insulin":0,"BMI":0.0,"DiabetesPedigreeFunction":0.305,"Age":24,"Outcome":0}
-{"Pregnancies":3,"Glucose":173,"BloodPressure":78,"SkinThickness":39,"Insulin":185,"BMI":33.8,"DiabetesPedigreeFunction":0.97,"Age":31,"Outcome":1}
-{"Pregnancies":1,"Glucose":180,"BloodPressure":0,"SkinThickness":0,"Insulin":0,"BMI":43.3,"DiabetesPedigreeFunction":0.282,"Age":41,"Outcome":1}
-{"Pregnancies":0,"Glucose":74,"BloodPressure":52,"SkinThickness":10,"Insulin":36,"BMI":27.8,"DiabetesPedigreeFunction":0.269,"Age":22,"Outcome":0}
-{"Pregnancies":1,"Glucose":97,"BloodPressure":68,"SkinThickness":21,"Insulin":0,"BMI":27.2,"DiabetesPedigreeFunction":1.095,"Age":22,"Outcome":0}
-{"Pregnancies":1,"Glucose":107,"BloodPressure":72,"SkinThickness":30,"Insulin":82,"BMI":30.8,"DiabetesPedigreeFunction":0.821,"Age":24,"Outcome":0}
-{"Pregnancies":3,"Glucose":174,"BloodPressure":58,"SkinThickness":22,"Insulin":194,"BMI":32.9,"DiabetesPedigreeFunction":0.593,"Age":36,"Outcome":1}
-{"Pregnancies":9,"Glucose":152,"BloodPressure":78,"SkinThickness":34,"Insulin":171,"BMI":34.2,"DiabetesPedigreeFunction":0.893,"Age":33,"Outcome":1}
-{"Pregnancies":0,"Glucose":91,"BloodPressure":68,"SkinThickness":32,"Insulin":210,"BMI":39.9,"DiabetesPedigreeFunction":0.381,"Age":25,"Outcome":0}
-{"Pregnancies":2,"Glucose":83,"BloodPressure":66,"SkinThickness":23,"Insulin":50,"BMI":32.2,"DiabetesPedigreeFunction":0.497,"Age":22,"Outcome":0}
-{"Pregnancies":5,"Glucose":166,"BloodPressure":72,"SkinThickness":19,"Insulin":175,"BMI":25.8,"DiabetesPedigreeFunction":0.587,"Age":51,"Outcome":1}
-{"Pregnancies":2,"Glucose":129,"BloodPressure":74,"SkinThickness":26,"Insulin":205,"BMI":33.2,"DiabetesPedigreeFunction":0.591,"Age":25,"Outcome":0}
-{"Pregnancies":2,"Glucose":56,"BloodPressure":56,"SkinThickness":28,"Insulin":45,"BMI":24.2,"DiabetesPedigreeFunction":0.332,"Age":22,"Outcome":0}
-{"Pregnancies":1,"Glucose":97,"BloodPressure":70,"SkinThickness":40,"Insulin":0,"BMI":38.1,"DiabetesPedigreeFunction":0.218,"Age":30,"Outcome":0}
-{"Pregnancies":6,"Glucose":93,"BloodPressure":50,"SkinThickness":30,"Insulin":64,"BMI":28.7,"DiabetesPedigreeFunction":0.356,"Age":23,"Outcome":0}
-{"Pregnancies":0,"Glucose":99,"BloodPressure":0,"SkinThickness":0,"Insulin":0,"BMI":25.0,"DiabetesPedigreeFunction":0.253,"Age":22,"Outcome":0}
+[
+  {
+    "Pregnancies": 9,
+    "Glucose": 124,
+    "BloodPressure": 70,
+    "SkinThickness": 33,
+    "Insulin": 402,
+    "BMI": 35.4,
+    "DiabetesPedigreeFunction": 0.282,
+    "Age": 34,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 131,
+    "BloodPressure": 64,
+    "SkinThickness": 14,
+    "Insulin": 415,
+    "BMI": 23.7,
+    "DiabetesPedigreeFunction": 0.389,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 115,
+    "BloodPressure": 70,
+    "SkinThickness": 30,
+    "Insulin": 96,
+    "BMI": 34.6,
+    "DiabetesPedigreeFunction": 0.529,
+    "Age": 32,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 100,
+    "BloodPressure": 70,
+    "SkinThickness": 26,
+    "Insulin": 50,
+    "BMI": 30.8,
+    "DiabetesPedigreeFunction": 0.597,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 101,
+    "BloodPressure": 50,
+    "SkinThickness": 15,
+    "Insulin": 36,
+    "BMI": 24.2,
+    "DiabetesPedigreeFunction": 0.526,
+    "Age": 26,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 91,
+    "BloodPressure": 80,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 32.4,
+    "DiabetesPedigreeFunction": 0.601,
+    "Age": 27,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 99,
+    "BloodPressure": 54,
+    "SkinThickness": 19,
+    "Insulin": 86,
+    "BMI": 25.6,
+    "DiabetesPedigreeFunction": 0.154,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 133,
+    "BloodPressure": 84,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 40.2,
+    "DiabetesPedigreeFunction": 0.696,
+    "Age": 37,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 71,
+    "BloodPressure": 78,
+    "SkinThickness": 50,
+    "Insulin": 45,
+    "BMI": 33.2,
+    "DiabetesPedigreeFunction": 0.422,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 125,
+    "BloodPressure": 86,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 37.6,
+    "DiabetesPedigreeFunction": 0.304,
+    "Age": 51,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 101,
+    "BloodPressure": 76,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 35.7,
+    "DiabetesPedigreeFunction": 0.198,
+    "Age": 26,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 4,
+    "Glucose": 141,
+    "BloodPressure": 74,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 27.6,
+    "DiabetesPedigreeFunction": 0.244,
+    "Age": 40,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 90,
+    "BloodPressure": 62,
+    "SkinThickness": 18,
+    "Insulin": 59,
+    "BMI": 25.1,
+    "DiabetesPedigreeFunction": 1.268,
+    "Age": 25,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 100,
+    "BloodPressure": 70,
+    "SkinThickness": 52,
+    "Insulin": 57,
+    "BMI": 40.5,
+    "DiabetesPedigreeFunction": 0.677,
+    "Age": 25,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 96,
+    "BloodPressure": 78,
+    "SkinThickness": 39,
+    "Insulin": 0,
+    "BMI": 37.3,
+    "DiabetesPedigreeFunction": 0.238,
+    "Age": 40,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 158,
+    "BloodPressure": 70,
+    "SkinThickness": 30,
+    "Insulin": 328,
+    "BMI": 35.5,
+    "DiabetesPedigreeFunction": 0.344,
+    "Age": 35,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 120,
+    "BloodPressure": 76,
+    "SkinThickness": 37,
+    "Insulin": 105,
+    "BMI": 39.7,
+    "DiabetesPedigreeFunction": 0.215,
+    "Age": 29,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 71,
+    "BloodPressure": 70,
+    "SkinThickness": 27,
+    "Insulin": 0,
+    "BMI": 28.0,
+    "DiabetesPedigreeFunction": 0.586,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 102,
+    "BloodPressure": 44,
+    "SkinThickness": 20,
+    "Insulin": 94,
+    "BMI": 30.8,
+    "DiabetesPedigreeFunction": 0.4,
+    "Age": 26,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 151,
+    "BloodPressure": 90,
+    "SkinThickness": 46,
+    "Insulin": 0,
+    "BMI": 42.1,
+    "DiabetesPedigreeFunction": 0.371,
+    "Age": 21,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 117,
+    "BloodPressure": 90,
+    "SkinThickness": 19,
+    "Insulin": 71,
+    "BMI": 25.2,
+    "DiabetesPedigreeFunction": 0.313,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 6,
+    "Glucose": 105,
+    "BloodPressure": 80,
+    "SkinThickness": 28,
+    "Insulin": 0,
+    "BMI": 32.5,
+    "DiabetesPedigreeFunction": 0.878,
+    "Age": 26,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 106,
+    "BloodPressure": 64,
+    "SkinThickness": 35,
+    "Insulin": 119,
+    "BMI": 30.5,
+    "DiabetesPedigreeFunction": 1.4,
+    "Age": 34,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 137,
+    "BloodPressure": 68,
+    "SkinThickness": 14,
+    "Insulin": 148,
+    "BMI": 24.8,
+    "DiabetesPedigreeFunction": 0.143,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 100,
+    "BloodPressure": 68,
+    "SkinThickness": 25,
+    "Insulin": 71,
+    "BMI": 38.5,
+    "DiabetesPedigreeFunction": 0.324,
+    "Age": 26,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 95,
+    "BloodPressure": 85,
+    "SkinThickness": 25,
+    "Insulin": 36,
+    "BMI": 37.4,
+    "DiabetesPedigreeFunction": 0.247,
+    "Age": 24,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 119,
+    "BloodPressure": 44,
+    "SkinThickness": 47,
+    "Insulin": 63,
+    "BMI": 35.5,
+    "DiabetesPedigreeFunction": 0.28,
+    "Age": 25,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 197,
+    "BloodPressure": 70,
+    "SkinThickness": 45,
+    "Insulin": 543,
+    "BMI": 30.5,
+    "DiabetesPedigreeFunction": 0.158,
+    "Age": 53,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 8,
+    "Glucose": 91,
+    "BloodPressure": 82,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 35.6,
+    "DiabetesPedigreeFunction": 0.587,
+    "Age": 68,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 101,
+    "BloodPressure": 65,
+    "SkinThickness": 28,
+    "Insulin": 0,
+    "BMI": 24.6,
+    "DiabetesPedigreeFunction": 0.237,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 179,
+    "BloodPressure": 90,
+    "SkinThickness": 27,
+    "Insulin": 0,
+    "BMI": 44.1,
+    "DiabetesPedigreeFunction": 0.686,
+    "Age": 23,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 5,
+    "Glucose": 116,
+    "BloodPressure": 74,
+    "SkinThickness": 29,
+    "Insulin": 0,
+    "BMI": 32.3,
+    "DiabetesPedigreeFunction": 0.66,
+    "Age": 35,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 126,
+    "BloodPressure": 86,
+    "SkinThickness": 27,
+    "Insulin": 120,
+    "BMI": 27.4,
+    "DiabetesPedigreeFunction": 0.515,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 4,
+    "Glucose": 154,
+    "BloodPressure": 72,
+    "SkinThickness": 29,
+    "Insulin": 126,
+    "BMI": 31.3,
+    "DiabetesPedigreeFunction": 0.338,
+    "Age": 37,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 5,
+    "Glucose": 115,
+    "BloodPressure": 98,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 52.9,
+    "DiabetesPedigreeFunction": 0.209,
+    "Age": 28,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 106,
+    "BloodPressure": 54,
+    "SkinThickness": 21,
+    "Insulin": 158,
+    "BMI": 30.9,
+    "DiabetesPedigreeFunction": 0.292,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 9,
+    "Glucose": 130,
+    "BloodPressure": 70,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 34.2,
+    "DiabetesPedigreeFunction": 0.652,
+    "Age": 45,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 81,
+    "BloodPressure": 78,
+    "SkinThickness": 40,
+    "Insulin": 48,
+    "BMI": 46.7,
+    "DiabetesPedigreeFunction": 0.261,
+    "Age": 42,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 4,
+    "Glucose": 103,
+    "BloodPressure": 60,
+    "SkinThickness": 33,
+    "Insulin": 192,
+    "BMI": 24.0,
+    "DiabetesPedigreeFunction": 0.966,
+    "Age": 33,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 107,
+    "BloodPressure": 62,
+    "SkinThickness": 13,
+    "Insulin": 48,
+    "BMI": 22.9,
+    "DiabetesPedigreeFunction": 0.678,
+    "Age": 23,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 5,
+    "Glucose": 99,
+    "BloodPressure": 54,
+    "SkinThickness": 28,
+    "Insulin": 83,
+    "BMI": 34.0,
+    "DiabetesPedigreeFunction": 0.499,
+    "Age": 30,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 5,
+    "Glucose": 136,
+    "BloodPressure": 82,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 0.0,
+    "DiabetesPedigreeFunction": 0.64,
+    "Age": 69,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 131,
+    "BloodPressure": 66,
+    "SkinThickness": 40,
+    "Insulin": 0,
+    "BMI": 34.3,
+    "DiabetesPedigreeFunction": 0.196,
+    "Age": 22,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 141,
+    "BloodPressure": 58,
+    "SkinThickness": 34,
+    "Insulin": 128,
+    "BMI": 25.4,
+    "DiabetesPedigreeFunction": 0.699,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 4,
+    "Glucose": 147,
+    "BloodPressure": 74,
+    "SkinThickness": 25,
+    "Insulin": 293,
+    "BMI": 34.9,
+    "DiabetesPedigreeFunction": 0.385,
+    "Age": 30,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 13,
+    "Glucose": 76,
+    "BloodPressure": 60,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 32.8,
+    "DiabetesPedigreeFunction": 0.18,
+    "Age": 41,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 137,
+    "BloodPressure": 40,
+    "SkinThickness": 35,
+    "Insulin": 168,
+    "BMI": 43.1,
+    "DiabetesPedigreeFunction": 2.288,
+    "Age": 33,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 15,
+    "Glucose": 136,
+    "BloodPressure": 70,
+    "SkinThickness": 32,
+    "Insulin": 110,
+    "BMI": 37.1,
+    "DiabetesPedigreeFunction": 0.153,
+    "Age": 43,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 11,
+    "Glucose": 138,
+    "BloodPressure": 76,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 33.2,
+    "DiabetesPedigreeFunction": 0.42,
+    "Age": 35,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 71,
+    "BloodPressure": 48,
+    "SkinThickness": 18,
+    "Insulin": 76,
+    "BMI": 20.4,
+    "DiabetesPedigreeFunction": 0.323,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 87,
+    "BloodPressure": 78,
+    "SkinThickness": 27,
+    "Insulin": 32,
+    "BMI": 34.6,
+    "DiabetesPedigreeFunction": 0.101,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 147,
+    "BloodPressure": 76,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 39.4,
+    "DiabetesPedigreeFunction": 0.257,
+    "Age": 43,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 99,
+    "BloodPressure": 70,
+    "SkinThickness": 16,
+    "Insulin": 44,
+    "BMI": 20.4,
+    "DiabetesPedigreeFunction": 0.235,
+    "Age": 27,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 117,
+    "BloodPressure": 80,
+    "SkinThickness": 31,
+    "Insulin": 53,
+    "BMI": 45.2,
+    "DiabetesPedigreeFunction": 0.089,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 150,
+    "BloodPressure": 66,
+    "SkinThickness": 42,
+    "Insulin": 342,
+    "BMI": 34.7,
+    "DiabetesPedigreeFunction": 0.718,
+    "Age": 42,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 8,
+    "Glucose": 154,
+    "BloodPressure": 78,
+    "SkinThickness": 32,
+    "Insulin": 0,
+    "BMI": 32.4,
+    "DiabetesPedigreeFunction": 0.443,
+    "Age": 45,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 4,
+    "Glucose": 115,
+    "BloodPressure": 72,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 28.9,
+    "DiabetesPedigreeFunction": 0.376,
+    "Age": 46,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 107,
+    "BloodPressure": 74,
+    "SkinThickness": 30,
+    "Insulin": 100,
+    "BMI": 33.6,
+    "DiabetesPedigreeFunction": 0.404,
+    "Age": 23,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 89,
+    "BloodPressure": 24,
+    "SkinThickness": 19,
+    "Insulin": 25,
+    "BMI": 27.8,
+    "DiabetesPedigreeFunction": 0.559,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 97,
+    "BloodPressure": 64,
+    "SkinThickness": 19,
+    "Insulin": 82,
+    "BMI": 18.2,
+    "DiabetesPedigreeFunction": 0.299,
+    "Age": 21,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 109,
+    "BloodPressure": 56,
+    "SkinThickness": 21,
+    "Insulin": 135,
+    "BMI": 25.2,
+    "DiabetesPedigreeFunction": 0.833,
+    "Age": 23,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 7,
+    "Glucose": 105,
+    "BloodPressure": 0,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 0.0,
+    "DiabetesPedigreeFunction": 0.305,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 173,
+    "BloodPressure": 78,
+    "SkinThickness": 39,
+    "Insulin": 185,
+    "BMI": 33.8,
+    "DiabetesPedigreeFunction": 0.97,
+    "Age": 31,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 180,
+    "BloodPressure": 0,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 43.3,
+    "DiabetesPedigreeFunction": 0.282,
+    "Age": 41,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 74,
+    "BloodPressure": 52,
+    "SkinThickness": 10,
+    "Insulin": 36,
+    "BMI": 27.8,
+    "DiabetesPedigreeFunction": 0.269,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 97,
+    "BloodPressure": 68,
+    "SkinThickness": 21,
+    "Insulin": 0,
+    "BMI": 27.2,
+    "DiabetesPedigreeFunction": 1.095,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 107,
+    "BloodPressure": 72,
+    "SkinThickness": 30,
+    "Insulin": 82,
+    "BMI": 30.8,
+    "DiabetesPedigreeFunction": 0.821,
+    "Age": 24,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 3,
+    "Glucose": 174,
+    "BloodPressure": 58,
+    "SkinThickness": 22,
+    "Insulin": 194,
+    "BMI": 32.9,
+    "DiabetesPedigreeFunction": 0.593,
+    "Age": 36,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 9,
+    "Glucose": 152,
+    "BloodPressure": 78,
+    "SkinThickness": 34,
+    "Insulin": 171,
+    "BMI": 34.2,
+    "DiabetesPedigreeFunction": 0.893,
+    "Age": 33,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 91,
+    "BloodPressure": 68,
+    "SkinThickness": 32,
+    "Insulin": 210,
+    "BMI": 39.9,
+    "DiabetesPedigreeFunction": 0.381,
+    "Age": 25,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 83,
+    "BloodPressure": 66,
+    "SkinThickness": 23,
+    "Insulin": 50,
+    "BMI": 32.2,
+    "DiabetesPedigreeFunction": 0.497,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 5,
+    "Glucose": 166,
+    "BloodPressure": 72,
+    "SkinThickness": 19,
+    "Insulin": 175,
+    "BMI": 25.8,
+    "DiabetesPedigreeFunction": 0.587,
+    "Age": 51,
+    "Outcome": 1
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 129,
+    "BloodPressure": 74,
+    "SkinThickness": 26,
+    "Insulin": 205,
+    "BMI": 33.2,
+    "DiabetesPedigreeFunction": 0.591,
+    "Age": 25,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 2,
+    "Glucose": 56,
+    "BloodPressure": 56,
+    "SkinThickness": 28,
+    "Insulin": 45,
+    "BMI": 24.2,
+    "DiabetesPedigreeFunction": 0.332,
+    "Age": 22,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 1,
+    "Glucose": 97,
+    "BloodPressure": 70,
+    "SkinThickness": 40,
+    "Insulin": 0,
+    "BMI": 38.1,
+    "DiabetesPedigreeFunction": 0.218,
+    "Age": 30,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 6,
+    "Glucose": 93,
+    "BloodPressure": 50,
+    "SkinThickness": 30,
+    "Insulin": 64,
+    "BMI": 28.7,
+    "DiabetesPedigreeFunction": 0.356,
+    "Age": 23,
+    "Outcome": 0
+  },
+  {
+    "Pregnancies": 0,
+    "Glucose": 99,
+    "BloodPressure": 0,
+    "SkinThickness": 0,
+    "Insulin": 0,
+    "BMI": 25.0,
+    "DiabetesPedigreeFunction": 0.253,
+    "Age": 22,
+    "Outcome": 0
+  }
+]
