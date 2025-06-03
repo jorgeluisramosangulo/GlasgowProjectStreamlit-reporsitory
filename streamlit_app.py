@@ -14,6 +14,7 @@ from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
+import seaborn as sns
 
 
 
@@ -29,7 +30,7 @@ st.markdown("""
 **Project:** MSc Data Analytics – Binary Classification Dashboard  
 """)
 
-st.info("This app builds a binary classification model using 12 different machine learning different.")
+st.info("This app trains up to 12 machine learning models for datasets with a binary target (0 or 1).")
 
 
 
@@ -65,7 +66,7 @@ if use_sample == "Use sample dataset":
         st.stop()
 
 else:
-    uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "json"])
+    uploaded_file = st.file_uploader("Upload your data file (more than 40 rows recommended)", type=["csv", "xlsx", "json"])
 
     if uploaded_file is not None:
         file_type = uploaded_file.name.split(".")[-1].lower()
@@ -250,9 +251,6 @@ if df is not None:
         if st.checkbox("1️⃣ Histogram Matrix (Target Legend)", value=False):
             hist_cols = st.multiselect("Select columns to include", numeric_cols, default=numeric_cols[:3], key="hist_target")
             if len(hist_cols) >= 2:
-                import seaborn as sns
-                import matplotlib.pyplot as plt
-                import pandas as pd
                 fig = sns.pairplot(df, vars=hist_cols, hue=target_column, kind="hist")
                 st.pyplot(fig)
 
@@ -746,8 +744,9 @@ if df is not None:
 
     # Button to confirm selection
     if st.button("✅ Confirm Model Selection"):
-        if not model_selection_input:
-            st.warning("⚠️ Please select at least one model to continue.")
+
+        if len(model_selection_input) < 4:
+            st.warning("⚠️ Please select at least four models to continue.")
             st.stop()
 
         st.session_state["selected_models"] = model_selection_input
