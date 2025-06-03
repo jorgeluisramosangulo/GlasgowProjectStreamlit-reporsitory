@@ -37,29 +37,60 @@ st.info("This app builds a binary classification model using 12 different machin
 ######################################    File Upload    #################################################################
 ##########################################################################################################################
 
-# === File Upload ===
-uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "json"])
+st.markdown("### 📂 Choose a sample dataset or upload your own")
 
-if uploaded_file is not None:
-    file_type = uploaded_file.name.split(".")[-1].lower()
+use_sample = st.radio("How would you like to provide your dataset?", ["Use sample dataset", "Upload your own file"])
+df = None
+
+if use_sample == "Use sample dataset":
+    dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+    format_options = ["csv", "xlsx", "json"]
+    stage_options = ["train"]  # Only show train here
+
+    dataset = st.selectbox("Select dataset", dataset_names)
+    file_format = st.radio("File format", format_options, horizontal=True)
+
+    filepath = f"Datasets/{file_format}/{dataset} train.{file_format}"
 
     try:
-        if file_type == "csv":
-            df = pd.read_csv(uploaded_file)
-        elif file_type == "xlsx":
-            df = pd.read_excel(uploaded_file)
-        elif file_type == "json":
-            df = pd.read_json(uploaded_file)
-        else:
-            st.error("Unsupported file type.")
-            st.stop()
+        if file_format == "csv":
+            df = pd.read_csv(filepath)
+        elif file_format == "xlsx":
+            df = pd.read_excel(filepath)
+        elif file_format == "json":
+            df = pd.read_json(filepath)
+        st.success(f"✅ Loaded sample: {dataset} ({file_format})")
     except Exception as e:
-        st.error(f"Error reading file: {e}")
+        st.error(f"❌ Could not load sample dataset: {e}")
         st.stop()
 
-    st.success(f"✅ Successfully loaded {file_type.upper()} file.")
-    st.write("Preview of your uploaded data:")
-    st.dataframe(df)
+else:
+    uploaded_file = st.file_uploader("Upload your data file", type=["csv", "xlsx", "json"])
+
+    if uploaded_file is not None:
+        file_type = uploaded_file.name.split(".")[-1].lower()
+
+        try:
+            if file_type == "csv":
+                df = pd.read_csv(uploaded_file)
+            elif file_type == "xlsx":
+                df = pd.read_excel(uploaded_file)
+            elif file_type == "json":
+                df = pd.read_json(uploaded_file)
+            else:
+                st.error("Unsupported file type.")
+                st.stop()
+        except Exception as e:
+            st.error(f"Error reading file: {e}")
+            st.stop()
+
+        st.success(f"✅ Successfully loaded {file_type.upper()} file.")
+
+# === Show preview if any data is loaded ===
+if df is not None:
+    st.markdown("### 🔍 Preview of Loaded Data")
+    st.dataframe(df.head())
+
 
 
 
@@ -1913,25 +1944,55 @@ if uploaded_file is not None:
     # === Final Test File Upload and Prediction ===
     st.markdown("## 🔍 Apply Models to New Test Data")
 
-    test_file = st.file_uploader("Upload a test dataset (same structure as training data):", key="test_file")
+    # === Choose sample or upload ===
+    use_sample_test = st.radio("Provide test data via:", ["Use sample test file", "Upload your own test file"], key="test_source")
+    df_test = None
 
-    if test_file is not None:
+    if use_sample_test == "Use sample test file":
+        dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+        format_options = ["csv", "xlsx", "json"]
+
+        dataset = st.selectbox("Select test dataset", dataset_names, key="test_dataset")
+        file_format = st.radio("Test file format", format_options, horizontal=True, key="test_format")
+
+        filepath = f"Datasets/{file_format}/{dataset} test.{file_format}"
+
         try:
-            if test_file.name.endswith(".csv"):
-                df_test = pd.read_csv(test_file)
-            elif test_file.name.endswith(".xlsx"):
-                df_test = pd.read_excel(test_file)
-            elif test_file.name.endswith(".json"):
-                df_test = pd.read_json(test_file)
-            else:
-                st.error("Unsupported file type.")
-                st.stop()
+            if file_format == "csv":
+                df_test = pd.read_csv(filepath)
+            elif file_format == "xlsx":
+                df_test = pd.read_excel(filepath)
+            elif file_format == "json":
+                df_test = pd.read_json(filepath)
+            st.success(f"✅ Loaded sample test file: {dataset} ({file_format})")
         except Exception as e:
-            st.error(f"Error reading test file: {e}")
+            st.error(f"❌ Could not load sample test file: {e}")
             st.stop()
 
-        st.success("✅ Test file loaded successfully.")
+    else:
+        test_file = st.file_uploader("Upload a test dataset (same structure as training data):", type=["csv", "xlsx", "json"], key="test_file")
+
+        if test_file is not None:
+            try:
+                if test_file.name.endswith(".csv"):
+                    df_test = pd.read_csv(test_file)
+                elif test_file.name.endswith(".xlsx"):
+                    df_test = pd.read_excel(test_file)
+                elif test_file.name.endswith(".json"):
+                    df_test = pd.read_json(test_file)
+                else:
+                    st.error("Unsupported file type.")
+                    st.stop()
+            except Exception as e:
+                st.error(f"Error reading test file: {e}")
+                st.stop()
+
+            st.success("✅ Test file loaded successfully.")
+
+    # Optional: preview data after either loading method
+    if df_test is not None:
         st.dataframe(df_test.head())
+
 
         df_test_original = df_test.copy()
         try:
