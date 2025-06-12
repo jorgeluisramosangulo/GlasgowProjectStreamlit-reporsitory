@@ -22,7 +22,7 @@ import seaborn as sns
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2101,6 +2101,19 @@ if df is not None:
                 df_test_transformed = df_test_encoded.copy()
 
 
+            st.markdown("### 🎯 Traffic Light Thresholds")
+            threshold_0 = st.slider("Confidence threshold for class 0 (Green)", 0.5, 1.0, 0.85, 0.01)
+            threshold_1 = st.slider("Confidence threshold for class 1 (Red)", 0.5, 1.0, 0.85, 0.01)
+
+            def get_traffic_light(pred, prob, threshold_0, threshold_1):
+                if pred == 0 and (1 - prob) >= threshold_0:
+                    return "Green"
+                elif pred == 1 and prob >= threshold_1:
+                    return "Red"
+                else:
+                    return "Yellow"
+
+
             # === Retrieve selected models ===
             selected_models = st.session_state.get("selected_models", [])
 
@@ -2117,72 +2130,121 @@ if df is not None:
                 prob_pred_rf = rf_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["RandomForest_Prediction"] = test_pred_rf
                 df_results["RandomForest_Prob"] = prob_pred_rf
+                df_results["RandomForest_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_rf, prob_pred_rf)
+                ]
+
 
             if "Ridge Logistic Regression" in selected_models:
                 test_pred_ridge = ridge_model.predict(df_test_transformed)
                 prob_pred_ridge = ridge_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["Ridge_Prediction"] = test_pred_ridge
                 df_results["Ridge_Prob"] = prob_pred_ridge
+                df_results["Ridge_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_ridge, prob_pred_ridge)
+                ]
 
             if "Lasso Logistic Regression" in selected_models:
                 test_pred_lasso = lasso_model.predict(df_test_transformed)
                 prob_pred_lasso = lasso_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["Lasso_Prediction"] = test_pred_lasso
                 df_results["Lasso_Prob"] = prob_pred_lasso
+                df_results["Lasso_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_lasso, prob_pred_lasso)
+                ]
 
             if "ElasticNet Logistic Regression" in selected_models:
                 test_pred_enet = enet_model.predict(df_test_transformed)
                 prob_pred_enet = enet_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["ElasticNet_Prediction"] = test_pred_enet
                 df_results["ElasticNet_Prob"] = prob_pred_enet
+                df_results["ElasticNet_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_enet, prob_pred_enet)
+                ]
 
             if "PLS-DA" in selected_models:
                 test_scores_pls = pls_model.predict(df_test_transformed).ravel()
                 test_pred_pls = (test_scores_pls >= 0.5).astype(int)
                 df_results["PLSDA_Prediction"] = test_pred_pls
-                df_results["PLSDA_Prob"] = test_scores_pls
+                df_results["PLSDA_Test_scores"] = test_scores_pls
+                df_results["PLSDA_TrafficLight (no yellow)"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_pls, test_scores_pls)
+                ]
 
             if "K-Nearest Neighbors" in selected_models:
                 test_pred_knn = knn_model.predict(df_test_transformed)
                 prob_pred_knn = knn_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["KNN_Prediction"] = test_pred_knn
                 df_results["KNN_Prob"] = prob_pred_knn
+                df_results["KNN_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_knn, prob_pred_knn)
+                ]
 
             if "Naive Bayes" in selected_models:
                 test_pred_nb = nb_model.predict(df_test_transformed)
                 prob_pred_nb = nb_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["NB_Prediction"] = test_pred_nb
                 df_results["NB_Prob"] = prob_pred_nb
+                df_results["NB_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_nb, prob_pred_nb)
+                ]
 
             if "Support Vector Machine" in selected_models:
                 test_pred_svm = svm_model.predict(df_test_transformed)
                 prob_pred_svm = svm_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["SVM_Prediction"] = test_pred_svm
                 df_results["SVM_Prob"] = prob_pred_svm
+                df_results["SVM_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_svm, prob_pred_svm)
+                ]
 
             if "Decision Tree" in selected_models:
                 test_pred_tree = tree_model.predict(df_test_transformed)
                 prob_pred_tree = tree_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["DecisionTree_Prediction"] = test_pred_tree
                 df_results["DecisionTree_Prob"] = prob_pred_tree
+                df_results["DecisionTree_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_tree, prob_pred_tree)
+                ]
 
             if "Gradient Boosting" in selected_models:
                 test_pred_gbm = gbm_model.predict(df_test_transformed)
                 prob_pred_gbm = gbm_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["GBM_Prediction"] = test_pred_gbm
                 df_results["GBM_Prob"] = prob_pred_gbm
+                df_results["GBM_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_gbm, prob_pred_gbm)
+                ]
 
             if "Neural Network" in selected_models:
                 test_pred_nn = nn_model.predict(df_test_transformed)
                 prob_pred_nn = nn_model.predict_proba(df_test_transformed)[:, 1]
                 df_results["NN_Prediction"] = test_pred_nn
                 df_results["NN_Prob"] = prob_pred_nn
+                df_results["NN_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_nn, prob_pred_nn)
+                ]
 
             if "Voting Classifier" in selected_models:
                 test_pred_vote = voting_clf.predict(df_test_transformed)
                 prob_pred_vote = voting_clf.predict_proba(df_test_transformed)[:, 1]
                 df_results["Vote_Prediction"] = test_pred_vote
                 df_results["Vote_Prob"] = prob_pred_vote
+                df_results["Vote_TrafficLight"] = [
+                    get_traffic_light(pred, prob, threshold_0, threshold_1)
+                    for pred, prob in zip(test_pred_vote, prob_pred_vote)
+                ]
 
 
 
