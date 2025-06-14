@@ -985,58 +985,67 @@ if df is not None:
 
 
 
+
+
+
 ##########################################################################################################################
 ###########################    Machine Learning Methods for Binary Classification     ####################################
 ##########################################################################################################################
 
-    # === Step 4: Model Selection ===
-    st.markdown("### 🧠 Step 4: Select ML Models to Train")
 
-    # Initialize session state if not already set
-    if "models_confirmed" not in st.session_state:
-        st.session_state["models_confirmed"] = False
-    if "selected_models" not in st.session_state:
-        st.session_state["selected_models"] = []
+    # Only show model selection if user has confirmed
+    if st.session_state.get("ready_for_modeling", False):
 
-    # Let user choose models
-    model_selection_input = st.multiselect(
-        "Select models to include:",
-        options=[
-            "Ridge Logistic Regression",
-            "Lasso Logistic Regression",
-            "ElasticNet Logistic Regression",
-            "Random Forest",
-            "Decision Tree",
-            "Support Vector Machine",
-            "Gradient Boosting",
-            "PLS-DA",
-            "K-Nearest Neighbors",
-            "Naive Bayes",
-            "Neural Network",
-            "Voting Classifier"
-        ],
-        default=st.session_state["selected_models"]
-    )
+        st.markdown("### 🧠 Step 4: Select ML Models to Train")
 
-    # Button to confirm selection
-    if st.button("✅ Confirm Model Selection"):
+        # Initialize session state if not already set
+        if "models_confirmed" not in st.session_state:
+            st.session_state["models_confirmed"] = False
+        if "selected_models" not in st.session_state:
+            st.session_state["selected_models"] = []
 
-        if len(model_selection_input) < 4:
-            st.warning("⚠️ Please select at least four models to continue.")
+        # Let user choose models
+        model_selection_input = st.multiselect(
+            "Select models to include:",
+            options=[
+                "Ridge Logistic Regression",
+                "Lasso Logistic Regression",
+                "ElasticNet Logistic Regression",
+                "Random Forest",
+                "Decision Tree",
+                "Support Vector Machine",
+                "Gradient Boosting",
+                "PLS-DA",
+                "K-Nearest Neighbors",
+                "Naive Bayes",
+                "Neural Network",
+                "Voting Classifier"
+            ],
+            default=st.session_state["selected_models"]
+        )
+
+        # Button to confirm selection
+        if st.button("✅ Confirm Model Selection"):
+
+            if len(model_selection_input) < 4:
+                st.warning("⚠️ Please select at least four models to continue.")
+                st.stop()
+
+            st.session_state["selected_models"] = model_selection_input
+            st.session_state["models_confirmed"] = True
+            st.rerun()
+
+        # Halt here unless confirmed
+        if not st.session_state["models_confirmed"]:
+            st.info("👈 Please confirm model selection to continue.")
             st.stop()
 
-        st.session_state["selected_models"] = model_selection_input
-        st.session_state["models_confirmed"] = True
-        st.rerun()
+        # Get confirmed list
+        selected_models = st.session_state["selected_models"]
+        st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
 
-    # Halt here unless confirmed
-    if not st.session_state["models_confirmed"]:
-        st.info("👈 Please confirm model selection to continue.")
-        st.stop()
 
-    # Get confirmed list
-    selected_models = st.session_state["selected_models"]
-    st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
+
 
     # === Train Models ===
 
