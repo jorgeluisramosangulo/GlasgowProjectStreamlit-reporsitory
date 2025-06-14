@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2563,11 +2563,11 @@ if df is not None:
 
 
 
-                # === Apply stored manual transformation steps ===
+                # === Apply all stored manual transformation steps ===
                 df_test_transformed = df_test_encoded.copy()
 
                 if "transform_steps" in st.session_state:
-                    # First apply all transformations except "drop_columns"
+                    # First all transformations (Add, Multiply, Scale, etc.)
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name.startswith("minmax") or step_name.startswith("standard"):
                             df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
@@ -2590,11 +2590,14 @@ if df is not None:
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
 
-                    # Then apply column dropping (this must come after features are created)
+                    # Then drop any columns
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name == "drop_columns":
                             cols_to_drop = transformer.get("columns_dropped", [])
                             df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
+
+                # Save pre-PCA transformed version
+                df_test_transformed_pre_pca = df_test_transformed.copy()
 
                 # === Apply PCA if used ===
                 use_pca = st.session_state.get("use_pca", "No")
@@ -2865,21 +2868,23 @@ if df is not None:
                 # Build final export DataFrame
                 df_export = pd.DataFrame()
 
+                # ✅ Include original raw test data
                 if include_original:
                     df_export = df_test.copy()
 
-                # If PCA is applied, these become the only "transformed" columns
-                if use_pca == "Yes" and include_pca:
+                # ✅ Include manually transformed features (like Add Radius)
+                if include_transformed and "df_test_transformed_pre_pca" in locals():
+                    df_trans = df_test_transformed_pre_pca.copy()
+                    df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
+                    df_export = pd.concat([df_export, df_trans], axis=1)
+
+                # ✅ Include PCA columns if selected and PCA was used
+                if include_pca and use_pca == "Yes" and "df_test_transformed" in locals():
                     df_pca = df_test_transformed.copy()
                     df_pca.columns = [f"PC{i+1}" for i in range(df_pca.shape[1])]
                     df_export = pd.concat([df_export, df_pca], axis=1)
 
-                elif include_transformed and "df_test_transformed" in locals():
-                    df_trans = df_test_transformed.copy()
-                    df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
-                    df_export = pd.concat([df_export, df_trans], axis=1)
-
-                # Add predictions
+                # ✅ Include model predictions
                 if include_predictions:
                     prediction_cols = []
                     for model in st.session_state.get("selected_models", []):
@@ -2901,6 +2906,7 @@ if df is not None:
 
                     existing_cols = [col for col in prediction_cols if col in df_results.columns]
                     df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+
 
 
 
