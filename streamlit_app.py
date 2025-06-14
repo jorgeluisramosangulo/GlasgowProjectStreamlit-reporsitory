@@ -2567,6 +2567,7 @@ if df is not None:
                 df_test_transformed = df_test_encoded.copy()
 
                 if "transform_steps" in st.session_state:
+                    # First apply all transformations except "drop_columns"
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name.startswith("minmax") or step_name.startswith("standard"):
                             df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
@@ -2588,10 +2589,12 @@ if df is not None:
                                 df_test_transformed[new_name] = np.log1p(df_test_transformed[col1])
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
-                        elif step_name == "drop_columns":
+
+                    # Then apply column dropping (this must come after features are created)
+                    for step_name, transformer, target in st.session_state["transform_steps"]:
+                        if step_name == "drop_columns":
                             cols_to_drop = transformer.get("columns_dropped", [])
                             df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
-
 
                 # === Apply PCA if used ===
                 use_pca = st.session_state.get("use_pca", "No")
@@ -2607,6 +2610,7 @@ if df is not None:
                         pca.transform(df_test_scaled),
                         columns=[f"PC{i+1}" for i in range(n_components)]
                     )
+
 
 
                 # === Optional: Download Transformed Test Set (before prediction) ===
@@ -2864,52 +2868,40 @@ if df is not None:
                 if include_original:
                     df_export = df_test.copy()
 
-                if include_transformed and "df_test_transformed" in locals():
-                    df_trans = df_test_transformed.copy()
-                    df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
-                    df_export = pd.concat([df_export, df_trans], axis=1)
-
-                if include_pca and use_pca == "Yes":
+                # If PCA is applied, these become the only "transformed" columns
+                if use_pca == "Yes" and include_pca:
                     df_pca = df_test_transformed.copy()
                     df_pca.columns = [f"PC{i+1}" for i in range(df_pca.shape[1])]
                     df_export = pd.concat([df_export, df_pca], axis=1)
 
-                
+                elif include_transformed and "df_test_transformed" in locals():
+                    df_trans = df_test_transformed.copy()
+                    df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
+                    df_export = pd.concat([df_export, df_trans], axis=1)
+
+                # Add predictions
                 if include_predictions:
                     prediction_cols = []
                     for model in st.session_state.get("selected_models", []):
                         prefix = ""
-                        if "Ridge" in model:
-                            prefix = "Ridge"
-                        elif "Lasso" in model:
-                            prefix = "Lasso"
-                        elif "ElasticNet" in model:
-                            prefix = "ElasticNet"
-                        elif "Random Forest" in model:
-                            prefix = "RandomForest"
-                        elif "Decision Tree" in model:
-                            prefix = "DecisionTree"
-                        elif "Support Vector" in model:
-                            prefix = "SVM"
-                        elif "Gradient Boosting" in model:
-                            prefix = "GradientBoosting"
-                        elif "PLS-DA" in model:
-                            prefix = "PLSDA"
-                        elif "K-Nearest" in model:
-                            prefix = "KNN"
-                        elif "Naive Bayes" in model:
-                            prefix = "NaiveBayes"
-                        elif "Neural Network" in model:
-                            prefix = "NN"
-                        elif "Voting" in model:
-                            prefix = "Vote"
+                        if "Ridge" in model: prefix = "Ridge"
+                        elif "Lasso" in model: prefix = "Lasso"
+                        elif "ElasticNet" in model: prefix = "ElasticNet"
+                        elif "Random Forest" in model: prefix = "RandomForest"
+                        elif "Decision Tree" in model: prefix = "DecisionTree"
+                        elif "Support Vector" in model: prefix = "SVM"
+                        elif "Gradient Boosting" in model: prefix = "GradientBoosting"
+                        elif "PLS-DA" in model: prefix = "PLSDA"
+                        elif "K-Nearest" in model: prefix = "KNN"
+                        elif "Naive Bayes" in model: prefix = "NaiveBayes"
+                        elif "Neural Network" in model: prefix = "NN"
+                        elif "Voting" in model: prefix = "Vote"
 
                         prediction_cols += [f"{prefix}_Prediction", f"{prefix}_Prob", f"{prefix}_TrafficLight"]
 
-                    # Only keep columns that exist
                     existing_cols = [col for col in prediction_cols if col in df_results.columns]
-                    if existing_cols:
-                        df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+                    df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+
 
 
 
