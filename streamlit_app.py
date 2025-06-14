@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -624,30 +624,32 @@ if df is not None:
                 y_train_resampled = y_train.copy()
 
             col_to_scale = st.selectbox("Select column to scale", X_train_resampled.columns, key="scale_col")
-            before = X_train_resampled[col_to_scale].copy()
 
-            minmax_scaler = MinMaxScaler()
-            X_train_resampled[col_to_scale] = minmax_scaler.fit_transform(X_train_resampled[[col_to_scale]])
-            X_val_resampled[col_to_scale] = minmax_scaler.transform(X_val_resampled[[col_to_scale]])
+            if st.button("✅ Confirm Scaling"):
+                before = X_train_resampled[col_to_scale].copy()
 
-            # Save step for test transformation
-            st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", minmax_scaler, col_to_scale))
+                minmax_scaler = MinMaxScaler()
+                X_train_resampled[col_to_scale] = minmax_scaler.fit_transform(X_train_resampled[[col_to_scale]])
+                X_val_resampled[col_to_scale] = minmax_scaler.transform(X_val_resampled[[col_to_scale]])
 
-            # ✅ Persist the updated state after transformation
-            st.session_state["X_train_resampled"] = X_train_resampled.copy()
-            st.session_state["X_val_resampled"] = X_val_resampled.copy()
-            st.session_state["y_train_resampled"] = y_train_resampled.copy()
+                # Save step for test transformation
+                st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", minmax_scaler, col_to_scale))
 
-            # Plot
-            after = X_train_resampled[col_to_scale]
-            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-            sns.histplot(before, ax=ax[0], kde=True).set(title="Before Scaling (Train)")
-            sns.histplot(after, ax=ax[1], kde=True).set(title="After Scaling (Train)")
-            st.pyplot(fig)
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
-            # Download button
-            csv_scaled = X_train_resampled.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ Download Scaled Train Set", csv_scaled, "train_scaled.csv", "text/csv")
+                # Plot
+                after = X_train_resampled[col_to_scale]
+                fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+                sns.histplot(before, ax=ax[0], kde=True).set(title="Before Scaling (Train)")
+                sns.histplot(after, ax=ax[1], kde=True).set(title="After Scaling (Train)")
+                st.pyplot(fig)
+
+                # Download button
+                csv_scaled = X_train_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Scaled Train Set", csv_scaled, "train_scaled.csv", "text/csv")
 
         # === 2️⃣ Standardization ===
         if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
@@ -663,33 +665,36 @@ if df is not None:
                 y_train_resampled = y_train.copy()
 
             col_to_standardize = st.selectbox("Select column to standardize", X_train_resampled.columns, key="standardize_col")
-            before = X_train_resampled[col_to_standardize].copy()
 
-            std_scaler = StandardScaler()
-            X_train_resampled[col_to_standardize] = std_scaler.fit_transform(X_train_resampled[[col_to_standardize]])
-            X_val_resampled[col_to_standardize] = std_scaler.transform(X_val_resampled[[col_to_standardize]])
+            if st.button("✅ Confirm Standarizing"):
 
+                before = X_train_resampled[col_to_standardize].copy()
 
-            # Save step for test transformation
-            st.session_state["transform_steps"].append((f"standard_{col_to_standardize}", std_scaler, col_to_standardize))
-
-
-            # ✅ Persist the updated state after transformation
-            st.session_state["X_train_resampled"] = X_train_resampled.copy()
-            st.session_state["X_val_resampled"] = X_val_resampled.copy()
-            st.session_state["y_train_resampled"] = y_train_resampled.copy()
+                std_scaler = StandardScaler()
+                X_train_resampled[col_to_standardize] = std_scaler.fit_transform(X_train_resampled[[col_to_standardize]])
+                X_val_resampled[col_to_standardize] = std_scaler.transform(X_val_resampled[[col_to_standardize]])
 
 
-            # Plot
-            after = X_train_resampled[col_to_standardize]
-            fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-            sns.histplot(before, ax=ax[0], kde=True).set(title="Before Standardization (Train)")
-            sns.histplot(after, ax=ax[1], kde=True).set(title="After Standardization (Train)")
-            st.pyplot(fig)
+                # Save step for test transformation
+                st.session_state["transform_steps"].append((f"standard_{col_to_standardize}", std_scaler, col_to_standardize))
 
-            # Download button
-            csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
+
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
+
+                # Plot
+                after = X_train_resampled[col_to_standardize]
+                fig, ax = plt.subplots(1, 2, figsize=(10, 4))
+                sns.histplot(before, ax=ax[0], kde=True).set(title="Before Standardization (Train)")
+                sns.histplot(after, ax=ax[1], kde=True).set(title="After Standardization (Train)")
+                st.pyplot(fig)
+
+                # Download button
+                csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
 
 
 
@@ -921,37 +926,37 @@ if df is not None:
             options=cols_to_consider,
             help="These columns will be removed from both the train and validation sets."
         )
+        if st.button("✅ Confirm Colummn Drop"):
+            if cols_to_drop:
+                X_train_resampled.drop(columns=cols_to_drop, inplace=True)
+                X_val_resampled.drop(columns=[col for col in cols_to_drop if col in X_val_resampled.columns], inplace=True)
 
-        if cols_to_drop:
-            X_train_resampled.drop(columns=cols_to_drop, inplace=True)
-            X_val_resampled.drop(columns=[col for col in cols_to_drop if col in X_val_resampled.columns], inplace=True)
+                st.success(f"✅ Dropped {len(cols_to_drop)} column(s): {', '.join(cols_to_drop)}")
 
-            st.success(f"✅ Dropped {len(cols_to_drop)} column(s): {', '.join(cols_to_drop)}")
+                # Save transformation step
+                st.session_state["transform_steps"].append((
+                    "drop_columns",
+                    {
+                        "columns_dropped": cols_to_drop
+                    },
+                    "cleanup"
+                ))
 
-            # Save transformation step
-            st.session_state["transform_steps"].append((
-                "drop_columns",
-                {
-                    "columns_dropped": cols_to_drop
-                },
-                "cleanup"
-            ))
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
-            # ✅ Persist the updated state after transformation
-            st.session_state["X_train_resampled"] = X_train_resampled.copy()
-            st.session_state["X_val_resampled"] = X_val_resampled.copy()
-            st.session_state["y_train_resampled"] = y_train_resampled.copy()
-
-            # 📥 Download updated train set
-            df_cleaned = X_train_resampled.copy()
-            df_cleaned["Target"] = y_train_resampled
-            csv_cleaned = df_cleaned.to_csv(index=False).encode("utf-8")
-            st.download_button(
-                "⬇️ Download Train Set After Column Deletion",
-                csv_cleaned,
-                "train_columns_dropped.csv",
-                "text/csv"
-            )
+                # 📥 Download updated train set
+                df_cleaned = X_train_resampled.copy()
+                df_cleaned["Target"] = y_train_resampled
+                csv_cleaned = df_cleaned.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    "⬇️ Download Train Set After Column Deletion",
+                    csv_cleaned,
+                    "train_columns_dropped.csv",
+                    "text/csv"
+                )
 
 
 
