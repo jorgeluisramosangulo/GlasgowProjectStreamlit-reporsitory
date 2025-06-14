@@ -2563,6 +2563,8 @@ if df is not None:
                     ]
 
 
+                # Store prediction results globally
+                st.session_state["df_results"] = df_results
 
 
                 # === Compute and Display Metrics on Test Data ===
