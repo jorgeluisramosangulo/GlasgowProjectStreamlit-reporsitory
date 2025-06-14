@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -807,7 +807,8 @@ if df is not None:
 
                 # Filter and reset index
                 X_train_resampled = X_train_resampled[keep_indices].reset_index(drop=True)
-                y_train_resampled = y_train_resampled[keep_indices].reset_index(drop=True)
+                y_train_resampled = pd.Series(y_train_resampled[keep_indices]).reset_index(drop=True)
+
 
                 # Save transformation
                 st.session_state["transform_steps"].append((
