@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1097,28 +1097,31 @@ if df is not None:
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
-        # Require confirmation before continuing
-        if not st.session_state.get("pca_ready", False) and st.session_state.get("use_pca") == "Yes":
-            st.info("👈 Please confirm number of components to apply PCA.")
-            st.stop()
+        # ✅ Set final datasets for modeling depending on PCA usage
+        use_pca = st.session_state.get("use_pca", "No")
 
-        # Set final datasets for modeling depending on PCA usage
-        if st.session_state.get("use_pca") == "Yes" and st.session_state.get("pca_ready"):
-            X_train_final = st.session_state["X_train_pca"]
-            X_val_final = st.session_state["X_val_pca"]
+        if use_pca == "Yes":
+            if not st.session_state.get("pca_ready", False):
+                st.info("👈 Please confirm number of components to apply PCA.")
+                st.stop()
+            else:
+                X_train_final = st.session_state["X_train_pca"]
+                X_val_final = st.session_state["X_val_pca"]
         else:
             X_train_final = st.session_state["X_train"]
             X_val_final = st.session_state["X_val"]
 
-        # ✅ Save to session_state so later sections like preview can access it
+        # ✅ Save to session_state so preview + modeling sections don’t crash
         st.session_state["X_train_final"] = X_train_final
         st.session_state["X_val_final"] = X_val_final
 
-        # === Download export ===
-        train_pca_csv = X_train_final.copy()
-        train_pca_csv["Target"] = pd.Series(st.session_state["y_train"]).reset_index(drop=True)
-        csv = train_pca_csv.to_csv(index=False).encode("utf-8")
-        st.download_button("⬇️ Download PCA-Transformed Train Set", csv, "train_pca.csv", "text/csv")
+        # === Optional: Download PCA-transformed data only if PCA was used ===
+        if use_pca == "Yes":
+            train_pca_csv = X_train_final.copy()
+            train_pca_csv["Target"] = pd.Series(st.session_state["y_train"]).reset_index(drop=True)
+            csv = train_pca_csv.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download PCA-Transformed Train Set", csv, "train_pca.csv", "text/csv")
+
 
 
 
