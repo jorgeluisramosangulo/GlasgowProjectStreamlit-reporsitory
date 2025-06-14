@@ -942,6 +942,16 @@ if df is not None:
             st.session_state["X_val_resampled"] = X_val_resampled.copy()
             st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
+            # 📥 Download updated train set
+            df_cleaned = X_train_resampled.copy()
+            df_cleaned["Target"] = y_train_resampled
+            csv_cleaned = df_cleaned.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️ Download Train Set After Column Deletion",
+                csv_cleaned,
+                "train_columns_dropped.csv",
+                "text/csv"
+            )
 
 
 
@@ -1136,6 +1146,34 @@ if df is not None:
                         st.write("Parameters not available.")
     else:
         st.info("No transformation steps recorded.")
+
+
+    # 📥 Download Transformed Datasets (Before Modeling)
+    st.markdown("### 💾 Download Transformed Data Before Modeling")
+
+    df_train_final = st.session_state["X_train_resampled"].copy()
+    df_train_final["Target"] = st.session_state["y_train_resampled"]
+    csv_train_final = df_train_final.to_csv(index=False).encode("utf-8")
+
+    df_val_final = st.session_state["X_val_resampled"].copy()
+    df_val_final["Target"] = st.session_state["y_val"]
+    csv_val_final = df_val_final.to_csv(index=False).encode("utf-8")
+
+    st.download_button(
+        label="⬇️ Download Final Train Set",
+        data=csv_train_final,
+        file_name="train_final_transformed.csv",
+        mime="text/csv"
+    )
+
+    st.download_button(
+        label="⬇️ Download Final Validation Set",
+        data=csv_val_final,
+        file_name="val_final_transformed.csv",
+        mime="text/csv"
+    )
+
+
 
     # Optional: confirm before modeling
     if st.button("🚀 Proceed to Modeling"):
@@ -2547,9 +2585,9 @@ if df is not None:
                                 df_test_transformed[new_name] = np.log1p(df_test_transformed[col1])
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
-                            elif step_name == "drop_columns":
-                                cols_to_drop = transformer.get("columns_dropped", [])
-                                df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
+                        elif step_name == "drop_columns":
+                            cols_to_drop = transformer.get("columns_dropped", [])
+                            df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
 
 
                 # === Apply PCA if used ===
