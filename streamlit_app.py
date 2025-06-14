@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2566,11 +2566,17 @@ if df is not None:
                 # === Apply all stored manual transformation steps ===
                 df_test_transformed = df_test_encoded.copy()
 
+                # 🆕 Initialize list to track transformed (non-original) columns
+                transformed_cols = []
+
                 if "transform_steps" in st.session_state:
                     # First all transformations (Add, Multiply, Scale, etc.)
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name.startswith("minmax") or step_name.startswith("standard"):
                             df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
+                            if target not in transformed_cols:
+                                transformed_cols.append(target)
+
                         elif step_name == "create_feature":
                             op = transformer["operation"]
                             col1 = transformer["col1"]
@@ -2590,11 +2596,21 @@ if df is not None:
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
 
+                            if new_name not in transformed_cols:
+                                transformed_cols.append(new_name)
+
                     # Then drop any columns
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name == "drop_columns":
                             cols_to_drop = transformer.get("columns_dropped", [])
                             df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
+                            transformed_cols = [col for col in transformed_cols if col not in cols_to_drop]  # 🧼 Remove dropped columns
+
+                # Save pre-PCA transformed version
+                df_test_transformed_pre_pca = df_test_transformed.copy()
+
+                # 🆕 Save this list for export logic later
+                st.session_state["transformed_test_columns"] = transformed_cols
 
                 # Save pre-PCA transformed version
                 df_test_transformed_pre_pca = df_test_transformed.copy()
@@ -2874,7 +2890,8 @@ if df is not None:
 
                 # ✅ Include manually transformed features (like Add Radius)
                 if include_transformed and "df_test_transformed_pre_pca" in locals():
-                    df_trans = df_test_transformed_pre_pca.copy()
+                    tf_cols = st.session_state.get("transformed_test_columns", [])
+                    df_trans = df_test_transformed_pre_pca[tf_cols].copy()
                     df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
                     df_export = pd.concat([df_export, df_trans], axis=1)
 
