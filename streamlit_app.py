@@ -806,6 +806,36 @@ if df is not None:
 
 
 
+        # === 5️⃣🆕 Optional: Drop Columns Manually Before PCA ===
+        st.markdown("### 🧹 Optional: Drop Unwanted Columns Before PCA")
+
+        st.write("You can choose to remove any features (including engineered ones) before applying PCA or training models.")
+
+        # Show full list of columns (after imbalance handling and feature engineering)
+        cols_to_consider = X_train_resampled.columns.tolist()
+
+        cols_to_drop = st.multiselect(
+            "Select columns to drop:",
+            options=cols_to_consider,
+            help="These columns will be removed from both the train and validation sets."
+        )
+
+        if cols_to_drop:
+            X_train_resampled.drop(columns=cols_to_drop, inplace=True)
+            X_val_resampled.drop(columns=[col for col in cols_to_drop if col in X_val_resampled.columns], inplace=True)
+
+            st.success(f"✅ Dropped {len(cols_to_drop)} column(s): {', '.join(cols_to_drop)}")
+
+            # Save transformation step
+            st.session_state["transform_steps"].append((
+                "drop_columns",
+                {
+                    "columns_dropped": cols_to_drop
+                },
+                "cleanup"
+            ))
+
+
 
     # Save final transformed datasets
     st.session_state["X_train"] = X_train_resampled.copy()
@@ -847,16 +877,24 @@ if df is not None:
     # === Step 3.2: Apply PCA ===
     use_pca = st.session_state["use_pca"]
     if use_pca == "Yes":
+        # Get all numeric columns from current training data
+        X_train_df = st.session_state["X_train"]
+        X_val_df = st.session_state["X_val"]
+        numeric_cols = X_train_df.select_dtypes(include=np.number).columns.tolist()
+
+        # Save column names used for PCA
+        st.session_state["pca_input_columns"] = numeric_cols
+
+        # Standardize the data
         scaler = StandardScaler()
-        X_train_scaled = scaler.fit_transform(st.session_state["X_train"].select_dtypes(include=np.number))
-        X_val_scaled = scaler.transform(st.session_state["X_val"].select_dtypes(include=np.number))
+        X_train_scaled = scaler.fit_transform(X_train_df[numeric_cols])
+        X_val_scaled = scaler.transform(X_val_df[numeric_cols])
 
-
-        # Fit PCA to show variance plot
+        # Temporarily fit PCA to show variance curve
         pca_temp = PCA()
         pca_temp.fit(X_train_scaled)
 
-        # Show explained variance plot
+        # Plot cumulative explained variance
         cum_var = np.cumsum(pca_temp.explained_variance_ratio_)
         fig, ax = plt.subplots()
         ax.plot(range(1, len(cum_var) + 1), cum_var, marker='o')
@@ -865,15 +903,19 @@ if df is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
-            # === Show PCA component loadings (for interpretation) ===
+        # Display PCA loadings (feature contributions)
         loadings = pd.DataFrame(
             pca_temp.components_.T,
-            index=st.session_state["X_train"].select_dtypes(include=np.number).columns,
+            index=numeric_cols,
             columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
         )
-
         st.markdown("### 📊 PCA Loadings: How Original Features Contribute to Each Principal Component")
         st.dataframe(loadings.round(4))
+
+        # Save for later use
+        st.session_state["scaler"] = scaler
+        st.session_state["pca_temp"] = pca_temp  # optional: keep for visualization
+
 
 
         # Select number of components without triggering computation
@@ -884,14 +926,30 @@ if df is not None:
             value=st.session_state["n_components_slider"]
         )
 
+
+
+
         # Button to apply PCA based on slider
         if st.button("✅ Confirm PCA Parameters"):
             n_components = st.session_state["n_components_slider"]
+
+            # Ensure we use the same input columns as during PCA preview
+            pca_input_cols = st.session_state.get("pca_input_columns")
+            if not pca_input_cols:
+                st.error("PCA input columns not found. Please preview PCA again before confirming.")
+                st.stop()
+
+            # Re-standardize using saved columns
+            scaler = StandardScaler()
+            X_train_scaled = scaler.fit_transform(st.session_state["X_train"][pca_input_cols])
+            X_val_scaled = scaler.transform(st.session_state["X_val"][pca_input_cols])
+
+            # Apply PCA
             final_pca = PCA(n_components=n_components)
             X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
             X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
 
-            # Store for later use
+            # Save results
             st.session_state["pca"] = final_pca
             st.session_state["scaler"] = scaler
             st.session_state["n_components"] = n_components
@@ -899,12 +957,13 @@ if df is not None:
             st.session_state["X_val_final"] = X_val_final
             st.session_state["pca_ready"] = True
 
+            # Log PCA transformation step for documentation
             st.session_state["transform_steps"].append((
                 "pca",
                 {
                     "n_components": n_components,
                     "scaler": "StandardScaler",
-                    "original_columns": st.session_state["X_train"].select_dtypes(include=np.number).columns.tolist()
+                    "original_columns": pca_input_cols
                 },
                 "dimensionality_reduction"
             ))
@@ -912,7 +971,8 @@ if df is not None:
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
-        if not st.session_state["pca_ready"]:
+        # Require confirmation before continuing
+        if not st.session_state.get("pca_ready", False):
             st.info("👈 Please confirm number of components to apply PCA.")
             st.stop()
         else:
@@ -920,12 +980,6 @@ if df is not None:
             X_val_final = st.session_state["X_val_final"]
 
 
-    else:
-        X_train_final = st.session_state["X_train"].copy()
-        X_val_final = st.session_state["X_val"].copy()
-        st.session_state["X_train_final"] = X_train_final
-        st.session_state["X_val_final"] = X_val_final
-        st.success("✅ PCA skipped.")
 
 
 
@@ -2367,12 +2421,11 @@ if df is not None:
                     for step_name, transformer, target in st.session_state["transform_steps"]:
                         if step_name.startswith("minmax") or step_name.startswith("standard"):
                             df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
-                        elif step_name == "new_feature":
-                            # Assuming transformer is a dict with 'operation', 'col1', 'col2', and 'new_name'
+                        elif step_name == "create_feature":
                             op = transformer["operation"]
                             col1 = transformer["col1"]
                             col2 = transformer.get("col2")
-                            new_name = transformer["new_name"]
+                            new_name = transformer["new_col"]
 
                             if op == "Add":
                                 df_test_transformed[new_name] = df_test_transformed[col1] + df_test_transformed[col2]
@@ -2386,32 +2439,34 @@ if df is not None:
                                 df_test_transformed[new_name] = np.log1p(df_test_transformed[col1])
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
-
-
+                            elif step_name == "drop_columns":
+                                cols_to_drop = transformer.get("columns_dropped", [])
+                                df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
 
 
                 # === Apply PCA if used ===
                 use_pca = st.session_state.get("use_pca", "No")
 
-                if use_pca == "Yes":
+                if use_pca == "Yes" and st.session_state.get("pca_ready"):
                     scaler = st.session_state["scaler"]
                     pca = st.session_state["pca"]
                     n_components = st.session_state["n_components"]
+                    original_columns = st.session_state["transform_steps"][-1][1]["original_columns"]
 
-                    df_test_scaled = scaler.transform(df_test_transformed.select_dtypes(include=np.number))
+                    df_test_scaled = scaler.transform(df_test_transformed[original_columns])
                     df_test_transformed = pd.DataFrame(
                         pca.transform(df_test_scaled),
                         columns=[f"PC{i+1}" for i in range(n_components)]
                     )
 
-
-
+                # === Assemble full export set
                 df_test_download = df_test_encoded.copy()
                 for col in df_test_transformed.columns:
                     df_test_download[col] = df_test_transformed[col].values
 
                 csv_test = df_test_download.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Final Transformed Test Set", csv_test, "test_transformed.csv", "text/csv")
+
 
 
 
