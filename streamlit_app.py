@@ -2692,3 +2692,8 @@ if df is not None:
                 file_name=file_name,
                 mime=mime_type,
             )
+
+
+        except Exception as e:
+            st.error(f"Error during prediction: {e}")
+
