@@ -930,7 +930,7 @@ if df is not None:
 
 
     train_pca_csv = X_train_final.copy()
-    train_pca_csv["Target"] = st.session_state["y_train"].reset_index(drop=True)
+    train_pca_csv["Target"] = pd.Series(st.session_state["y_train"]).reset_index(drop=True)
     csv = train_pca_csv.to_csv(index=False).encode("utf-8")
     st.download_button("⬇️ Download PCA-Transformed Train Set", csv, "train_pca.csv", "text/csv")
 
