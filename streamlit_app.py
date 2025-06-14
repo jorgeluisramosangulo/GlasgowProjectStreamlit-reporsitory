@@ -920,10 +920,11 @@ if df is not None:
             X_val_final = st.session_state["X_val_final"]
 
 
-
     else:
         X_train_final = st.session_state["X_train"].copy()
         X_val_final = st.session_state["X_val"].copy()
+        st.session_state["X_train_final"] = X_train_final
+        st.session_state["X_val_final"] = X_val_final
         st.success("✅ PCA skipped.")
 
 
