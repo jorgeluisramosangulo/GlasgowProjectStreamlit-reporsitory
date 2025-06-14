@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -994,13 +994,14 @@ if df is not None:
 
     # === Step 3.2: Apply PCA ===
     use_pca = st.session_state["use_pca"]
+
     if use_pca == "Yes":
         # Get all numeric columns from current training data
         X_train_df = st.session_state["X_train"]
         X_val_df = st.session_state["X_val"]
         numeric_cols = X_train_df.select_dtypes(include=np.number).columns.tolist()
 
-        # Save column names used for PCA
+        # ✅ Save column names used for PCA (for later reuse in test)
         st.session_state["pca_input_columns"] = numeric_cols
 
         # Standardize the data
@@ -1027,6 +1028,8 @@ if df is not None:
             index=numeric_cols,
             columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
         )
+        st.dataframe(loadings)
+
         st.markdown("### 📊 PCA Loadings: How Original Features Contribute to Each Principal Component")
         st.dataframe(loadings.round(4))
 
@@ -2597,25 +2600,22 @@ if df is not None:
                     scaler = st.session_state["scaler"]
                     pca = st.session_state["pca"]
                     n_components = st.session_state["n_components"]
-                    original_columns = st.session_state["transform_steps"][-1][1]["original_columns"]
+                    pca_input_columns = st.session_state["pca_input_columns"]
 
-                    df_test_scaled = scaler.transform(df_test_transformed[original_columns])
+                    df_test_scaled = scaler.transform(df_test_transformed[pca_input_columns])
                     df_test_transformed = pd.DataFrame(
                         pca.transform(df_test_scaled),
                         columns=[f"PC{i+1}" for i in range(n_components)]
                     )
 
-                # === Assemble full export set
+
+                # === Optional: Download Transformed Test Set (before prediction) ===
                 df_test_download = df_test_encoded.copy()
                 for col in df_test_transformed.columns:
                     df_test_download[col] = df_test_transformed[col].values
 
                 csv_test = df_test_download.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Final Transformed Test Set", csv_test, "test_transformed.csv", "text/csv")
-
-
-
-
 
 
                 st.markdown("### 🎯 Traffic Light Thresholds")
