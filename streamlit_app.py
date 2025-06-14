@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2870,12 +2870,8 @@ if df is not None:
                     df_export = pd.concat([df_export, df_trans], axis=1)
 
                 if include_pca and use_pca == "Yes":
-                    df_pca = pd.DataFrame(
-                        st.session_state["pca"].transform(
-                            st.session_state["scaler"].transform(df_test_encoded[st.session_state["transform_steps"][-1][1]["original_columns"]])
-                        ),
-                        columns=[f"PC{i+1}" for i in range(st.session_state["n_components"])]
-                    )
+                    df_pca = df_test_transformed.copy()
+                    df_pca.columns = [f"PC{i+1}" for i in range(df_pca.shape[1])]
                     df_export = pd.concat([df_export, df_pca], axis=1)
 
                 
