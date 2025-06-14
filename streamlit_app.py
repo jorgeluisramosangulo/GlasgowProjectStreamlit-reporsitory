@@ -2677,8 +2677,46 @@ if df is not None:
                     )
                     df_export = pd.concat([df_export, df_pca], axis=1)
 
+                
                 if include_predictions:
-                    df_export = pd.concat([df_export, df_results[["Predicted Class", "Predicted Probability", "Traffic Light"]]], axis=1)
+                    prediction_cols = []
+                    for model in st.session_state.get("selected_models", []):
+                        prefix = ""
+                        if "Ridge" in model:
+                            prefix = "Ridge"
+                        elif "Lasso" in model:
+                            prefix = "Lasso"
+                        elif "ElasticNet" in model:
+                            prefix = "ElasticNet"
+                        elif "Random Forest" in model:
+                            prefix = "RandomForest"
+                        elif "Decision Tree" in model:
+                            prefix = "DecisionTree"
+                        elif "Support Vector" in model:
+                            prefix = "SVM"
+                        elif "Gradient Boosting" in model:
+                            prefix = "GradientBoosting"
+                        elif "PLS-DA" in model:
+                            prefix = "PLSDA"
+                        elif "K-Nearest" in model:
+                            prefix = "KNN"
+                        elif "Naive Bayes" in model:
+                            prefix = "NaiveBayes"
+                        elif "Neural Network" in model:
+                            prefix = "NN"
+                        elif "Voting" in model:
+                            prefix = "Vote"
+
+                        prediction_cols += [f"{prefix}_Prediction", f"{prefix}_Prob", f"{prefix}_TrafficLight"]
+
+                    # Only keep columns that exist
+                    existing_cols = [col for col in prediction_cols if col in df_results.columns]
+                    if existing_cols:
+                        df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+
+
+
+
 
                 # Show preview
                 st.markdown("#### 📝 Preview of Download File")
