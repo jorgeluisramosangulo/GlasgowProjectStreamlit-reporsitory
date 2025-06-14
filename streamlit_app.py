@@ -15,6 +15,10 @@ from sklearn.neural_network import MLPClassifier
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 import seaborn as sns
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+from imblearn.over_sampling import SMOTE, RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
 
 
 
@@ -22,7 +26,7 @@ import seaborn as sns
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -126,7 +130,15 @@ if df is not None:
     df = df[st.session_state["selected_columns"]]  # apply confirmed selection
 
 
-
+    # === Download Button ===
+    st.markdown("### 📥 Download Filtered Dataset")
+    csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="📄 Download CSV after column selection",
+        data=csv,
+        file_name="filtered_dataset.csv",
+        mime="text/csv"
+    )
 
 
 
@@ -171,6 +183,78 @@ if df is not None:
             st.bar_chart(missing_df.set_index("Column")["% Missing"])
     else:
         st.success("✅ No missing values in the dataset.")
+
+
+##########################################################################################################################
+#################################        Missing Values Treatment    #####################################################
+##########################################################################################################################
+
+
+    # === Missing Value Handling ===
+    st.markdown("### 🧹 Step 2: Handle Missing Values")
+
+    # Recalculate missing values in current df
+    missing_counts = df.isnull().sum()
+    missing_cols = missing_counts[missing_counts > 0].index.tolist()
+
+    if not missing_cols:
+        st.success("✅ No missing values to handle.")
+    else:
+        st.write(f"⚠️ Columns with missing values: {missing_cols}")
+
+        # Select columns to handle
+        selected_missing_cols = st.multiselect(
+            "Select columns to handle missing values:",
+            options=missing_cols,
+            default=missing_cols
+        )
+
+        # Select action
+        missing_action = st.radio("Select how to handle missing values:", [
+            "Drop rows with missing values in selected columns",
+            "Drop selected columns entirely",
+            "Replace with 0",
+            "Replace with mean (numeric columns only)",
+            "Replace with median (numeric columns only)"
+        ])
+
+        apply_missing = st.button("🚀 Apply Missing Value Handling")
+
+        if apply_missing and selected_missing_cols:
+            if missing_action == "Drop rows with missing values in selected columns":
+                df = df.dropna(subset=selected_missing_cols)
+                st.success("✅ Dropped rows with missing values in selected columns.")
+
+            elif missing_action == "Drop selected columns entirely":
+                df = df.drop(columns=selected_missing_cols)
+                st.success("✅ Dropped selected columns.")
+
+            elif missing_action == "Replace with 0":
+                df[selected_missing_cols] = df[selected_missing_cols].fillna(0)
+                st.success("✅ Replaced missing values with 0.")
+
+            elif missing_action == "Replace with mean (numeric columns only)":
+                for col in selected_missing_cols:
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        df[col].fillna(df[col].mean(), inplace=True)
+                st.success("✅ Replaced missing values with column mean (where numeric).")
+
+            elif missing_action == "Replace with median (numeric columns only)":
+                for col in selected_missing_cols:
+                    if pd.api.types.is_numeric_dtype(df[col]):
+                        df[col].fillna(df[col].median(), inplace=True)
+                st.success("✅ Replaced missing values with column median (where numeric).")
+
+    # === Final Download Section ===
+    st.markdown("### 💾 Download Final Transformed Dataset")
+    final_csv = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Download Cleaned CSV",
+        data=final_csv,
+        file_name="transformed_dataset.csv",
+        mime="text/csv"
+    )
+
 
 
 ##########################################################################################################################
@@ -470,10 +554,29 @@ if df is not None:
     # ✅ Store processed training columns for later use in test section
     st.session_state["X_raw"] = X_raw.copy()
 
-    # === Train/Validation Split ===
+    # === Train/Validation Split, data is shuffle, see "shuffle = True" below ===
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
     X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
+
+    # === Download Processed Splits ===
+    st.markdown("### 💾 Download Processed Train/Validation Splits")
+
+    # Create and encode CSVs for download
+    x_train_csv = X_train.to_csv(index=False).encode("utf-8")
+    x_val_csv = X_val.to_csv(index=False).encode("utf-8")
+    y_train_csv = pd.DataFrame(y_train, columns=["Target"]).to_csv(index=False).encode("utf-8")
+    y_val_csv = pd.DataFrame(y_val, columns=["Target"]).to_csv(index=False).encode("utf-8")
+
+    # Show download buttons
+    col1, col2 = st.columns(2)
+    with col1:
+        st.download_button("⬇️ Download X_train.csv", x_train_csv, "X_train.csv", "text/csv")
+        st.download_button("⬇️ Download y_train.csv", y_train_csv, "y_train.csv", "text/csv")
+    with col2:
+        st.download_button("⬇️ Download X_val.csv", x_val_csv, "X_val.csv", "text/csv")
+        st.download_button("⬇️ Download y_val.csv", y_val_csv, "y_val.csv", "text/csv")
+
 
 
 
@@ -485,84 +588,141 @@ if df is not None:
 
     # ✅ Always initialize fallback copies
     X_train_resampled = X_train.copy()
+    X_val_resampled = X_val.copy()
     y_train_resampled = y_train.copy()
+
+    # To build the transformation pipeline
+    if "transform_steps" not in st.session_state:
+        st.session_state["transform_steps"] = []
 
     apply_transformation = st.checkbox("🧪 Would you like to transform the data before PCA?", value=False)
 
     if apply_transformation:
-        from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
-        from imblearn.over_sampling import SMOTE, RandomOverSampler
-        from imblearn.under_sampling import RandomUnderSampler
-
         st.info("Transformations will apply to both training and validation sets consistently.")
 
-        # Always start with current train/val from earlier step
-        X_train_resampled = X_train.copy()
-        y_train_resampled = y_train.copy()
-
-        # 1. Centering + Scaling
+        # === 1️⃣ Centering + Scaling ===
         if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
-            col_to_scale = st.selectbox("Select column to scale", X_train.columns, key="scale_col")
-            scaler = MinMaxScaler()
-            X_train[col_to_scale] = scaler.fit_transform(X_train[[col_to_scale]])
-            X_val[col_to_scale] = scaler.transform(X_val[[col_to_scale]])
+            col_to_scale = st.selectbox("Select column to scale", X_train_resampled.columns, key="scale_col")
+            before = X_train_resampled[col_to_scale].copy()
 
+            minmax_scaler = MinMaxScaler()
+            X_train_resampled[col_to_scale] = minmax_scaler.fit_transform(X_train_resampled[[col_to_scale]])
+            X_val_resampled[col_to_scale] = minmax_scaler.transform(X_val_resampled[[col_to_scale]])
+
+            # Save step for test transformation
+            st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", minmax_scaler, col_to_scale))
+
+            # Plot
+            after = X_train_resampled[col_to_scale]
             fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-            sns.histplot(X_raw[col_to_scale], ax=ax[0], kde=True).set(title="Before Scaling")
-            sns.histplot(X_train[col_to_scale], ax=ax[1], kde=True).set(title="After Scaling")
+            sns.histplot(before, ax=ax[0], kde=True).set(title="Before Scaling (Train)")
+            sns.histplot(after, ax=ax[1], kde=True).set(title="After Scaling (Train)")
             st.pyplot(fig)
 
-        # 2. Standardization
+            # Download button
+            csv_scaled = X_train_resampled.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Scaled Train Set", csv_scaled, "train_scaled.csv", "text/csv")
+
+        # === 2️⃣ Standardization ===
         if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
-            col_to_standardize = st.selectbox("Select column to standardize", X_train.columns, key="standardize_col")
-            std_scaler = StandardScaler()
-            X_train[col_to_standardize] = std_scaler.fit_transform(X_train[[col_to_standardize]])
-            X_val[col_to_standardize] = std_scaler.transform(X_val[[col_to_standardize]])
+            col_to_standardize = st.selectbox("Select column to standardize", X_train_resampled.columns, key="standardize_col")
+            before = X_train_resampled[col_to_standardize].copy()
 
+            std_scaler = StandardScaler()
+            X_train_resampled[col_to_standardize] = std_scaler.fit_transform(X_train_resampled[[col_to_standardize]])
+            X_val_resampled[col_to_standardize] = std_scaler.transform(X_val_resampled[[col_to_standardize]])
+
+
+            # Save step for test transformation
+            st.session_state["transform_steps"].append((f"standard_{col_to_standardize}", std_scaler, col_to_standardize))
+
+
+            # Plot
+            after = X_train_resampled[col_to_standardize]
             fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-            sns.histplot(X_raw[col_to_standardize], ax=ax[0], kde=True).set(title="Before Standardization")
-            sns.histplot(X_train[col_to_standardize], ax=ax[1], kde=True).set(title="After Standardization")
+            sns.histplot(before, ax=ax[0], kde=True).set(title="Before Standardization (Train)")
+            sns.histplot(after, ax=ax[1], kde=True).set(title="After Standardization (Train)")
             st.pyplot(fig)
 
-        # 3. Create New Features
-        if st.checkbox("3️⃣ Create New Variable", value=False):
+            # Download button
+            csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
+
+
+
+        # === 3️⃣ Create New Feature ===
+        if st.checkbox("3️⃣ Create New Feature", value=False):
             operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
-            col1 = st.selectbox("Select first column", X_train.columns, key="new_col1")
-            col2 = st.selectbox("Select second column (if applicable)", X_train.columns, key="new_col2")
+            col1 = st.selectbox("Select first column", X_train_resampled.columns, key="new_col1")
+            col2 = None
+            if operation in ["Add", "Subtract", "Multiply", "Divide"]:
+                col2 = st.selectbox("Select second column", X_train_resampled.columns, key="new_col2")
 
-            if operation == "Add":
-                new_col = X_train[col1] + X_train[col2]
-            elif operation == "Subtract":
-                new_col = X_train[col1] - X_train[col2]
-            elif operation == "Multiply":
-                new_col = X_train[col1] * X_train[col2]
-            elif operation == "Divide":
-                new_col = X_train[col1] / (X_train[col2] + 1e-9)
-            elif operation == "Log":
-                new_col = np.log1p(X_train[col1])
-            elif operation == "Square":
-                new_col = X_train[col1] ** 2
-
-            new_col_name = st.text_input("New column name", value=f"{col1}_{operation}_{col2 if operation in ['Add', 'Subtract', 'Multiply', 'Divide'] else ''}")
+            default_name = f"{col1}_{operation}_{col2}" if col2 else f"{col1}_{operation}"
+            new_col_name = st.text_input("New column name", value=default_name)
 
             if st.button("➕ Add New Feature"):
-                X_train[new_col_name] = new_col
-                X_val[new_col_name] = new_col  # replicate same transformation
+                # Apply transformation to train
+                if operation == "Add":
+                    new_train_col = X_train_resampled[col1] + X_train_resampled[col2]
+                    new_val_col = X_val_resampled[col1] + X_val_resampled[col2]
+                elif operation == "Subtract":
+                    new_train_col = X_train_resampled[col1] - X_train_resampled[col2]
+                    new_val_col = X_val_resampled[col1] - X_val_resampled[col2]
+                elif operation == "Multiply":
+                    new_train_col = X_train_resampled[col1] * X_train_resampled[col2]
+                    new_val_col = X_val_resampled[col1] * X_val_resampled[col2]
+                elif operation == "Divide":
+                    new_train_col = X_train_resampled[col1] / (X_train_resampled[col2] + 1e-9)
+                    new_val_col = X_val_resampled[col1] / (X_val_resampled[col2] + 1e-9)
+                elif operation == "Log":
+                    new_train_col = np.log1p(X_train_resampled[col1])
+                    new_val_col = np.log1p(X_val_resampled[col1])
+                elif operation == "Square":
+                    new_train_col = X_train_resampled[col1] ** 2
+                    new_val_col = X_val_resampled[col1] ** 2
+
+                # Assign new feature
+                X_train_resampled[new_col_name] = new_train_col
+                X_val_resampled[new_col_name] = new_val_col
+
+                # Save transformation step
+                st.session_state["transform_steps"].append((
+                    "create_feature",
+                    {
+                        "operation": operation,
+                        "col1": col1,
+                        "col2": col2,
+                        "new_col": new_col_name
+                    },
+                    "custom"
+                ))
+
                 st.success(f"Feature '{new_col_name}' added to both train and validation sets.")
 
-        # 4. Remove or Fix Outliers
+                # Download button
+                csv_feat = X_train_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Train Set with New Feature", csv_feat, f"train_{new_col_name}.csv", "text/csv")
+
+
+
+
+        # === 4️⃣ Outlier Detection & Removal ===
         if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
-            outlier_col = st.selectbox("Select column", X_train.columns, key="outlier_col")
+            outlier_col = st.selectbox("Select column", X_train_resampled.columns, key="outlier_col")
             method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
 
-            col_data = X_train[outlier_col]
+            col_data = X_train_resampled[outlier_col]
             q1, q3 = col_data.quantile([0.25, 0.75])
             iqr = q3 - q1
             lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
 
-            outliers_train = ((col_data < lower) | (col_data > upper))
-            st.write(f"Outliers detected in training set: {outliers_train.sum()} / {len(col_data)}")
+            outliers_train = (col_data < lower) | (col_data > upper)
+            outlier_count = outliers_train.sum()
 
+            st.write(f"Outliers detected in training set: {outlier_count} / {len(col_data)}")
+
+            # Show boxplot
             fig, ax = plt.subplots()
             sns.boxplot(x=col_data, ax=ax)
             ax.set_title("Boxplot with IQR Thresholds")
@@ -570,11 +730,36 @@ if df is not None:
 
             if st.button("🧹 Remove Outliers (Train Only)"):
                 keep_indices = ~outliers_train
-                X_train = X_train[keep_indices]
-                y_train = y_train[keep_indices]
-                st.success("Outliers removed from training set.")
 
-        # 5. Optional Class Imbalance Handling (ALWAYS visible if apply_transformation)
+                # Filter and reset index
+                X_train_resampled = X_train_resampled[keep_indices].reset_index(drop=True)
+                y_train_resampled = y_train_resampled[keep_indices].reset_index(drop=True)
+
+                # Save transformation
+                st.session_state["transform_steps"].append((
+                    "remove_outliers",
+                    {
+                        "method": "IQR",
+                        "column": outlier_col,
+                        "thresholds": [float(lower), float(upper)],
+                        "removed_rows": int(outlier_count)
+                    },
+                    "row_filter"
+                ))
+
+                st.success(f"✅ Outliers removed from training set (column: {outlier_col})")
+
+                # Download updated training set
+                csv_cleaned = X_train_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
+
+
+
+
+
+
+
+        # === 5️⃣ Class Imbalance Handling (Train Set Only) ===
         st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
 
         imbalance_strategy = st.radio(
@@ -583,27 +768,50 @@ if df is not None:
             index=0
         )
 
+        # Preview current class distribution
+        st.write("📊 Current class distribution:")
+        st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
+
+        sampler = None
         if imbalance_strategy == "Undersampling":
             sampler = RandomUnderSampler(random_state=42)
         elif imbalance_strategy == "Oversampling":
             sampler = RandomOverSampler(random_state=42)
         elif imbalance_strategy == "SMOTE":
             sampler = SMOTE(random_state=42)
-        else:
-            sampler = None
 
         if sampler:
-            X_train_resampled, y_train_resampled = sampler.fit_resample(X_train, y_train)
+            # Apply sampler
+            X_train_resampled, y_train_resampled = sampler.fit_resample(X_train_resampled, y_train_resampled)
+
+            # Save transformation step
+            st.session_state["transform_steps"].append((
+                "resample",
+                {
+                    "strategy": imbalance_strategy,
+                    "sampler": type(sampler).__name__
+                },
+                "resample"
+            ))
+
+            # Show new distribution
             st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
             st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
 
-    # Save results (resampled or not)
+            # Download resampled dataset
+            df_resampled = X_train_resampled.copy()
+            df_resampled["Target"] = y_train_resampled
+            csv_resampled = df_resampled.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Resampled Train Set", csv_resampled, f"train_{imbalance_strategy.lower()}.csv", "text/csv")
+
+
+
+
+    # Save final transformed datasets
     st.session_state["X_train"] = X_train_resampled.copy()
     st.session_state["y_train"] = y_train_resampled.copy()
-    st.session_state["X_val"] = X_val.copy()
+    st.session_state["X_val"] = X_val_resampled.copy()
     st.session_state["y_val"] = y_val.copy()
-
-
 
 
 ##########################################################################################################################
@@ -690,6 +898,17 @@ if df is not None:
             st.session_state["X_train_final"] = X_train_final
             st.session_state["X_val_final"] = X_val_final
             st.session_state["pca_ready"] = True
+
+            st.session_state["transform_steps"].append((
+                "pca",
+                {
+                    "n_components": n_components,
+                    "scaler": "StandardScaler",
+                    "original_columns": st.session_state["X_train"].select_dtypes(include=np.number).columns.tolist()
+                },
+                "dimensionality_reduction"
+            ))
+
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
@@ -700,11 +919,67 @@ if df is not None:
             X_train_final = st.session_state["X_train_final"]
             X_val_final = st.session_state["X_val_final"]
 
+
+
     else:
         X_train_final = st.session_state["X_train"].copy()
         X_val_final = st.session_state["X_val"].copy()
         st.success("✅ PCA skipped.")
 
+
+
+
+    train_pca_csv = X_train_final.copy()
+    train_pca_csv["Target"] = st.session_state["y_train"].reset_index(drop=True)
+    csv = train_pca_csv.to_csv(index=False).encode("utf-8")
+    st.download_button("⬇️ Download PCA-Transformed Train Set", csv, "train_pca.csv", "text/csv")
+
+
+
+
+##########################################################################################################################
+###########################    Data Preview before Model Training     ####################################################
+##########################################################################################################################
+
+
+
+
+    # === Step 3.5: Preview Final Data & Pipeline Before Modeling ===
+    st.markdown("### 🔬 Final Check: Transformed Data & Pipeline Overview")
+
+    # Preview final training data
+    st.subheader("📦 Preview of Final Training Data")
+    st.dataframe(st.session_state["X_train_final"].head())
+
+    # Show shape info
+    st.write("🔢 **Shape of Training and Validation Sets:**")
+    st.write(f"- X_train_final: {st.session_state['X_train_final'].shape}")
+    st.write(f"- X_val_final: {st.session_state['X_val_final'].shape}")
+    st.write(f"- y_train: {st.session_state['y_train'].shape}")
+    st.write(f"- y_val: {st.session_state['y_val'].shape}")
+
+    # Preview pipeline
+    st.subheader("🧪 Applied Transformation Pipeline")
+    if "transform_steps" in st.session_state and st.session_state["transform_steps"]:
+        for step_name, transformer, target in st.session_state["transform_steps"]:
+            with st.expander(f"🔧 {step_name} on `{target}`"):
+                st.write(f"**Transformer Type:** {type(transformer).__name__}")
+                if isinstance(transformer, dict):
+                    st.json(transformer)
+                else:
+                    try:
+                        st.write(transformer.get_params())
+                    except:
+                        st.write("Parameters not available.")
+    else:
+        st.info("No transformation steps recorded.")
+
+    # Optional: confirm before modeling
+    if st.button("🚀 Proceed to Modeling"):
+        st.session_state["ready_for_modeling"] = True
+        st.success("Modeling section unlocked below.")
+    else:
+        st.warning("⬅️ Click the button above when ready to proceed to training.")
 
 
 
@@ -2074,31 +2349,61 @@ if df is not None:
 
 
 
-            # === Apply transformations from training ===
-            if "transform_pipeline" in st.session_state:
-                df_test_transformed = st.session_state["transform_pipeline"].transform(df_test_encoded)
-                df_test_transformed = pd.DataFrame(df_test_transformed, columns=df_test_encoded.columns)
-            else:
-                df_test_transformed = df_test_encoded.copy()
+            # === Apply stored manual transformation steps ===
+            df_test_transformed = df_test_encoded.copy()
+
+            if "transform_steps" in st.session_state:
+                for step_name, transformer, target in st.session_state["transform_steps"]:
+                    if step_name.startswith("minmax") or step_name.startswith("standard"):
+                        df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
+                    elif step_name == "new_feature":
+                        # Assuming transformer is a dict with 'operation', 'col1', 'col2', and 'new_name'
+                        op = transformer["operation"]
+                        col1 = transformer["col1"]
+                        col2 = transformer.get("col2")
+                        new_name = transformer["new_name"]
+
+                        if op == "Add":
+                            df_test_transformed[new_name] = df_test_transformed[col1] + df_test_transformed[col2]
+                        elif op == "Subtract":
+                            df_test_transformed[new_name] = df_test_transformed[col1] - df_test_transformed[col2]
+                        elif op == "Multiply":
+                            df_test_transformed[new_name] = df_test_transformed[col1] * df_test_transformed[col2]
+                        elif op == "Divide":
+                            df_test_transformed[new_name] = df_test_transformed[col1] / (df_test_transformed[col2] + 1e-9)
+                        elif op == "Log":
+                            df_test_transformed[new_name] = np.log1p(df_test_transformed[col1])
+                        elif op == "Square":
+                            df_test_transformed[new_name] = df_test_transformed[col1] ** 2
 
 
-            # PCA transform if selected
+
+
+            # === Apply PCA if used ===
             use_pca = st.session_state.get("use_pca", "No")
 
             if use_pca == "Yes":
-                # Retrieve trained PCA and scaler objects from session state
                 scaler = st.session_state["scaler"]
                 pca = st.session_state["pca"]
                 n_components = st.session_state["n_components"]
 
-                # Scale and transform test data
-                df_test_scaled = scaler.transform(df_test_encoded)
+                df_test_scaled = scaler.transform(df_test_transformed.select_dtypes(include=np.number))
                 df_test_transformed = pd.DataFrame(
                     pca.transform(df_test_scaled),
                     columns=[f"PC{i+1}" for i in range(n_components)]
                 )
-            else:
-                df_test_transformed = df_test_encoded.copy()
+
+
+
+            df_test_download = df_test_encoded.copy()
+            for col in df_test_transformed.columns:
+                df_test_download[col] = df_test_transformed[col].values
+
+            csv_test = df_test_download.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Final Transformed Test Set", csv_test, "test_transformed.csv", "text/csv")
+
+
+
 
 
             st.markdown("### 🎯 Traffic Light Thresholds")
@@ -2329,27 +2634,54 @@ if df is not None:
 
 
 
-
-
-
-
-
-
             # === Show and Download ===
             st.markdown("### 📄 Predictions on Uploaded Test Data")
-            st.dataframe(df_results)
+
+            # Let the user choose which columns to include
+            st.markdown("#### 🧩 Select Columns to Include in Final Download")
+            include_original = st.checkbox("Include original test columns", value=True)
+            include_transformed = st.checkbox("Include transformed columns (scaling, standardization, etc.)", value=False)
+            include_pca = st.checkbox("Include PCA components", value=False)
+            include_predictions = st.checkbox("Include predictions", value=True)
+
+            # Build final export DataFrame
+            df_export = pd.DataFrame()
+
+            if include_original:
+                df_export = df_test.copy()
+
+            if include_transformed and "df_test_transformed" in locals():
+                df_trans = df_test_transformed.copy()
+                df_trans.columns = [f"TF_{col}" for col in df_trans.columns]
+                df_export = pd.concat([df_export, df_trans], axis=1)
+
+            if include_pca and use_pca == "Yes":
+                df_pca = pd.DataFrame(
+                    st.session_state["pca"].transform(
+                        st.session_state["scaler"].transform(df_test_encoded[st.session_state["transform_steps"][-1][1]["original_columns"]])
+                    ),
+                    columns=[f"PC{i+1}" for i in range(st.session_state["n_components"])]
+                )
+                df_export = pd.concat([df_export, df_pca], axis=1)
+
+            if include_predictions:
+                df_export = pd.concat([df_export, df_results[["Predicted Class", "Predicted Probability", "Traffic Light"]]], axis=1)
+
+            # Show preview
+            st.markdown("#### 📝 Preview of Download File")
+            st.dataframe(df_export.head())
 
             # Select file format
             file_format = st.selectbox("Select file format for download:", ["CSV", "JSON"])
 
             # Generate downloadable data based on selection
             if file_format == "CSV":
-                file_data = df_results.to_csv(index=False).encode("utf-8")
+                file_data = df_export.to_csv(index=False).encode("utf-8")
                 file_name = "classified_results.csv"
                 mime_type = "text/csv"
 
             elif file_format == "JSON":
-                file_data = df_results.to_json(orient="records", indent=2).encode("utf-8")
+                file_data = df_export.to_json(orient="records", indent=2).encode("utf-8")
                 file_name = "classified_results.json"
                 mime_type = "application/json"
 
@@ -2360,7 +2692,3 @@ if df is not None:
                 file_name=file_name,
                 mime=mime_type,
             )
-
-
-        except Exception as e:
-            st.error(f"Error during prediction: {e}")
