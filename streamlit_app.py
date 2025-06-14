@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -586,10 +586,20 @@ if df is not None:
 
     st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
 
-    # ✅ Always initialize fallback copies
-    X_train_resampled = X_train.copy()
-    X_val_resampled = X_val.copy()
-    y_train_resampled = y_train.copy()
+    # ✅ Load from session if available, else from original
+    if "X_train_resampled" in st.session_state:
+        X_train_resampled = st.session_state["X_train_resampled"].copy()
+        X_val_resampled = st.session_state["X_val_resampled"].copy()
+        y_train_resampled = st.session_state["y_train_resampled"].copy()
+    else:
+        X_train_resampled = X_train.copy()
+        X_val_resampled = X_val.copy()
+        y_train_resampled = y_train.copy()
+        # Also store the starting point in session state
+        st.session_state["X_train_resampled"] = X_train_resampled.copy()
+        st.session_state["X_val_resampled"] = X_val_resampled.copy()
+        st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
 
     # To build the transformation pipeline
     if "transform_steps" not in st.session_state:
@@ -602,6 +612,17 @@ if df is not None:
 
         # === 1️⃣ Centering + Scaling ===
         if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
+
+            # ✅ Restore latest transformed state (important!)
+            if "X_train_resampled" in st.session_state:
+                X_train_resampled = st.session_state["X_train_resampled"].copy()
+                X_val_resampled = st.session_state["X_val_resampled"].copy()
+                y_train_resampled = st.session_state["y_train_resampled"].copy()
+            else:
+                X_train_resampled = X_train.copy()
+                X_val_resampled = X_val.copy()
+                y_train_resampled = y_train.copy()
+
             col_to_scale = st.selectbox("Select column to scale", X_train_resampled.columns, key="scale_col")
             before = X_train_resampled[col_to_scale].copy()
 
@@ -611,6 +632,11 @@ if df is not None:
 
             # Save step for test transformation
             st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", minmax_scaler, col_to_scale))
+
+            # ✅ Persist the updated state after transformation
+            st.session_state["X_train_resampled"] = X_train_resampled.copy()
+            st.session_state["X_val_resampled"] = X_val_resampled.copy()
+            st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
             # Plot
             after = X_train_resampled[col_to_scale]
@@ -625,6 +651,17 @@ if df is not None:
 
         # === 2️⃣ Standardization ===
         if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
+
+            # ✅ Restore latest transformed state (important!)
+            if "X_train_resampled" in st.session_state:
+                X_train_resampled = st.session_state["X_train_resampled"].copy()
+                X_val_resampled = st.session_state["X_val_resampled"].copy()
+                y_train_resampled = st.session_state["y_train_resampled"].copy()
+            else:
+                X_train_resampled = X_train.copy()
+                X_val_resampled = X_val.copy()
+                y_train_resampled = y_train.copy()
+
             col_to_standardize = st.selectbox("Select column to standardize", X_train_resampled.columns, key="standardize_col")
             before = X_train_resampled[col_to_standardize].copy()
 
@@ -635,6 +672,12 @@ if df is not None:
 
             # Save step for test transformation
             st.session_state["transform_steps"].append((f"standard_{col_to_standardize}", std_scaler, col_to_standardize))
+
+
+            # ✅ Persist the updated state after transformation
+            st.session_state["X_train_resampled"] = X_train_resampled.copy()
+            st.session_state["X_val_resampled"] = X_val_resampled.copy()
+            st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
 
             # Plot
@@ -663,6 +706,15 @@ if df is not None:
 
             if st.button("➕ Add New Feature"):
                 # Apply transformation to train
+                # ✅ Restore latest transformed state (important!)
+                if "X_train_resampled" in st.session_state:
+                    X_train_resampled = st.session_state["X_train_resampled"].copy()
+                    X_val_resampled = st.session_state["X_val_resampled"].copy()
+                    y_train_resampled = st.session_state["y_train_resampled"].copy()
+                else:
+                    X_train_resampled = X_train.copy()
+                    X_val_resampled = X_val.copy()
+                    y_train_resampled = y_train.copy()
                 if operation == "Add":
                     new_train_col = X_train_resampled[col1] + X_train_resampled[col2]
                     new_val_col = X_val_resampled[col1] + X_val_resampled[col2]
@@ -698,6 +750,12 @@ if df is not None:
                     "custom"
                 ))
 
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
+
                 st.success(f"Feature '{new_col_name}' added to both train and validation sets.")
 
                 # Download button
@@ -709,6 +767,17 @@ if df is not None:
 
         # === 4️⃣ Outlier Detection & Removal ===
         if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
+
+            # ✅ Restore latest transformed state (important!)
+            if "X_train_resampled" in st.session_state:
+                X_train_resampled = st.session_state["X_train_resampled"].copy()
+                X_val_resampled = st.session_state["X_val_resampled"].copy()
+                y_train_resampled = st.session_state["y_train_resampled"].copy()
+            else:
+                X_train_resampled = X_train.copy()
+                X_val_resampled = X_val.copy()
+                y_train_resampled = y_train.copy()
+                
             outlier_col = st.selectbox("Select column", X_train_resampled.columns, key="outlier_col")
             method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
 
@@ -747,6 +816,12 @@ if df is not None:
                     "row_filter"
                 ))
 
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
+
                 st.success(f"✅ Outliers removed from training set (column: {outlier_col})")
 
                 # Download updated training set
@@ -772,6 +847,16 @@ if df is not None:
         st.write("📊 Current class distribution:")
         st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
 
+        # ✅ Restore latest transformed state (important!)
+        if "X_train_resampled" in st.session_state:
+            X_train_resampled = st.session_state["X_train_resampled"].copy()
+            X_val_resampled = st.session_state["X_val_resampled"].copy()
+            y_train_resampled = st.session_state["y_train_resampled"].copy()
+        else:
+            X_train_resampled = X_train.copy()
+            X_val_resampled = X_val.copy()
+            y_train_resampled = y_train.copy()
+
         sampler = None
         if imbalance_strategy == "Undersampling":
             sampler = RandomUnderSampler(random_state=42)
@@ -794,6 +879,12 @@ if df is not None:
                 "resample"
             ))
 
+            # ✅ Persist the updated state after transformation
+            st.session_state["X_train_resampled"] = X_train_resampled.copy()
+            st.session_state["X_val_resampled"] = X_val_resampled.copy()
+            st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
+
             # Show new distribution
             st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
             st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
@@ -810,6 +901,17 @@ if df is not None:
         st.markdown("### 🧹 Optional: Drop Unwanted Columns Before PCA")
 
         st.write("You can choose to remove any features (including engineered ones) before applying PCA or training models.")
+
+        # ✅ Restore latest transformed state (important!)
+        if "X_train_resampled" in st.session_state:
+            X_train_resampled = st.session_state["X_train_resampled"].copy()
+            X_val_resampled = st.session_state["X_val_resampled"].copy()
+            y_train_resampled = st.session_state["y_train_resampled"].copy()
+        else:
+            X_train_resampled = X_train.copy()
+            X_val_resampled = X_val.copy()
+            y_train_resampled = y_train.copy()
+
 
         # Show full list of columns (after imbalance handling and feature engineering)
         cols_to_consider = X_train_resampled.columns.tolist()
@@ -834,6 +936,12 @@ if df is not None:
                 },
                 "cleanup"
             ))
+
+            # ✅ Persist the updated state after transformation
+            st.session_state["X_train_resampled"] = X_train_resampled.copy()
+            st.session_state["X_val_resampled"] = X_val_resampled.copy()
+            st.session_state["y_train_resampled"] = y_train_resampled.copy()
+
 
 
 
