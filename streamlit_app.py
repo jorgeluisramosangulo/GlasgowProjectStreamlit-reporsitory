@@ -22,6 +22,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,f1_score, roc_auc_score, make_scorer)
+import io
 
 
 # === Helper Functions ===
@@ -83,6 +84,8 @@ st.info("This app trains up to 12 machine learning models for datasets with a bi
 ######################################    File Upload    #################################################################
 ##########################################################################################################################
 
+
+
 st.markdown("### 📂 Choose a sample dataset or upload your own")
 
 use_sample = st.radio("How would you like to provide your dataset?", ["Use sample dataset", "Upload your own file"])
@@ -91,11 +94,8 @@ df = None
 if use_sample == "Use sample dataset":
     dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
     format_options = ["csv", "xlsx", "json"]
-    stage_options = ["train"]  # Only show train here
-
     dataset = st.selectbox("Select dataset", dataset_names)
     file_format = st.radio("File format", format_options, horizontal=True)
-
     filepath = f"Datasets/{file_format}/{dataset} train.{file_format}"
 
     try:
@@ -112,7 +112,7 @@ if use_sample == "Use sample dataset":
 
 else:
     uploaded_file = st.file_uploader("Upload your data file. It is recommended to have " \
-    "more than 40 rows, specially if carrying cross validation)", type=["csv", "xlsx", "json"])
+    "more than 40 rows, especially if using cross-validation.", type=["csv", "xlsx", "json"])
 
     if uploaded_file is not None:
         file_type = uploaded_file.name.split(".")[-1].lower()
@@ -133,10 +133,23 @@ else:
 
         st.success(f"✅ Successfully loaded {file_type.upper()} file.")
 
-# === Show preview if any data is loaded ===
+# === Add row_id as first column and show download ===
 if df is not None:
-    st.markdown("### 🔍 Preview of Loaded Data")
+    df.insert(0, "row_id", np.arange(1, len(df) + 1))
+    st.session_state["df_with_row_id"] = df.copy()
+
+    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes.")
     st.dataframe(df.head())
+
+    # 💾 Add download button
+    csv_with_row_id = df.to_csv(index=False).encode("utf-8")
+    st.download_button(
+        label="⬇️ Download Loaded Data with row_id",
+        data=csv_with_row_id,
+        file_name="loaded_data_with_row_id.csv",
+        mime="text/csv"
+    )
+
 
 
 
