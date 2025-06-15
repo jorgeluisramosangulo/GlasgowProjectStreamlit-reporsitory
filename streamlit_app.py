@@ -860,7 +860,7 @@ if df is not None:
             ax.set_title("Boxplot with IQR Thresholds")
             st.pyplot(fig)
 
-            if st.button("🧹 Remove Outliers (Train Only)"):
+            if st.button("🧹 Confirm Outlier Removal (Train Only)"):
                 # Recover row_id from session
                 row_id_train = st.session_state.get("row_id_train", pd.Series(np.arange(len(X_train_resampled)), name="row_id"))
 
@@ -884,22 +884,20 @@ if df is not None:
                     "row_filter"
                 ))
 
-                # ✅ Persist the updated state
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+                # Persist cleaned data for later download
+                st.session_state["X_train_outlier_removed"] = X_train_resampled.copy()
+                st.session_state["y_train_outlier_removed"] = y_train_resampled.copy()
+                st.session_state["removed_row_ids"] = removed_row_ids.copy()
+                st.session_state["outlier_confirmed"] = True
+                st.success("✅ Outliers removed. You can now download both files below.")
 
-                st.success(f"✅ Outliers removed from training set (column: {outlier_col})")
+        # === Show download buttons only after confirmation ===
+        if st.session_state.get("outlier_confirmed", False):
+            csv_cleaned = st.session_state["X_train_outlier_removed"].to_csv(index=False).encode("utf-8")
+            csv_removed_ids = st.session_state["removed_row_ids"].to_frame(name="row_id").to_csv(index=False).encode("utf-8")
 
-                # Download updated training set
-                csv_cleaned = X_train_resampled.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
-
-                # 📥 Download row_ids of removed rows
-                csv_removed_ids = removed_row_ids.to_frame(name="row_id").to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Download Row IDs of Removed Outliers", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
-
-
+            st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
+            st.download_button("⬇️ Download Row IDs of Removed Outliers", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
 
 
 
