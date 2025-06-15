@@ -1828,8 +1828,8 @@ if df is not None:
                 X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
                 df_knn_train_export = X_train_final_safe.copy()
                 df_knn_train_export["target"] = y_train_safe.reset_index(drop=True)
-                df_knn_train_export["KNN_Prediction"] = y_pred_knn_train
-                df_knn_train_export["KNN_Prob"] = y_prob_knn_train
+                df_knn_train_export["KNN_Prediction"] = y_pred_train_knn
+                df_knn_train_export["KNN_Prob"] = y_prob_train_knn
 
                 st.markdown("#### 📥 Download KNN Training Set with Predictions")
                 csv_knn_train = df_knn_train_export.to_csv(index=False).encode("utf-8")
@@ -1921,8 +1921,8 @@ if df is not None:
                 X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
                 df_nb_train_export = X_train_final_safe.copy()
                 df_nb_train_export["target"] = y_train_safe.reset_index(drop=True)
-                df_nb_train_export["NB_Prediction"] = y_pred_nb_train
-                df_nb_train_export["NB_Prob"] = y_prob_nb_train
+                df_nb_train_export["NB_Prediction"] = y_pred_train_nb
+                df_nb_train_export["NB_Prob"] = y_prob_train_nb
 
                 st.markdown("#### 📥 Download Naive Bayes Training Set with Predictions")
                 csv_nb_train = df_nb_train_export.to_csv(index=False).encode("utf-8")
