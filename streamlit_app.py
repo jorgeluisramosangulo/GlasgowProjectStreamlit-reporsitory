@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1266,6 +1266,13 @@ if df is not None:
         st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
 
 
+        # === Enforce consistent binary label encoding ===
+        label_classes = sorted(np.unique(y_train))  # Ensures order is always [0, 1]
+        label_map = {label: idx for idx, label in enumerate(label_classes)}
+        y_train = y_train.map(label_map) if hasattr(y_train, "map") else np.vectorize(label_map.get)(y_train)
+
+        # Save to session state for use during test-time encoding
+        st.session_state["label_classes_"] = label_classes
 
 
         # === Train Models ===
