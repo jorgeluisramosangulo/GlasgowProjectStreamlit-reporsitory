@@ -2,7 +2,6 @@ scikit-learn>=1.2.0
 imbalanced-learn>=0.11.0
 numpy
 pandas
-scikit-learn
 matplotlib
 openpyxl
 XlsxWriter

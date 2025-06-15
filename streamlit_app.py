@@ -2,27 +2,35 @@ import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
-import json
-
-from sklearn.model_selection import train_test_split
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import classification_report, accuracy_score
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.neural_network import MLPClassifier
-from imblearn.over_sampling import SMOTE, RandomOverSampler
-from imblearn.under_sampling import RandomUnderSampler
 import seaborn as sns
-from sklearn.pipeline import Pipeline
+import json
+import io
+
+from sklearn.model_selection import (
+    train_test_split,
+    cross_validate,
+    GridSearchCV,
+    RandomizedSearchCV
+)
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score,
+    classification_report,
+    make_scorer
+)
+
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
-from sklearn.linear_model import LogisticRegression
-from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
-from sklearn.metrics import (accuracy_score, precision_score, recall_score,f1_score, roc_auc_score, make_scorer)
-import io
+
 
 
 # === Helper Functions ===
