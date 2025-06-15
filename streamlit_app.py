@@ -19,14 +19,55 @@ from sklearn.pipeline import Pipeline
 from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
+from sklearn.linear_model import LogisticRegression
+from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,f1_score, roc_auc_score, make_scorer)
+import joblib
 
+# === Helper Functions ===
+
+def get_class1_proba(model, X):
+    """
+    Returns predicted probability for class 1.
+    Handles cases where model.classes_ is [1, 0] or [0, 1]
+    """
+    class_idx = list(model.classes_).index(1) if hasattr(model, "classes_") else 1
+    return model.predict_proba(X)[:, class_idx]
+
+
+def ensure_dataframe_and_series(X, y):
+    if isinstance(X, np.ndarray):
+        X = pd.DataFrame(X)
+    if isinstance(y, np.ndarray):
+        y = pd.Series(y)
+    return X, y
+
+def init_session_key(key, default_value):
+    if key not in st.session_state:
+        st.session_state[key] = default_value
+
+def get_final_train_val_sets():
+    use_pca = st.session_state.get("use_pca", "No")
+    if use_pca == "Yes" and st.session_state.get("pca_ready", False):
+        return st.session_state["X_train_pca"], st.session_state["X_val_pca"]
+    else:
+        return st.session_state["X_train"], st.session_state["X_val"]
+
+def set_final_datasets(X_train_final, X_val_final):
+    st.session_state["X_train_final"] = X_train_final
+    st.session_state["X_val_final"] = X_val_final
+
+def log_transformation(step_name, transformer, target="general"):
+    if "transform_steps" not in st.session_state:
+        st.session_state["transform_steps"] = []
+    st.session_state["transform_steps"].append((step_name, transformer, target))
 
 
 ##########################################################################################################################
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppppppppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1297,12 +1338,7 @@ if df is not None:
 
         # === Ridge Logistic Regression (with CV + Tuning) ===
         if "Ridge Logistic Regression" in selected_models:
-            from sklearn.linear_model import LogisticRegression
-            from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
-            from sklearn.metrics import (
-                accuracy_score, precision_score, recall_score,
-                f1_score, roc_auc_score, make_scorer
-            )
+
 
             with st.expander("🧱 Ridge Logistic Regression (L2)"):
                 st.write("**Hyperparameters**")
@@ -1350,8 +1386,10 @@ if df is not None:
                     ridge_model.fit(X_train_final, y_train)
 
                 # === Training performance on full training set ===
+
                 y_pred_ridge_train = ridge_model.predict(X_train_final)
-                y_prob_ridge_train = ridge_model.predict_proba(X_train_final)[:, 1]
+                y_prob_ridge_train = get_class1_proba(ridge_model, X_train_final)
+
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
@@ -1374,6 +1412,22 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with Ridge Predictions ===
+                df_ridge_train_export = X_train_final.copy()
+                df_ridge_train_export["target"] = y_train.reset_index(drop=True)
+                df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
+                df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
+
+                st.markdown("#### 📥 Download Ridge Training Set with Predictions")
+                csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Ridge Training Data",
+                    data=csv_ridge_train,
+                    file_name="ridge_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -1435,8 +1489,10 @@ if df is not None:
                         lasso_model.fit(X_train_final, y_train)
 
                 # === Global metrics (always computed) ===
+                
+
                 y_pred_lasso_train = lasso_model.predict(X_train_final)
-                y_prob_lasso_train = lasso_model.predict_proba(X_train_final)[:, 1]
+                y_prob_lasso_train = get_class1_proba(lasso_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_lasso_train):.4f}")
@@ -1459,6 +1515,22 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with Lasso Predictions ===
+                df_lasso_train_export = X_train_final.copy()
+                df_lasso_train_export["target"] = y_train.reset_index(drop=True)
+                df_lasso_train_export["Lasso_Prediction"] = y_pred_lasso_train
+                df_lasso_train_export["Lasso_Prob"] = y_prob_lasso_train
+
+                st.markdown("#### 📥 Download Lasso Training Set with Predictions")
+                csv_lasso_train = df_lasso_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Lasso Training Data",
+                    data=csv_lasso_train,
+                    file_name="lasso_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -1529,7 +1601,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_enet_train = enet_model.predict(X_train_final)
-                y_prob_enet_train = enet_model.predict_proba(X_train_final)[:, 1]
+                y_prob_enet_train = get_class1_proba(enet_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_enet_train):.4f}")
@@ -1552,6 +1624,22 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with ElasticNet Predictions ===
+                df_enet_train_export = X_train_final.copy()
+                df_enet_train_export["target"] = y_train.reset_index(drop=True)
+                df_enet_train_export["ElasticNet_Prediction"] = y_pred_enet_train
+                df_enet_train_export["ElasticNet_Prob"] = y_prob_enet_train
+
+                st.markdown("#### 📥 Download ElasticNet Training Set with Predictions")
+                csv_enet_train = df_enet_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download ElasticNet Training Data",
+                    data=csv_enet_train,
+                    file_name="elasticnet_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -1631,6 +1719,22 @@ if df is not None:
                         st.text(f"F1-Score:  {f1_score(y_train, y_pred_cv_pls):.4f}")
                         st.text(f"AUC:       {roc_auc_score(y_train, y_scores_cv_pls):.4f}")
 
+                # === Download Training Set with PLS-DA Predictions ===
+                df_pls_train_export = X_train_final.copy()
+                df_pls_train_export["target"] = y_train.reset_index(drop=True)
+                df_pls_train_export["PLSDA_Prediction"] = y_pred_train_pls
+                df_pls_train_export["PLSDA_Score"] = y_scores_train_pls
+
+                st.markdown("#### 📥 Download PLS-DA Training Set with Predictions")
+                csv_pls_train = df_pls_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download PLS-DA Training Data",
+                    data=csv_pls_train,
+                    file_name="plsda_training_predictions.csv",
+                    mime="text/csv"
+                )
+
+
 
 
         # === K-Nearest Neighbors (KNN) with CV + Tuning ===
@@ -1690,7 +1794,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_train_knn = knn_model.predict(X_train_final)
-                y_prob_train_knn = knn_model.predict_proba(X_train_final)[:, 1]
+                y_prob_train_knn = get_class1_proba(knn_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_knn):.4f}")
@@ -1713,6 +1817,22 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with KNN Predictions ===
+                df_knn_train_export = X_train_final.copy()
+                df_knn_train_export["target"] = y_train.reset_index(drop=True)
+                df_knn_train_export["KNN_Prediction"] = y_pred_knn_train
+                df_knn_train_export["KNN_Prob"] = y_prob_knn_train
+
+                st.markdown("#### 📥 Download KNN Training Set with Predictions")
+                csv_knn_train = df_knn_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download KNN Training Data",
+                    data=csv_knn_train,
+                    file_name="knn_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -1764,7 +1884,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_train_nb = nb_model.predict(X_train_final)
-                y_prob_train_nb = nb_model.predict_proba(X_train_final)[:, 1]
+                y_prob_train_nb = get_class1_proba(nb_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_train_nb):.4f}")
@@ -1787,6 +1907,23 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+
+                # === Download Training Set with Naive Bayes Predictions ===
+                df_nb_train_export = X_train_final.copy()
+                df_nb_train_export["target"] = y_train.reset_index(drop=True)
+                df_nb_train_export["NB_Prediction"] = y_pred_nb_train
+                df_nb_train_export["NB_Prob"] = y_prob_nb_train
+
+                st.markdown("#### 📥 Download Naive Bayes Training Set with Predictions")
+                csv_nb_train = df_nb_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Naive Bayes Training Data",
+                    data=csv_nb_train,
+                    file_name="naive_bayes_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -1851,7 +1988,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_svm_train = svm_model.predict(X_train_final)
-                y_prob_svm_train = svm_model.predict_proba(X_train_final)[:, 1]
+                y_prob_svm_train = get_class1_proba(svm_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_svm_train):.4f}")
@@ -1876,6 +2013,20 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
 
+                # === Download Training Set with SVM Predictions ===
+                df_svm_train_export = X_train_final.copy()
+                df_svm_train_export["target"] = y_train.reset_index(drop=True)
+                df_svm_train_export["SVM_Prediction"] = y_pred_svm_train
+                df_svm_train_export["SVM_Prob"] = y_prob_svm_train
+
+                st.markdown("#### 📥 Download SVM Training Set with Predictions")
+                csv_svm_train = df_svm_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download SVM Training Data",
+                    data=csv_svm_train,
+                    file_name="svm_training_predictions.csv",
+                    mime="text/csv"
+                )
 
 
 
@@ -1946,7 +2097,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_tree_train = tree_model.predict(X_train_final)
-                y_prob_tree_train = tree_model.predict_proba(X_train_final)[:, 1]
+                y_prob_tree_train = get_class1_proba(tree_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_tree_train):.4f}")
@@ -1970,6 +2121,20 @@ if df is not None:
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
+                # === Download Training Set with Decision Tree Predictions ===
+                df_tree_train_export = X_train_final.copy()
+                df_tree_train_export["target"] = y_train.reset_index(drop=True)
+                df_tree_train_export["DecisionTree_Prediction"] = y_pred_tree_train
+                df_tree_train_export["DecisionTree_Prob"] = y_prob_tree_train
+
+                st.markdown("#### 📥 Download Decision Tree Training Set with Predictions")
+                csv_tree_train = df_tree_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Decision Tree Training Data",
+                    data=csv_tree_train,
+                    file_name="decision_tree_training_predictions.csv",
+                    mime="text/csv"
+                )
 
 
 
@@ -2035,7 +2200,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_rf = rf_model.predict(X_train_final)
-                y_prob_rf = rf_model.predict_proba(X_train_final)[:, 1]
+                y_prob_rf = get_class1_proba(rf_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_rf):.4f}")
@@ -2058,6 +2223,22 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with Random Forest Predictions ===
+                df_rf_train_export = X_train_final.copy()
+                df_rf_train_export["target"] = y_train.reset_index(drop=True)
+                df_rf_train_export["RandomForest_Prediction"] = y_pred_rf_train
+                df_rf_train_export["RandomForest_Prob"] = y_prob_rf_train
+
+                st.markdown("#### 📥 Download Random Forest Training Set with Predictions")
+                csv_rf_train = df_rf_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Random Forest Training Data",
+                    data=csv_rf_train,
+                    file_name="random_forest_training_predictions.csv",
+                    mime="text/csv"
+                )
+
 
 
 
@@ -2132,7 +2313,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_gbm_train = gbm_model.predict(X_train_final)
-                y_prob_gbm_train = gbm_model.predict_proba(X_train_final)[:, 1]
+                y_prob_gbm_train = get_class1_proba(gbm_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_gbm_train):.4f}")
@@ -2156,6 +2337,21 @@ if df is not None:
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
+
+                # === Download Training Set with Gradient Boosting Predictions ===
+                df_gbm_train_export = X_train_final.copy()
+                df_gbm_train_export["target"] = y_train.reset_index(drop=True)
+                df_gbm_train_export["GBM_Prediction"] = y_pred_gbm_train
+                df_gbm_train_export["GBM_Prob"] = y_prob_gbm_train
+
+                st.markdown("#### 📥 Download Gradient Boosting Training Set with Predictions")
+                csv_gbm_train = df_gbm_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Gradient Boosting Training Data",
+                    data=csv_gbm_train,
+                    file_name="gradient_boosting_training_predictions.csv",
+                    mime="text/csv"
+                )
 
 
 
@@ -2236,7 +2432,7 @@ if df is not None:
 
                 # === Global metrics (always computed) ===
                 y_pred_nn_train = nn_model.predict(X_train_final)
-                y_prob_nn_train = nn_model.predict_proba(X_train_final)[:, 1]
+                y_prob_nn_train = get_class1_proba(nn_model, X_train_final)
 
                 st.markdown("**📊 Training Set Performance**")
                 st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_nn_train):.4f}")
@@ -2259,6 +2455,21 @@ if df is not None:
                         mean_score = cv_results[f'test_{metric}'].mean()
                         std_score = cv_results[f'test_{metric}'].std()
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                # === Download Training Set with Neural Network Predictions ===
+                df_nn_train_export = X_train_final.copy()
+                df_nn_train_export["target"] = y_train.reset_index(drop=True)
+                df_nn_train_export["NN_Prediction"] = y_pred_nn_train
+                df_nn_train_export["NN_Prob"] = y_prob_nn_train
+
+                st.markdown("#### 📥 Download Neural Network Training Set with Predictions")
+                csv_nn_train = df_nn_train_export.to_csv(index=False).encode("utf-8")
+                st.download_button(
+                    label="⬇️ Download Neural Network Training Data",
+                    data=csv_nn_train,
+                    file_name="neural_network_training_predictions.csv",
+                    mime="text/csv"
+                )
 
 
 
@@ -2331,7 +2542,7 @@ if df is not None:
                         voting_clf.fit(X_train_final, y_train)
 
                         y_pred_vote_train = voting_clf.predict(X_train_final)
-                        y_prob_vote_train = voting_clf.predict_proba(X_train_final)[:, 1]
+                        y_prob_vote_train = get_class1_proba(voting_clf, X_train_final)
 
                         st.markdown("**📊 Training Set Performance**")
                         st.text(f"Using Models: {', '.join(model_names)}")
@@ -2355,6 +2566,25 @@ if df is not None:
                             mean_score = cv_results[f'test_{metric}'].mean()
                             std_score = cv_results[f'test_{metric}'].std()
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                    # === Download Training Set with Voting Classifier Predictions ===
+                    df_vote_train_export = X_train_final.copy()
+                    df_vote_train_export["target"] = y_train.reset_index(drop=True)
+                    df_vote_train_export["Vote_Prediction"] = y_pred_vote_train
+                    df_vote_train_export["Vote_Prob"] = y_prob_vote_train
+
+                    st.markdown("#### 📥 Download Voting Classifier Training Set with Predictions")
+                    csv_vote_train = df_vote_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Voting Classifier Training Data",
+                        data=csv_vote_train,
+                        file_name="voting_classifier_training_predictions.csv",
+                        mime="text/csv"
+                    )
+
+
+
+
 
 
 
