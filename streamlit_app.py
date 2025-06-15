@@ -67,7 +67,7 @@ def log_transformation(step_name, transformer, target="general"):
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -561,62 +561,77 @@ if df is not None:
 #################################        Split Data Train and Validate    ################################################
 ##########################################################################################################################
 
-    # === Confirm and Split Data into Train/Validation ===
+    # === Step: Split Data Train and Validate ===
 
-    # Drop target from features
+    # After confirmation, split data
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    # Save confirmed target
+    # Store in session_state
     st.session_state["target_column"] = target_column
     st.success(f"✅ Target column confirmed: `{target_column}`")
 
-    # Add a unique row_key to help track rows (will be removed before training)
-    X_raw.insert(0, "row_key", np.arange(len(X_raw)))
+    # Add row_id for tracking
+    row_ids = pd.Series(np.arange(len(df)), name="row_id")
 
-    # Factorize target (e.g. map 'yes'/'no' → 0/1)
+    # Convert target to integer labels
     y_raw, label_classes = pd.factorize(y_raw)
-    y_raw = y_raw.astype("int64")
+    y_raw = pd.Series(y_raw.astype('int64'), name="target")
     st.session_state["label_classes_"] = label_classes.tolist()
 
-    # One-hot encode categorical variables (excluding row_key)
-    X_encoded = pd.get_dummies(X_raw.drop(columns=["row_key"]), drop_first=True).astype("float64")
-    X_encoded.insert(0, "row_key", X_raw["row_key"])
+    # Handle categorical features
+    X_encoded = pd.get_dummies(X_raw, drop_first=True).astype("float64")
 
-    # Remove NaNs or Inf
+    # Remove rows with invalid values
     X_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
     invalid_rows = X_encoded.isnull().any(axis=1)
     if invalid_rows.any():
         st.warning(f"⚠️ Removed {invalid_rows.sum()} rows with NaNs or infinite values.")
         X_encoded = X_encoded[~invalid_rows]
         y_raw = y_raw[~invalid_rows]
+        row_ids = row_ids[~invalid_rows]
 
-    # Save preprocessed feature set for later use
+    # Store pre-split features in session for test use
     st.session_state["X_raw"] = X_encoded.copy()
 
-    # Split
-    test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
-    test_size = test_size_percent / 100.0
-    X_train, X_val, y_train, y_val = train_test_split(X_encoded, y_raw, test_size=test_size, random_state=42, shuffle=True)
+    # Train/Validation split
+    test_size = st.slider("Select validation set size (%)", 10, 50, 20, 5) / 100.0
+    X_train, X_val, y_train, y_val, row_id_train, row_id_val = train_test_split(
+        X_encoded, y_raw, row_ids, test_size=test_size, random_state=42, shuffle=True
+    )
 
-    # Save splits to session for transformation/pca
+    # Add row_id back for export only (do not use in model training)
+    X_train_with_id = X_train.copy()
+    X_val_with_id = X_val.copy()
+    X_train_with_id["row_id"] = row_id_train.values
+    X_val_with_id["row_id"] = row_id_val.values
+
+    # Save the splits to session_state
     st.session_state["X_train"] = X_train.copy()
     st.session_state["X_val"] = X_val.copy()
     st.session_state["y_train"] = y_train.copy()
     st.session_state["y_val"] = y_val.copy()
+    st.session_state["row_id_train"] = row_id_train.copy()
+    st.session_state["row_id_val"] = row_id_val.copy()
 
-    # === Download Buttons ===
-    st.markdown("### 💾 Download Processed Train/Validation Splits (with row_key)")
+    # === Downloads ===
+    st.markdown("### 💾 Download Processed Train/Validation Splits")
 
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button("⬇️ Download X_train.csv", X_train.to_csv(index=False).encode("utf-8"), "X_train.csv", "text/csv")
-        st.download_button("⬇️ Download y_train.csv", pd.DataFrame({"Target": y_train}).to_csv(index=False).encode("utf-8"), "y_train.csv", "text/csv")
+        st.download_button("⬇️ Download X_train.csv",
+                        X_train_with_id.to_csv(index=False).encode("utf-8"),
+                        "X_train.csv", "text/csv")
+        st.download_button("⬇️ Download y_train.csv",
+                        pd.DataFrame({"row_id": row_id_train.values, "target": y_train.values}).to_csv(index=False).encode("utf-8"),
+                        "y_train.csv", "text/csv")
     with col2:
-        st.download_button("⬇️ Download X_val.csv", X_val.to_csv(index=False).encode("utf-8"), "X_val.csv", "text/csv")
-        st.download_button("⬇️ Download y_val.csv", pd.DataFrame({"Target": y_val}).to_csv(index=False).encode("utf-8"), "y_val.csv", "text/csv")
-
-
+        st.download_button("⬇️ Download X_val.csv",
+                        X_val_with_id.to_csv(index=False).encode("utf-8"),
+                        "X_val.csv", "text/csv")
+        st.download_button("⬇️ Download y_val.csv",
+                        pd.DataFrame({"row_id": row_id_val.values, "target": y_val.values}).to_csv(index=False).encode("utf-8"),
+                        "y_val.csv", "text/csv")
 
 
 
