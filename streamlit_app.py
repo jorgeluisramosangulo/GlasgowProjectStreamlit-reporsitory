@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1266,13 +1266,30 @@ if df is not None:
         st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
 
 
-        # === Enforce consistent binary label encoding ===
-        label_classes = sorted(np.unique(y_train))  # Ensures order is always [0, 1]
-        label_map = {label: idx for idx, label in enumerate(label_classes)}
+
+        # === Ensure consistent binary label encoding ===
+        # If labels are strings (e.g., 'M', 'B'), map them to 0/1
+        # If they're already numbers, enforce 0/1 and store mapping
+
+        if y_train.dtype == 'object' or y_train.dtype.name == 'category':
+            label_classes = sorted(np.unique(y_train))
+            label_map = {label: i for i, label in enumerate(label_classes)}
+        else:
+            label_classes = [0, 1]
+            label_map = {0: 0, 1: 1}
+
+        # Apply label mapping
         y_train = y_train.map(label_map) if hasattr(y_train, "map") else np.vectorize(label_map.get)(y_train)
 
-        # Save to session state for use during test-time encoding
+        # Save for use during testing
         st.session_state["label_classes_"] = label_classes
+        st.session_state["label_map_"] = label_map
+
+        # Optional debug info
+        st.write("✅ Label encoding applied during training:")
+        st.write("Classes:", label_classes)
+        st.write("Mapping:", label_map)
+
 
 
         # === Train Models ===
@@ -2560,40 +2577,42 @@ if df is not None:
 
                     df_test_target = df_test[[target_column]].copy()
 
-                    if "label_classes_" in st.session_state:
-                        label_classes = st.session_state["label_classes_"]
+                    # === Retrieve label mapping from training ===
+                    label_classes = st.session_state.get("label_classes_", None)
+                    label_map = st.session_state.get("label_map_", None)
 
-                        # Validate that test target contains exactly the same labels
-                        test_labels = set(df_test_target[target_column].dropna().unique())
-                        expected_labels = set(label_classes)
+                    if label_classes is None or label_map is None:
+                        st.error("❌ Missing label mapping from training. Please re-run training.")
+                        st.stop()
 
-                        if test_labels != expected_labels:
-                            st.error(
-                                f"❌ Test set target labels must exactly match training labels {sorted(expected_labels)}.\n"
-                                f"Found: {sorted(test_labels)}"
-                            )
-                            st.stop()
+                    # Validate label match
+                    test_labels = set(df_test_target[target_column].dropna().unique())
+                    expected_labels = set(label_classes)
 
-                        # Build consistent label mapping
-                        label_map = {label: idx for idx, label in enumerate(label_classes)}
-                        df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
-                        df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
+                    if test_labels != expected_labels:
+                        st.error(
+                            f"❌ Test set target labels must exactly match training labels {sorted(expected_labels)}.\n"
+                            f"Found: {sorted(test_labels)}"
+                        )
+                        st.stop()
 
-                        # Align rows in all related dataframes
-                        df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
-                        df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
+                    # Apply label map
+                    df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
+                    df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
-                        # Store encoded target for metrics
-                        df_test_target_final = df_test_target["encoded_target"]
+                    # Align rows across all test-related dataframes
+                    df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
+                    df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
 
-                        st.markdown("#### ✅ Encoded Target Value Distribution")
-                        st.dataframe(df_test_target_final.value_counts())
-                    else:
-                        st.warning("⚠️ Could not find label mapping from training. Skipping encoding.")
-                        df_test_target_final = df_test_target[target_column]
+                    # Store final test labels
+                    df_test_target_final = df_test_target["encoded_target"]
+
+                    st.markdown("#### ✅ Encoded Target Value Distribution")
+                    st.dataframe(df_test_target_final.value_counts())
 
                 else:
                     st.info("ℹ️ No target column found in test set. Predictions will be made but evaluation metrics will be skipped.")
+
 
 
 
