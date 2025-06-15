@@ -22,7 +22,7 @@ from imblearn.under_sampling import RandomUnderSampler
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
 from sklearn.metrics import (accuracy_score, precision_score, recall_score,f1_score, roc_auc_score, make_scorer)
-import joblib
+
 
 # === Helper Functions ===
 
@@ -1414,8 +1414,9 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with Ridge Predictions ===
-                df_ridge_train_export = X_train_final.copy()
-                df_ridge_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_ridge_train_export = X_train_final_safe.copy()
+                df_ridge_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
                 df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
 
@@ -1427,6 +1428,7 @@ if df is not None:
                     file_name="ridge_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -1517,8 +1519,9 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with Lasso Predictions ===
-                df_lasso_train_export = X_train_final.copy()
-                df_lasso_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_lasso_train_export = X_train_final_safe.copy()
+                df_lasso_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_lasso_train_export["Lasso_Prediction"] = y_pred_lasso_train
                 df_lasso_train_export["Lasso_Prob"] = y_prob_lasso_train
 
@@ -1530,7 +1533,6 @@ if df is not None:
                     file_name="lasso_training_predictions.csv",
                     mime="text/csv"
                 )
-
 
 
 
@@ -1626,8 +1628,9 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with ElasticNet Predictions ===
-                df_enet_train_export = X_train_final.copy()
-                df_enet_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_enet_train_export = X_train_final_safe.copy()
+                df_enet_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_enet_train_export["ElasticNet_Prediction"] = y_pred_enet_train
                 df_enet_train_export["ElasticNet_Prob"] = y_prob_enet_train
 
@@ -1639,6 +1642,7 @@ if df is not None:
                     file_name="elasticnet_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -1720,19 +1724,21 @@ if df is not None:
                         st.text(f"AUC:       {roc_auc_score(y_train, y_scores_cv_pls):.4f}")
 
                 # === Download Training Set with PLS-DA Predictions ===
-                df_pls_train_export = X_train_final.copy()
-                df_pls_train_export["target"] = y_train.reset_index(drop=True)
-                df_pls_train_export["PLSDA_Prediction"] = y_pred_train_pls
-                df_pls_train_export["PLSDA_Score"] = y_scores_train_pls
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_plsda_train_export = X_train_final_safe.copy()
+                df_plsda_train_export["target"] = y_train_safe.reset_index(drop=True)
+                df_plsda_train_export["PLSDA_Prediction"] = y_pred_train_pls
+                df_plsda_train_export["PLSDA_Prob"] = y_scores_train_pls  # assuming this is the class 1 probability
 
                 st.markdown("#### 📥 Download PLS-DA Training Set with Predictions")
-                csv_pls_train = df_pls_train_export.to_csv(index=False).encode("utf-8")
+                csv_plsda_train = df_plsda_train_export.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="⬇️ Download PLS-DA Training Data",
-                    data=csv_pls_train,
+                    data=csv_plsda_train,
                     file_name="plsda_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -1819,8 +1825,9 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with KNN Predictions ===
-                df_knn_train_export = X_train_final.copy()
-                df_knn_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_knn_train_export = X_train_final_safe.copy()
+                df_knn_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_knn_train_export["KNN_Prediction"] = y_pred_knn_train
                 df_knn_train_export["KNN_Prob"] = y_prob_knn_train
 
@@ -1832,6 +1839,7 @@ if df is not None:
                     file_name="knn_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -1910,8 +1918,9 @@ if df is not None:
 
 
                 # === Download Training Set with Naive Bayes Predictions ===
-                df_nb_train_export = X_train_final.copy()
-                df_nb_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_nb_train_export = X_train_final_safe.copy()
+                df_nb_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_nb_train_export["NB_Prediction"] = y_pred_nb_train
                 df_nb_train_export["NB_Prob"] = y_prob_nb_train
 
@@ -1923,6 +1932,8 @@ if df is not None:
                     file_name="naive_bayes_training_predictions.csv",
                     mime="text/csv"
                 )
+
+
 
 
 
@@ -2014,8 +2025,9 @@ if df is not None:
 
 
                 # === Download Training Set with SVM Predictions ===
-                df_svm_train_export = X_train_final.copy()
-                df_svm_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_svm_train_export = X_train_final_safe.copy()
+                df_svm_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_svm_train_export["SVM_Prediction"] = y_pred_svm_train
                 df_svm_train_export["SVM_Prob"] = y_prob_svm_train
 
@@ -2027,6 +2039,7 @@ if df is not None:
                     file_name="svm_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -2122,16 +2135,17 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with Decision Tree Predictions ===
-                df_tree_train_export = X_train_final.copy()
-                df_tree_train_export["target"] = y_train.reset_index(drop=True)
-                df_tree_train_export["DecisionTree_Prediction"] = y_pred_tree_train
-                df_tree_train_export["DecisionTree_Prob"] = y_prob_tree_train
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_dt_train_export = X_train_final_safe.copy()
+                df_dt_train_export["target"] = y_train_safe.reset_index(drop=True)
+                df_dt_train_export["DT_Prediction"] = y_pred_dt_train
+                df_dt_train_export["DT_Prob"] = y_prob_dt_train
 
                 st.markdown("#### 📥 Download Decision Tree Training Set with Predictions")
-                csv_tree_train = df_tree_train_export.to_csv(index=False).encode("utf-8")
+                csv_dt_train = df_dt_train_export.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="⬇️ Download Decision Tree Training Data",
-                    data=csv_tree_train,
+                    data=csv_dt_train,
                     file_name="decision_tree_training_predictions.csv",
                     mime="text/csv"
                 )
