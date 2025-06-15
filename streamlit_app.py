@@ -111,7 +111,8 @@ if use_sample == "Use sample dataset":
         st.stop()
 
 else:
-    uploaded_file = st.file_uploader("Upload your data file (more than 40 rows recommended)", type=["csv", "xlsx", "json"])
+    uploaded_file = st.file_uploader("Upload your data file. It is recommended to have " \
+    "more than 40 rows, specially if carrying cross validation)", type=["csv", "xlsx", "json"])
 
     if uploaded_file is not None:
         file_type = uploaded_file.name.split(".")[-1].lower()
@@ -560,63 +561,61 @@ if df is not None:
 #################################        Split Data Train and Validate    ################################################
 ##########################################################################################################################
 
-    # After confirmation, split data
+    # === Confirm and Split Data into Train/Validation ===
+
+    # Drop target from features
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
-    # Optional: store in session_state
+    # Save confirmed target
     st.session_state["target_column"] = target_column
-
     st.success(f"✅ Target column confirmed: `{target_column}`")
 
-    # Convert target to integer labels   
+    # Add a unique row_key to help track rows (will be removed before training)
+    X_raw.insert(0, "row_key", np.arange(len(X_raw)))
+
+    # Factorize target (e.g. map 'yes'/'no' → 0/1)
     y_raw, label_classes = pd.factorize(y_raw)
-    y_raw = y_raw.astype('int64')
+    y_raw = y_raw.astype("int64")
     st.session_state["label_classes_"] = label_classes.tolist()
 
+    # One-hot encode categorical variables (excluding row_key)
+    X_encoded = pd.get_dummies(X_raw.drop(columns=["row_key"]), drop_first=True).astype("float64")
+    X_encoded.insert(0, "row_key", X_raw["row_key"])
 
-    # Handle categorical features (one-hot encoding)
-    X_encoded = pd.get_dummies(X_raw, drop_first=True)
-
-    # Ensure float64 type
-    X_encoded = X_encoded.astype('float64')
-
-    # Final cleaned features
-    X_raw = X_encoded
-
-    # Check for and remove rows with missing or infinite values
-    X_raw.replace([np.inf, -np.inf], np.nan, inplace=True)
-    invalid_rows = X_raw.isnull().any(axis=1)
+    # Remove NaNs or Inf
+    X_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
+    invalid_rows = X_encoded.isnull().any(axis=1)
     if invalid_rows.any():
         st.warning(f"⚠️ Removed {invalid_rows.sum()} rows with NaNs or infinite values.")
-        X_raw = X_raw[~invalid_rows]
+        X_encoded = X_encoded[~invalid_rows]
         y_raw = y_raw[~invalid_rows]
 
-    # ✅ Store processed training columns for later use in test section
-    st.session_state["X_raw"] = X_raw.copy()
+    # Save preprocessed feature set for later use
+    st.session_state["X_raw"] = X_encoded.copy()
 
-    # === Train/Validation Split, data is shuffle, see "shuffle = True" below ===
+    # Split
     test_size_percent = st.slider("Select validation set size (%)", 10, 50, 20, 5)
     test_size = test_size_percent / 100.0
-    X_train, X_val, y_train, y_val = train_test_split(X_raw, y_raw, test_size=test_size, random_state=42, shuffle=True)
+    X_train, X_val, y_train, y_val = train_test_split(X_encoded, y_raw, test_size=test_size, random_state=42, shuffle=True)
 
-    # === Download Processed Splits ===
-    st.markdown("### 💾 Download Processed Train/Validation Splits")
+    # Save splits to session for transformation/pca
+    st.session_state["X_train"] = X_train.copy()
+    st.session_state["X_val"] = X_val.copy()
+    st.session_state["y_train"] = y_train.copy()
+    st.session_state["y_val"] = y_val.copy()
 
-    # Create and encode CSVs for download
-    x_train_csv = X_train.to_csv(index=False).encode("utf-8")
-    x_val_csv = X_val.to_csv(index=False).encode("utf-8")
-    y_train_csv = pd.DataFrame(y_train, columns=["Target"]).to_csv(index=False).encode("utf-8")
-    y_val_csv = pd.DataFrame(y_val, columns=["Target"]).to_csv(index=False).encode("utf-8")
+    # === Download Buttons ===
+    st.markdown("### 💾 Download Processed Train/Validation Splits (with row_key)")
 
-    # Show download buttons
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button("⬇️ Download X_train.csv", x_train_csv, "X_train.csv", "text/csv")
-        st.download_button("⬇️ Download y_train.csv", y_train_csv, "y_train.csv", "text/csv")
+        st.download_button("⬇️ Download X_train.csv", X_train.to_csv(index=False).encode("utf-8"), "X_train.csv", "text/csv")
+        st.download_button("⬇️ Download y_train.csv", pd.DataFrame({"Target": y_train}).to_csv(index=False).encode("utf-8"), "y_train.csv", "text/csv")
     with col2:
-        st.download_button("⬇️ Download X_val.csv", x_val_csv, "X_val.csv", "text/csv")
-        st.download_button("⬇️ Download y_val.csv", y_val_csv, "y_val.csv", "text/csv")
+        st.download_button("⬇️ Download X_val.csv", X_val.to_csv(index=False).encode("utf-8"), "X_val.csv", "text/csv")
+        st.download_button("⬇️ Download y_val.csv", pd.DataFrame({"Target": y_val}).to_csv(index=False).encode("utf-8"), "y_val.csv", "text/csv")
+
 
 
 
@@ -625,26 +624,19 @@ if df is not None:
 #################################        Data Transformation (Before PCA)       ##########################################
 ##########################################################################################################################
 
+    # === Step 2.5: Optional Data Transformation ===
     st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
 
-    # ✅ Load from session if available, else from original
-    if "X_train_resampled" in st.session_state:
-        X_train_resampled = st.session_state["X_train_resampled"].copy()
-        X_val_resampled = st.session_state["X_val_resampled"].copy()
-        y_train_resampled = st.session_state["y_train_resampled"].copy()
-    else:
-        X_train_resampled = X_train.copy()
-        X_val_resampled = X_val.copy()
-        y_train_resampled = y_train.copy()
-        # Also store the starting point in session state
-        st.session_state["X_train_resampled"] = X_train_resampled.copy()
-        st.session_state["X_val_resampled"] = X_val_resampled.copy()
-        st.session_state["y_train_resampled"] = y_train_resampled.copy()
+    # ✅ Load or initialize session state
+    init_session_key("X_train_resampled", st.session_state["X_train"].copy())
+    init_session_key("X_val_resampled", st.session_state["X_val"].copy())
+    init_session_key("y_train_resampled", st.session_state["y_train"].copy())
+    init_session_key("transform_steps", [])
 
-
-    # To build the transformation pipeline
-    if "transform_steps" not in st.session_state:
-        st.session_state["transform_steps"] = []
+    # Fetch latest copies
+    X_train_resampled = st.session_state["X_train_resampled"].copy()
+    X_val_resampled = st.session_state["X_val_resampled"].copy()
+    y_train_resampled = st.session_state["y_train_resampled"].copy()
 
     apply_transformation = st.checkbox("🧪 Would you like to transform the data before PCA?", value=False)
 
@@ -653,44 +645,36 @@ if df is not None:
 
         # === 1️⃣ Centering + Scaling ===
         if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
-
-            # ✅ Restore latest transformed state (important!)
-            if "X_train_resampled" in st.session_state:
-                X_train_resampled = st.session_state["X_train_resampled"].copy()
-                X_val_resampled = st.session_state["X_val_resampled"].copy()
-                y_train_resampled = st.session_state["y_train_resampled"].copy()
-            else:
-                X_train_resampled = X_train.copy()
-                X_val_resampled = X_val.copy()
-                y_train_resampled = y_train.copy()
-
-            col_to_scale = st.selectbox("Select column to scale", X_train_resampled.columns, key="scale_col")
+            # Exclude `row_key` from selectable columns
+            feature_cols = [col for col in X_train_resampled.columns if col != "row_key"]
+            col_to_scale = st.selectbox("Select column to scale", feature_cols, key="scale_col")
 
             if st.button("✅ Confirm Scaling"):
                 before = X_train_resampled[col_to_scale].copy()
 
-                minmax_scaler = MinMaxScaler()
-                X_train_resampled[col_to_scale] = minmax_scaler.fit_transform(X_train_resampled[[col_to_scale]])
-                X_val_resampled[col_to_scale] = minmax_scaler.transform(X_val_resampled[[col_to_scale]])
+                scaler = MinMaxScaler()
+                X_train_resampled[col_to_scale] = scaler.fit_transform(X_train_resampled[[col_to_scale]])
+                X_val_resampled[col_to_scale] = scaler.transform(X_val_resampled[[col_to_scale]])
 
-                # Save step for test transformation
-                st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", minmax_scaler, col_to_scale))
+                # Save transformation step
+                st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", scaler, col_to_scale))
 
-                # ✅ Persist the updated state after transformation
+                # Persist transformed state
                 st.session_state["X_train_resampled"] = X_train_resampled.copy()
                 st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
-                # Plot
+                # Plot before/after
                 after = X_train_resampled[col_to_scale]
                 fig, ax = plt.subplots(1, 2, figsize=(10, 4))
                 sns.histplot(before, ax=ax[0], kde=True).set(title="Before Scaling (Train)")
                 sns.histplot(after, ax=ax[1], kde=True).set(title="After Scaling (Train)")
                 st.pyplot(fig)
 
-                # Download button
+                # Allow user to download transformed set
+                st.markdown("#### 📥 Download Transformed Training Set")
                 csv_scaled = X_train_resampled.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Scaled Train Set", csv_scaled, "train_scaled.csv", "text/csv")
+
 
         # === 2️⃣ Standardization ===
         if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
