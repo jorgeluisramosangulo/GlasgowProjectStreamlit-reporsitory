@@ -1,6 +1,6 @@
 scikit-learn==1.1.3
 imbalanced-learn==0.10.1
-numpy
+numpy==1.23.5
 pandas
 matplotlib
 openpyxl
