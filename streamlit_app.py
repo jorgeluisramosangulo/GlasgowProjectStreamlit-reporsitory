@@ -943,34 +943,41 @@ if df is not None:
             sampler = SMOTE(random_state=42)
 
         if sampler:
-            # Apply sampler
-            X_train_resampled, y_train_resampled = sampler.fit_resample(X_train_resampled, y_train_resampled)
+            if st.button("✅ Apply Resampling"):
+                # Apply sampler
+                X_train_resampled, y_train_resampled = sampler.fit_resample(X_train_resampled, y_train_resampled)
 
-            # Save transformation step
-            st.session_state["transform_steps"].append((
-                "resample",
-                {
-                    "strategy": imbalance_strategy,
-                    "sampler": type(sampler).__name__
-                },
-                "resample"
-            ))
+                # ✅ Optional: Remove previous resample step if present (prevents duplication)
+                st.session_state["transform_steps"] = [
+                    step for step in st.session_state.get("transform_steps", [])
+                    if step[0] != "resample"
+                ]
 
-            # ✅ Persist the updated state after transformation
-            st.session_state["X_train_resampled"] = X_train_resampled.copy()
-            st.session_state["X_val_resampled"] = X_val_resampled.copy()
-            st.session_state["y_train_resampled"] = y_train_resampled.copy()
+                # Save transformation step
+                st.session_state["transform_steps"].append((
+                    "resample",
+                    {
+                        "strategy": imbalance_strategy,
+                        "sampler": type(sampler).__name__
+                    },
+                    "resample"
+                ))
 
+                # ✅ Persist the updated state after transformation
+                st.session_state["X_train_resampled"] = X_train_resampled.copy()
+                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
-            # Show new distribution
-            st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
-            st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
+                # Show new distribution
+                st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
+                st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
 
-            # Download resampled dataset
-            df_resampled = X_train_resampled.copy()
-            df_resampled["Target"] = y_train_resampled
-            csv_resampled = df_resampled.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ Download Resampled Train Set", csv_resampled, f"train_{imbalance_strategy.lower()}.csv", "text/csv")
+                # Download resampled dataset
+                df_resampled = X_train_resampled.copy()
+                df_resampled["Target"] = y_train_resampled
+                csv_resampled = df_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Resampled Train Set", csv_resampled, f"train_{imbalance_strategy.lower()}.csv", "text/csv")
+
 
 
 
