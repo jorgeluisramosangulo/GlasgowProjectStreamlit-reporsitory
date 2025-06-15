@@ -138,7 +138,8 @@ if df is not None:
     df.insert(0, "row_id", np.arange(1, len(df) + 1))
     st.session_state["df_with_row_id"] = df.copy()
 
-    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes.")
+    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes. In training" \
+    "data will be randomized and Row id will be ignore.")
     st.dataframe(df.head())
 
     # 💾 Add download button
@@ -166,7 +167,7 @@ if df is not None:
     st.markdown("### 📌 Step 1: Select Columns to Include")
 
     selected_columns = st.multiselect(
-        "Select the columns you want to use (you can leave out irrelevant or ID columns):",
+        "Select the columns you want to use. Do not delete row id:",
         options=df.columns.tolist(),
         default=st.session_state.get("selected_columns", df.columns.tolist())
     )
@@ -576,7 +577,7 @@ if df is not None:
 
     # === Step: Split Data Train and Validate ===
 
-    # After confirmation, split data
+    # Drop target column
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
 
@@ -584,7 +585,7 @@ if df is not None:
     st.session_state["target_column"] = target_column
     st.success(f"✅ Target column confirmed: `{target_column}`")
 
-    # Add row_id for tracking
+    # Add row_id for tracking (start at 1 if you prefer)
     row_ids = pd.Series(np.arange(len(df)), name="row_id")
 
     # Convert target to integer labels
@@ -592,10 +593,10 @@ if df is not None:
     y_raw = pd.Series(y_raw.astype('int64'), name="target")
     st.session_state["label_classes_"] = label_classes.tolist()
 
-    # Handle categorical features
+    # One-hot encode categorical features
     X_encoded = pd.get_dummies(X_raw, drop_first=True).astype("float64")
 
-    # Remove rows with invalid values
+    # Handle missing/infinite values
     X_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
     invalid_rows = X_encoded.isnull().any(axis=1)
     if invalid_rows.any():
@@ -604,22 +605,16 @@ if df is not None:
         y_raw = y_raw[~invalid_rows]
         row_ids = row_ids[~invalid_rows]
 
-    # Store pre-split features in session for test use
+    # Store cleaned full data for test compatibility
     st.session_state["X_raw"] = X_encoded.copy()
 
-    # Train/Validation split
+    # === Train/Validation Split ===
     test_size = st.slider("Select validation set size (%)", 10, 50, 20, 5) / 100.0
     X_train, X_val, y_train, y_val, row_id_train, row_id_val = train_test_split(
         X_encoded, y_raw, row_ids, test_size=test_size, random_state=42, shuffle=True
     )
 
-    # Add row_id back for export only (do not use in model training)
-    X_train_with_id = X_train.copy()
-    X_val_with_id = X_val.copy()
-    X_train_with_id["row_id"] = row_id_train.values
-    X_val_with_id["row_id"] = row_id_val.values
-
-    # Save the splits to session_state
+    # Keep copies without row_id for modeling
     st.session_state["X_train"] = X_train.copy()
     st.session_state["X_val"] = X_val.copy()
     st.session_state["y_train"] = y_train.copy()
@@ -627,24 +622,34 @@ if df is not None:
     st.session_state["row_id_train"] = row_id_train.copy()
     st.session_state["row_id_val"] = row_id_val.copy()
 
-    # === Downloads ===
+    # === Downloads with row_id as first column ===
     st.markdown("### 💾 Download Processed Train/Validation Splits")
+
+    # Reinsert row_id as first column in features
+    X_train_with_id = pd.concat([row_id_train.reset_index(drop=True), X_train.reset_index(drop=True)], axis=1)
+    X_val_with_id = pd.concat([row_id_val.reset_index(drop=True), X_val.reset_index(drop=True)], axis=1)
+
+    y_train_df = pd.DataFrame({
+        "row_id": row_id_train.reset_index(drop=True),
+        "target": y_train.reset_index(drop=True)
+    })
+    y_val_df = pd.DataFrame({
+        "row_id": row_id_val.reset_index(drop=True),
+        "target": y_val.reset_index(drop=True)
+    })
 
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button("⬇️ Download X_train.csv",
-                        X_train_with_id.to_csv(index=False).encode("utf-8"),
+        st.download_button("⬇️ Download X_train.csv", X_train_with_id.to_csv(index=False).encode("utf-8"),
                         "X_train.csv", "text/csv")
-        st.download_button("⬇️ Download y_train.csv",
-                        pd.DataFrame({"row_id": row_id_train.values, "target": y_train.values}).to_csv(index=False).encode("utf-8"),
+        st.download_button("⬇️ Download y_train.csv", y_train_df.to_csv(index=False).encode("utf-8"),
                         "y_train.csv", "text/csv")
     with col2:
-        st.download_button("⬇️ Download X_val.csv",
-                        X_val_with_id.to_csv(index=False).encode("utf-8"),
+        st.download_button("⬇️ Download X_val.csv", X_val_with_id.to_csv(index=False).encode("utf-8"),
                         "X_val.csv", "text/csv")
-        st.download_button("⬇️ Download y_val.csv",
-                        pd.DataFrame({"row_id": row_id_val.values, "target": y_val.values}).to_csv(index=False).encode("utf-8"),
+        st.download_button("⬇️ Download y_val.csv", y_val_df.to_csv(index=False).encode("utf-8"),
                         "y_val.csv", "text/csv")
+
 
 
 
