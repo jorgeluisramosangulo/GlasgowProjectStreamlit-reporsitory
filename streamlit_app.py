@@ -138,8 +138,8 @@ if df is not None:
     df.insert(0, "row_id", np.arange(1, len(df) + 1))
     st.session_state["df_with_row_id"] = df.copy()
 
-    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes. In training" \
-    "data will be randomized and Row id will be ignore.")
+    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes. During training" \
+    "the rows will be randomized and Row id will be ignore as an input feature. Please do not delete or transform row id.")
     st.dataframe(df.head())
 
     # 💾 Add download button
@@ -861,12 +861,16 @@ if df is not None:
             st.pyplot(fig)
 
             if st.button("🧹 Remove Outliers (Train Only)"):
+                # Recover row_id from session
+                row_id_train = st.session_state.get("row_id_train", pd.Series(np.arange(len(X_train_resampled)), name="row_id"))
+
+                # Identify which rows to keep and which to drop
                 keep_indices = ~outliers_train
+                removed_row_ids = row_id_train[outliers_train].reset_index(drop=True)
 
                 # Filter and reset index
                 X_train_resampled = X_train_resampled[keep_indices].reset_index(drop=True)
                 y_train_resampled = pd.Series(y_train_resampled[keep_indices]).reset_index(drop=True)
-
 
                 # Save transformation
                 st.session_state["transform_steps"].append((
@@ -880,17 +884,20 @@ if df is not None:
                     "row_filter"
                 ))
 
-                # ✅ Persist the updated state after transformation
+                # ✅ Persist the updated state
                 st.session_state["X_train_resampled"] = X_train_resampled.copy()
                 st.session_state["X_val_resampled"] = X_val_resampled.copy()
                 st.session_state["y_train_resampled"] = y_train_resampled.copy()
-
 
                 st.success(f"✅ Outliers removed from training set (column: {outlier_col})")
 
                 # Download updated training set
                 csv_cleaned = X_train_resampled.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
+
+                # 📥 Download row_ids of removed rows
+                csv_removed_ids = removed_row_ids.to_frame(name="row_id").to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Row IDs of Removed Outliers", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
 
 
 
