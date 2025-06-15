@@ -524,6 +524,11 @@ if df is not None:
 
     # Preprocess (basic encoding)
     X_encoded = pd.get_dummies(X_raw, drop_first=True).astype('float64')
+    # Drop rows with missing values in X or y
+    X_encoded, y_raw_clean = X_encoded.align(y_raw, join='inner', axis=0)
+    X_encoded = X_encoded.dropna()
+    y_raw_clean = y_raw_clean.loc[X_encoded.index]
+
 
     # Let user select importance method
     method = st.selectbox(
@@ -534,7 +539,7 @@ if df is not None:
 
     # Train/Test split (just for internal importance calc)
     X_train_imp, X_val_imp, y_train_imp, y_val_imp = train_test_split(
-        X_encoded, y_raw, test_size=0.2, random_state=42
+        X_encoded, y_raw_clean, test_size=0.2, random_state=42
     )
 
     # Compute importances
