@@ -26,7 +26,7 @@ from imblearn.under_sampling import RandomUnderSampler
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2530,9 +2530,21 @@ if df is not None:
                     df_test_original = df_test_original[~invalid_test_rows]
 
                 
-                # === Handle target ===
+                # === Ask user if test set includes target column ===
+                has_target_column = st.radio(
+                    "Does your test set include the target column (e.g. diagnosis)?",
+                    ["Yes", "No"],
+                    index=0,
+                    key="has_target_in_test"
+                )
+
+                # === Handle target column logic ===
                 target_column = st.session_state.get("target_column", None)
-                target_column_present = target_column is not None and target_column in df_test.columns
+                target_column_present = (
+                    has_target_column == "Yes" and
+                    target_column is not None and
+                    target_column in df_test.columns
+                )
 
                 if target_column_present:
                     st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
@@ -2557,8 +2569,6 @@ if df is not None:
 
                         # Build consistent label mapping
                         label_map = {label: idx for idx, label in enumerate(label_classes)}
-
-                        # Apply encoding
                         df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
                         df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
@@ -2576,8 +2586,8 @@ if df is not None:
                         df_test_target_final = df_test_target[target_column]
 
                 else:
-                    st.info("ℹ️ No target column found. Predictions will be made but metrics skipped.")
-                    target_column_present = False
+                    st.info("ℹ️ No target column found in test set. Predictions will be made but evaluation metrics will be skipped.")
+
 
 
 
