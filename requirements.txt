@@ -6,4 +6,5 @@ matplotlib
 openpyxl
 XlsxWriter
 seaborn
-imbalanced-learn
+imbalanced-learn>=0.12.0
+
