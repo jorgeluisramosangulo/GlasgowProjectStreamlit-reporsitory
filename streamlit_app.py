@@ -56,15 +56,40 @@ def init_session_key(key, default_value):
         st.session_state[key] = default_value
 
 def get_final_train_val_sets():
+    """Returns the final X_train and X_val sets based on PCA and resampling status,
+    and drops 'row_id' if present."""
+    
     use_pca = st.session_state.get("use_pca", "No")
-    if use_pca == "Yes" and st.session_state.get("pca_ready", False):
-        return st.session_state["X_train_pca"], st.session_state["X_val_pca"]
+    pca_ready = st.session_state.get("pca_ready", False)
+
+    # Get base X sets depending on PCA
+    if use_pca == "Yes" and pca_ready:
+        X_train = st.session_state["X_train_pca"]
+        X_val = st.session_state["X_val_pca"]
     else:
-        return st.session_state["X_train"], st.session_state["X_val"]
+        # Use resampled if available, else raw
+        X_train = st.session_state.get("X_train_resampled", st.session_state["X_train"])
+        X_val = st.session_state.get("X_val_resampled", st.session_state["X_val"])
+
+    # Drop 'row_id' if still present
+    X_train = X_train.drop(columns=["row_id"], errors="ignore")
+    X_val = X_val.drop(columns=["row_id"], errors="ignore")
+
+    return X_train, X_val
+
+
+def get_final_y_sets():
+    """Returns the final y_train and y_val sets based on resampling status."""
+    y_train = st.session_state.get("y_train_resampled", st.session_state["y_train"])
+    y_val = st.session_state["y_val"]
+    return y_train, y_val
+
 
 def set_final_datasets(X_train_final, X_val_final):
+    """Store final modeling-ready X sets in session state."""
     st.session_state["X_train_final"] = X_train_final
     st.session_state["X_val_final"] = X_val_final
+
 
 def log_transformation(step_name, transformer, target="general"):
     if "transform_steps" not in st.session_state:
@@ -590,6 +615,9 @@ if df is not None:
 
     # === Step: Split Data Train and Validate ===
 
+    # === Feature Importance ===
+    st.markdown("### Split Data Train and Validate")
+
     # Drop target column
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
@@ -1085,24 +1113,24 @@ if df is not None:
     use_pca = st.session_state["use_pca"]
 
     if use_pca == "Yes":
-        # Get all numeric columns from current training data
-        X_train_df = st.session_state["X_train"]
-        X_val_df = st.session_state["X_val"]
-        numeric_cols = X_train_df.select_dtypes(include=np.number).columns.tolist()
+        # Use resampled data if available
+        X_train_df = st.session_state.get("X_train_resampled", st.session_state["X_train"])
+        X_val_df = st.session_state.get("X_val_resampled", st.session_state["X_val"])
 
-        # ✅ Save column names used for PCA (for later reuse in test)
+        numeric_cols = [col for col in X_train_df.select_dtypes(include=np.number).columns if col != "row_id"]
+
+        # ✅ Save input columns used for PCA
         st.session_state["pca_input_columns"] = numeric_cols
 
-        # Standardize the data
+        # Standardize data
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train_df[numeric_cols])
         X_val_scaled = scaler.transform(X_val_df[numeric_cols])
 
-        # Temporarily fit PCA to show variance curve
+        # Fit temporary PCA for variance visualization
         pca_temp = PCA()
         pca_temp.fit(X_train_scaled)
 
-        # Plot cumulative explained variance
         cum_var = np.cumsum(pca_temp.explained_variance_ratio_)
         fig, ax = plt.subplots()
         ax.plot(range(1, len(cum_var) + 1), cum_var, marker='o')
@@ -1111,24 +1139,18 @@ if df is not None:
         ax.set_ylabel("Cumulative Variance")
         st.pyplot(fig)
 
-        # Display PCA loadings (feature contributions)
         loadings = pd.DataFrame(
             pca_temp.components_.T,
             index=numeric_cols,
             columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
         )
-        st.dataframe(loadings)
-
         st.markdown("### 📊 PCA Loadings: How Original Features Contribute to Each Principal Component")
         st.dataframe(loadings.round(4))
 
-        # Save for later use
+        # Save temp objects
         st.session_state["scaler"] = scaler
-        st.session_state["pca_temp"] = pca_temp  # optional: keep for visualization
+        st.session_state["pca_temp"] = pca_temp
 
-
-
-        # Select number of components without triggering computation
         st.session_state["n_components_slider"] = st.slider(
             "Select number of principal components to keep",
             1,
@@ -1136,38 +1158,36 @@ if df is not None:
             value=st.session_state["n_components_slider"]
         )
 
-
-
-
-        # Button to apply PCA based on slider
+        # Confirm PCA components and apply transformation
         if st.button("✅ Confirm PCA Parameters"):
             n_components = st.session_state["n_components_slider"]
-
-            # Ensure we use the same input columns as during PCA preview
             pca_input_cols = st.session_state.get("pca_input_columns")
+
             if not pca_input_cols:
                 st.error("PCA input columns not found. Please preview PCA again before confirming.")
                 st.stop()
 
-            # Re-standardize using saved columns
+            # Re-standardize using same columns
             scaler = StandardScaler()
-            X_train_scaled = scaler.fit_transform(st.session_state["X_train"][pca_input_cols])
-            X_val_scaled = scaler.transform(st.session_state["X_val"][pca_input_cols])
+            X_train_scaled = scaler.fit_transform(X_train_df[pca_input_cols])
+            X_val_scaled = scaler.transform(X_val_df[pca_input_cols])
 
-            # Apply PCA
             final_pca = PCA(n_components=n_components)
-            X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
-            X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f'PC{i+1}' for i in range(n_components)])
+            X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f"PC{i+1}" for i in range(n_components)])
+            X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f"PC{i+1}" for i in range(n_components)])
 
-            # Save results
+            # Re-attach row_id
+            X_train_final["row_id"] = X_train_df["row_id"].values
+            X_val_final["row_id"] = X_val_df["row_id"].values
+
+            # Save everything
             st.session_state["pca"] = final_pca
             st.session_state["scaler"] = scaler
             st.session_state["n_components"] = n_components
-            st.session_state["X_train_final"] = X_train_final
-            st.session_state["X_val_final"] = X_val_final
+            st.session_state["X_train_pca"] = X_train_final
+            st.session_state["X_val_pca"] = X_val_final
             st.session_state["pca_ready"] = True
 
-            # Log PCA transformation step for documentation
             st.session_state["transform_steps"].append((
                 "pca",
                 {
@@ -1181,28 +1201,11 @@ if df is not None:
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
-            st.session_state["X_train_pca"] = X_train_final
-            st.session_state["X_val_pca"] = X_val_final
+    # ✅ Use helper to finalize X_train_final and X_val_final
+    X_train_final, X_val_final = get_final_train_val_sets()
+    set_final_datasets(X_train_final, X_val_final)
 
-    # ✅ Set final datasets for modeling depending on PCA usage
-    use_pca = st.session_state.get("use_pca", "No")
-
-    if use_pca == "Yes":
-        if not st.session_state.get("pca_ready", False):
-            st.info("👈 Please confirm number of components to apply PCA.")
-            st.stop()
-        else:
-            X_train_final = st.session_state["X_train_pca"]
-            X_val_final = st.session_state["X_val_pca"]
-    else:
-        X_train_final = st.session_state["X_train"]
-        X_val_final = st.session_state["X_val"]
-
-    # ✅ Save to session_state so preview + modeling sections don’t crash
-    st.session_state["X_train_final"] = X_train_final
-    st.session_state["X_val_final"] = X_val_final
-
-    # === Optional: Download PCA-transformed data only if PCA was used ===
+    # === Optional: Download PCA-transformed training set ===
     if use_pca == "Yes":
         train_pca_csv = X_train_final.copy()
         train_pca_csv["Target"] = pd.Series(st.session_state["y_train"]).reset_index(drop=True)
@@ -1255,12 +1258,22 @@ if df is not None:
     # 📥 Download Transformed Datasets (Before Modeling)
     st.markdown("### 💾 Download Transformed Data Before Modeling")
 
-    df_train_final = st.session_state["X_train_resampled"].copy()
-    df_train_final["Target"] = st.session_state["y_train_resampled"]
-    csv_train_final = df_train_final.to_csv(index=False).encode("utf-8")
+    # Get final train/val sets (either with or without PCA)
+    df_train_final = st.session_state["X_train_final"].copy()
+    df_val_final = st.session_state["X_val_final"].copy()
 
-    df_val_final = st.session_state["X_val_resampled"].copy()
+    # Re-attach row_id if missing (safeguard)
+    if "row_id" not in df_train_final.columns:
+        df_train_final["row_id"] = st.session_state["X_train"]["row_id"].values
+    if "row_id" not in df_val_final.columns:
+        df_val_final["row_id"] = st.session_state["X_val"]["row_id"].values
+
+    # Add target variable
+    df_train_final["Target"] = st.session_state["y_train"]
     df_val_final["Target"] = st.session_state["y_val"]
+
+    # Encode and offer for download
+    csv_train_final = df_train_final.to_csv(index=False).encode("utf-8")
     csv_val_final = df_val_final.to_csv(index=False).encode("utf-8")
 
     st.download_button(
@@ -1277,14 +1290,6 @@ if df is not None:
         mime="text/csv"
     )
 
-
-
-    # Optional: confirm before modeling
-    if st.button("🚀 Proceed to Modeling"):
-        st.session_state["ready_for_modeling"] = True
-        st.success("Modeling section unlocked below.")
-    else:
-        st.warning("⬅️ Click the button above when ready to proceed to training.")
 
 
 
