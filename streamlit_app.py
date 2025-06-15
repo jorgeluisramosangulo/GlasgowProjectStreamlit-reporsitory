@@ -2138,8 +2138,8 @@ if df is not None:
                 X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
                 df_dt_train_export = X_train_final_safe.copy()
                 df_dt_train_export["target"] = y_train_safe.reset_index(drop=True)
-                df_dt_train_export["DT_Prediction"] = y_pred_dt_train
-                df_dt_train_export["DT_Prob"] = y_prob_dt_train
+                df_dt_train_export["DT_Prediction"] = y_pred_tree_train
+                df_dt_train_export["DT_Prob"] = y_prob_tree_train
 
                 st.markdown("#### 📥 Download Decision Tree Training Set with Predictions")
                 csv_dt_train = df_dt_train_export.to_csv(index=False).encode("utf-8")
@@ -2149,6 +2149,7 @@ if df is not None:
                     file_name="decision_tree_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -2239,10 +2240,11 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with Random Forest Predictions ===
-                df_rf_train_export = X_train_final.copy()
-                df_rf_train_export["target"] = y_train.reset_index(drop=True)
-                df_rf_train_export["RandomForest_Prediction"] = y_pred_rf_train
-                df_rf_train_export["RandomForest_Prob"] = y_prob_rf_train
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_rf_train_export = X_train_final_safe.copy()
+                df_rf_train_export["target"] = y_train_safe.reset_index(drop=True)
+                df_rf_train_export["RF_Prediction"] = y_pred_rf
+                df_rf_train_export["RF_Prob"] = y_prob_rf
 
                 st.markdown("#### 📥 Download Random Forest Training Set with Predictions")
                 csv_rf_train = df_rf_train_export.to_csv(index=False).encode("utf-8")
@@ -2252,6 +2254,7 @@ if df is not None:
                     file_name="random_forest_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -2353,19 +2356,21 @@ if df is not None:
 
 
                 # === Download Training Set with Gradient Boosting Predictions ===
-                df_gbm_train_export = X_train_final.copy()
-                df_gbm_train_export["target"] = y_train.reset_index(drop=True)
-                df_gbm_train_export["GBM_Prediction"] = y_pred_gbm_train
-                df_gbm_train_export["GBM_Prob"] = y_prob_gbm_train
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_gb_train_export = X_train_final_safe.copy()
+                df_gb_train_export["target"] = y_train_safe.reset_index(drop=True)
+                df_gb_train_export["GB_Prediction"] = y_pred_gbm_train
+                df_gb_train_export["GB_Prob"] = y_prob_gbm_train
 
                 st.markdown("#### 📥 Download Gradient Boosting Training Set with Predictions")
-                csv_gbm_train = df_gbm_train_export.to_csv(index=False).encode("utf-8")
+                csv_gb_train = df_gb_train_export.to_csv(index=False).encode("utf-8")
                 st.download_button(
                     label="⬇️ Download Gradient Boosting Training Data",
-                    data=csv_gbm_train,
+                    data=csv_gb_train,
                     file_name="gradient_boosting_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -2471,8 +2476,9 @@ if df is not None:
                         st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                 # === Download Training Set with Neural Network Predictions ===
-                df_nn_train_export = X_train_final.copy()
-                df_nn_train_export["target"] = y_train.reset_index(drop=True)
+                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                df_nn_train_export = X_train_final_safe.copy()
+                df_nn_train_export["target"] = y_train_safe.reset_index(drop=True)
                 df_nn_train_export["NN_Prediction"] = y_pred_nn_train
                 df_nn_train_export["NN_Prob"] = y_prob_nn_train
 
@@ -2484,6 +2490,7 @@ if df is not None:
                     file_name="neural_network_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
@@ -2582,19 +2589,21 @@ if df is not None:
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                     # === Download Training Set with Voting Classifier Predictions ===
-                    df_vote_train_export = X_train_final.copy()
-                    df_vote_train_export["target"] = y_train.reset_index(drop=True)
-                    df_vote_train_export["Vote_Prediction"] = y_pred_vote_train
-                    df_vote_train_export["Vote_Prob"] = y_prob_vote_train
+                    X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                    df_vc_train_export = X_train_final_safe.copy()
+                    df_vc_train_export["target"] = y_train_safe.reset_index(drop=True)
+                    df_vc_train_export["VC_Prediction"] = y_pred_vote_train
+                    df_vc_train_export["VC_Prob"] = y_prob_vote_train
 
                     st.markdown("#### 📥 Download Voting Classifier Training Set with Predictions")
-                    csv_vote_train = df_vote_train_export.to_csv(index=False).encode("utf-8")
+                    csv_vc_train = df_vc_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Voting Classifier Training Data",
-                        data=csv_vote_train,
+                        data=csv_vc_train,
                         file_name="voting_classifier_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
