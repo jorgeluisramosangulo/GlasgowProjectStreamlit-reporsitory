@@ -322,57 +322,64 @@ if df is not None:
     # === Target Selection ===
     st.markdown("### 🎯 Step 2: Select Target Column")
 
+    # Initialization
     if "target_confirmed" not in st.session_state:
         st.session_state["target_confirmed"] = False
     if "target_column" not in st.session_state:
         st.session_state["target_column"] = None
 
-    # UI
-    target_column_input = st.selectbox("Select the target column:", df.columns)
-
-    # Confirm button
-    if st.button("✅ Confirm Target Selection"):
-        st.session_state["target_column"] = target_column_input
-        st.session_state["target_confirmed"] = True
-        st.rerun()
-
-    # Require confirmation before continuing
+    # Run selection UI only if not yet confirmed
     if not st.session_state["target_confirmed"]:
+        target_column_input = st.selectbox("Select the target column:", df.columns)
+
+        if st.button("✅ Confirm Target Selection"):
+            st.session_state["target_column"] = target_column_input
+            st.session_state["target_confirmed"] = True
+            st.rerun()
+
         st.info("👈 Please confirm target column to continue.")
         st.stop()
 
-    # ✅ Use confirmed target column
+    # ✅ Use confirmed value from here on
     target_column = st.session_state["target_column"]
     y_raw_original = df[target_column]
     X_raw = df.drop(columns=[target_column])
 
-    # === Class Mapping UI ===
-    unique_vals = y_raw_original.dropna().unique()
+    # If y_raw already exists, skip remapping
+    if "y_raw" not in st.session_state:
 
-    if len(unique_vals) != 2:
-        st.error("❌ Target column must contain exactly two unique values for binary classification.")
-        st.stop()
+        # === Class Mapping ===
+        unique_vals = y_raw_original.dropna().unique()
 
-    st.markdown("### 🔁 Map Target Classes to 0 and 1")
-    class_0 = st.selectbox("Select class to map to **0**", unique_vals, key="map_class_0")
-    class_1 = st.selectbox("Select class to map to **1**", [val for val in unique_vals if val != class_0], key="map_class_1")
-
-    if st.button("🎯 Apply Class Mapping"):
-        label_mapping = {class_0: 0, class_1: 1}
-        y_raw = y_raw_original.map(label_mapping)
-
-        if y_raw.isnull().any():
-            st.error("❌ Error in mapping target classes. Please check selections.")
+        if len(unique_vals) != 2:
+            st.error("❌ Target column must contain exactly two unique values for binary classification.")
             st.stop()
 
-        y_raw = pd.Series(y_raw.astype("int64"), name="target")
-        st.session_state["target_mapping"] = label_mapping
-        st.session_state["label_classes_"] = [class_0, class_1]
-        st.session_state["y_raw"] = y_raw
-        st.success(f"✅ Class mapping applied: {class_0} → 0, {class_1} → 1")
-    else:
+        st.markdown("### 🔁 Map Target Classes to 0 and 1")
+
+        class_0 = st.selectbox("Select class to map to **0**", unique_vals, key="map_class_0")
+        class_1 = st.selectbox("Select class to map to **1**", [val for val in unique_vals if val != class_0], key="map_class_1")
+
+        if st.button("🎯 Apply Class Mapping"):
+            label_mapping = {class_0: 0, class_1: 1}
+            y_raw = y_raw_original.map(label_mapping)
+
+            if y_raw.isnull().any():
+                st.error("❌ Error in mapping target classes. Please check selections.")
+                st.stop()
+
+            y_raw = pd.Series(y_raw.astype("int64"), name="target")
+            st.session_state["target_mapping"] = label_mapping
+            st.session_state["label_classes_"] = [class_0, class_1]
+            st.session_state["y_raw"] = y_raw
+            st.success(f"✅ Class mapping applied: {class_0} → 0, {class_1} → 1")
+            st.rerun()
+
         st.info("👈 Apply class mapping to continue.")
         st.stop()
+
+    # Continue with mapped target
+    y_raw = st.session_state["y_raw"]
 
     # === Target Class Summary ===
     st.markdown("#### 📊 Target Value Distribution")
@@ -387,6 +394,7 @@ if df is not None:
     })
 
     st.dataframe(target_summary_df)
+
 
 
 
@@ -1034,7 +1042,7 @@ if df is not None:
     # === Step 3: PCA Selection ===
     st.markdown("### 🧬 Step 3: PCA Dimensionality Reduction")
 
-    # Initialize session state
+    # Initialization
     if "pca_confirmed" not in st.session_state:
         st.session_state["pca_confirmed"] = False
     if "pca_ready" not in st.session_state:
@@ -1044,24 +1052,23 @@ if df is not None:
     if "n_components_slider" not in st.session_state:
         st.session_state["n_components_slider"] = 2
 
-    # === Step 3.1: Ask user if PCA should be used ===
+    # === Ask if PCA should be used ===
     use_pca_input = st.radio("Would you like to apply PCA?", ["No", "Yes"], index=0)
 
     if st.button("✅ Confirm PCA Selection"):
         st.session_state["use_pca"] = use_pca_input
         st.session_state["pca_confirmed"] = True
-        st.session_state["pca_ready"] = False  # Reset PCA confirmation
+        st.session_state["pca_ready"] = False
         st.rerun()
 
     if not st.session_state["pca_confirmed"]:
         st.info("👈 Please confirm PCA selection to continue.")
         st.stop()
 
-    # === Step 3.2: Apply PCA ===
+    # === Apply PCA ===
     use_pca = st.session_state["use_pca"]
 
     if use_pca == "Yes":
-        # Use resampled data if available
         X_train_df = st.session_state.get("X_train_resampled", st.session_state["X_train"])
         X_val_df = st.session_state.get("X_val_resampled", st.session_state["X_val"])
 
@@ -1070,12 +1077,12 @@ if df is not None:
         # ✅ Save input columns used for PCA
         st.session_state["pca_input_columns"] = numeric_cols
 
-        # Standardize data
+        # Standardize
         scaler = StandardScaler()
         X_train_scaled = scaler.fit_transform(X_train_df[numeric_cols])
         X_val_scaled = scaler.transform(X_val_df[numeric_cols])
 
-        # Fit temporary PCA for variance visualization
+        # Temporary PCA for visualization
         pca_temp = PCA()
         pca_temp.fit(X_train_scaled)
 
@@ -1092,10 +1099,9 @@ if df is not None:
             index=numeric_cols,
             columns=[f"PC{i+1}" for i in range(pca_temp.n_components_)]
         )
-        st.markdown("### 📊 PCA Loadings: How Original Features Contribute to Each Principal Component")
+        st.markdown("### 📊 PCA Loadings")
         st.dataframe(loadings.round(4))
 
-        # Save temp objects
         st.session_state["scaler"] = scaler
         st.session_state["pca_temp"] = pca_temp
 
@@ -1106,16 +1112,15 @@ if df is not None:
             value=st.session_state["n_components_slider"]
         )
 
-        # Confirm PCA components and apply transformation
         if st.button("✅ Confirm PCA Parameters"):
             n_components = st.session_state["n_components_slider"]
             pca_input_cols = st.session_state.get("pca_input_columns")
 
             if not pca_input_cols:
-                st.error("PCA input columns not found. Please preview PCA again before confirming.")
+                st.error("PCA input columns not found.")
                 st.stop()
 
-            # Re-standardize using same columns
+            # Re-transform
             scaler = StandardScaler()
             X_train_scaled = scaler.fit_transform(X_train_df[pca_input_cols])
             X_val_scaled = scaler.transform(X_val_df[pca_input_cols])
@@ -1124,11 +1129,11 @@ if df is not None:
             X_train_final = pd.DataFrame(final_pca.fit_transform(X_train_scaled), columns=[f"PC{i+1}" for i in range(n_components)])
             X_val_final = pd.DataFrame(final_pca.transform(X_val_scaled), columns=[f"PC{i+1}" for i in range(n_components)])
 
-            # Re-attach row_id
+            # Add row_id
             X_train_final["row_id"] = X_train_df["row_id"].values
             X_val_final["row_id"] = X_val_df["row_id"].values
 
-            # Save everything
+            # Save to session state
             st.session_state["pca"] = final_pca
             st.session_state["scaler"] = scaler
             st.session_state["n_components"] = n_components
@@ -1149,7 +1154,7 @@ if df is not None:
             st.success(f"✅ PCA applied with {n_components} components.")
             st.dataframe(X_train_final.head())
 
-    # ✅ Use helper to finalize X_train_final and X_val_final
+    # ✅ Get PCA or non-PCA final sets
     X_train_final, X_val_final = get_final_train_val_sets()
     set_final_datasets(X_train_final, X_val_final)
 
@@ -1159,6 +1164,7 @@ if df is not None:
         train_pca_csv["Target"] = pd.Series(st.session_state["y_train"]).reset_index(drop=True)
         csv = train_pca_csv.to_csv(index=False).encode("utf-8")
         st.download_button("⬇️ Download PCA-Transformed Train Set", csv, "train_pca.csv", "text/csv")
+
 
 
 
