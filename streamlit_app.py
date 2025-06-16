@@ -6,18 +6,13 @@ import seaborn as sns
 import json
 import io
 
+# Scikit-learn: Model Selection & Evaluation
 from sklearn.model_selection import (
     train_test_split,
     cross_validate,
     GridSearchCV,
     RandomizedSearchCV
 )
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
-from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.neural_network import MLPClassifier
 from sklearn.metrics import (
     accuracy_score,
     precision_score,
@@ -28,73 +23,37 @@ from sklearn.metrics import (
     make_scorer
 )
 
+# Scikit-learn: Preprocessing, Feature Engineering, Models
+from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+from sklearn.decomposition import PCA
+from sklearn.pipeline import Pipeline
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
+from sklearn.neural_network import MLPClassifier
+from sklearn.inspection import permutation_importance
+from sklearn.feature_selection import mutual_info_classif
+
+# Imbalanced-learn
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
-
-
-# === Helper Functions ===
-
-def get_class1_proba(model, X):
-    """
-    Returns predicted probability for class 1.
-    Handles cases where model.classes_ is [1, 0] or [0, 1]
-    """
-    class_idx = list(model.classes_).index(1) if hasattr(model, "classes_") else 1
-    return model.predict_proba(X)[:, class_idx]
-
-
-def ensure_dataframe_and_series(X, y):
-    if isinstance(X, np.ndarray):
-        X = pd.DataFrame(X)
-    if isinstance(y, np.ndarray):
-        y = pd.Series(y)
-    return X, y
-
-def init_session_key(key, default_value):
-    if key not in st.session_state:
-        st.session_state[key] = default_value
-
-def get_final_train_val_sets():
-    """Returns the final X_train and X_val sets based on PCA and resampling status,
-    and drops 'row_id' if present."""
+# Helper functions
+from ml_utils import (
+    # General utilities
+    decode_labels, get_class1_proba, ensure_dataframe_and_series,
+    init_session_key, log_metrics, display_cv_scores,
+    get_final_train_val_sets, get_final_y_sets, set_final_datasets,
+    log_transformation, train_model,
     
-    use_pca = st.session_state.get("use_pca", "No")
-    pca_ready = st.session_state.get("pca_ready", False)
-
-    # Get base X sets depending on PCA
-    if use_pca == "Yes" and pca_ready:
-        X_train = st.session_state["X_train_pca"]
-        X_val = st.session_state["X_val_pca"]
-    else:
-        # Use resampled if available, else raw
-        X_train = st.session_state.get("X_train_resampled", st.session_state["X_train"])
-        X_val = st.session_state.get("X_val_resampled", st.session_state["X_val"])
-
-    # Drop 'row_id' if still present
-    X_train = X_train.drop(columns=["row_id"], errors="ignore")
-    X_val = X_val.drop(columns=["row_id"], errors="ignore")
-
-    return X_train, X_val
+    # New transformation helpers
+    apply_minmax_scaling, apply_standard_scaling,
+    apply_custom_feature_transformation, apply_column_dropping,
+    plot_before_after, create_new_feature
+)
 
 
-def get_final_y_sets():
-    """Returns the final y_train and y_val sets based on resampling status."""
-    y_train = st.session_state.get("y_train_resampled", st.session_state["y_train"])
-    y_val = st.session_state["y_val"]
-    return y_train, y_val
 
 
-def set_final_datasets(X_train_final, X_val_final):
-    """Store final modeling-ready X sets in session state."""
-    st.session_state["X_train_final"] = X_train_final
-    st.session_state["X_val_final"] = X_val_final
-
-
-def log_transformation(step_name, transformer, target="general"):
-    if "transform_steps" not in st.session_state:
-        st.session_state["transform_steps"] = []
-    st.session_state["transform_steps"].append((step_name, transformer, target))
 
 
 ##########################################################################################################################
@@ -171,8 +130,13 @@ if df is not None:
     df.insert(0, "row_id", np.arange(1, len(df) + 1))
     st.session_state["df_with_row_id"] = df.copy()
 
-    st.markdown("### 🔍 Preview of Loaded Data. A Row Id column has been added so that you can track changes. During training" \
-    "the rows will be randomized and Row id will be ignore as an input feature. Please do not delete or transform row id.")
+    st.markdown(
+        "### 🔍 Preview of Loaded Data\n"
+        "A `row_id` column has been added to track changes. "
+        "During training, rows will be randomized and `row_id` will be ignored as an input feature.\n\n"
+        "**Please do not delete or transform `row_id`.**"
+    )
+
     st.dataframe(df.head())
 
     # 💾 Add download button
@@ -278,7 +242,6 @@ if df is not None:
 #################################        Missing Values Treatment    #####################################################
 ##########################################################################################################################
 
-
     # === Missing Value Handling ===
     st.markdown("### 🧹 Step 2: Handle Missing Values")
 
@@ -310,28 +273,43 @@ if df is not None:
         apply_missing = st.button("🚀 Apply Missing Value Handling")
 
         if apply_missing and selected_missing_cols:
+
+            # Initialize session state log
+            if "missing_value_steps" not in st.session_state:
+                st.session_state["missing_value_steps"] = []
+
             if missing_action == "Drop rows with missing values in selected columns":
-                df = df.dropna(subset=selected_missing_cols)
+                df.dropna(subset=selected_missing_cols, inplace=True)
                 st.success("✅ Dropped rows with missing values in selected columns.")
+                for col in selected_missing_cols:
+                    st.session_state["missing_value_steps"].append(("drop_rows", col, None))
 
             elif missing_action == "Drop selected columns entirely":
-                df = df.drop(columns=selected_missing_cols)
+                df.drop(columns=selected_missing_cols, inplace=True)
                 st.success("✅ Dropped selected columns.")
+                for col in selected_missing_cols:
+                    st.session_state["missing_value_steps"].append(("drop_column", col, None))
 
             elif missing_action == "Replace with 0":
                 df[selected_missing_cols] = df[selected_missing_cols].fillna(0)
                 st.success("✅ Replaced missing values with 0.")
+                for col in selected_missing_cols:
+                    st.session_state["missing_value_steps"].append(("zero", col, 0))
 
             elif missing_action == "Replace with mean (numeric columns only)":
                 for col in selected_missing_cols:
                     if pd.api.types.is_numeric_dtype(df[col]):
-                        df[col].fillna(df[col].mean(), inplace=True)
+                        mean_val = df[col].mean()
+                        df[col].fillna(mean_val, inplace=True)
+                        st.session_state["missing_value_steps"].append(("mean", col, mean_val))
                 st.success("✅ Replaced missing values with column mean (where numeric).")
 
             elif missing_action == "Replace with median (numeric columns only)":
                 for col in selected_missing_cols:
                     if pd.api.types.is_numeric_dtype(df[col]):
-                        df[col].fillna(df[col].median(), inplace=True)
+                        median_val = df[col].median()
+                        df[col].fillna(median_val, inplace=True)
+                        st.session_state["missing_value_steps"].append(("median", col, median_val))
                 st.success("✅ Replaced missing values with column median (where numeric).")
 
     # === Final Download Section ===
@@ -572,27 +550,22 @@ if df is not None:
     model_used = None
 
     if method == "Random Forest":
-        from sklearn.ensemble import RandomForestClassifier
         model_used = RandomForestClassifier(random_state=42)
         model_used.fit(X_train_imp, y_train_imp)
         importance_values = model_used.feature_importances_
 
     elif method == "Lasso (L1)":
-        from sklearn.linear_model import LogisticRegression
         model_used = LogisticRegression(penalty='l1', solver='liblinear', max_iter=1000)
         model_used.fit(X_train_imp, y_train_imp)
         importance_values = np.abs(model_used.coef_[0])
 
     elif method == "Permutation (RF)":
-        from sklearn.ensemble import RandomForestClassifier
-        from sklearn.inspection import permutation_importance
         rf = RandomForestClassifier(random_state=42)
         rf.fit(X_train_imp, y_train_imp)
         result = permutation_importance(rf, X_val_imp, y_val_imp, n_repeats=10, random_state=42)
         importance_values = result.importances_mean
 
     elif method == "Mutual Info":
-        from sklearn.feature_selection import mutual_info_classif
         importance_values = mutual_info_classif(X_train_imp, y_train_imp, random_state=42)
 
     # Create DataFrame
@@ -605,7 +578,9 @@ if df is not None:
 
     # Optional bar chart
     if st.checkbox("📊 Show Top 10 Features as Bar Chart"):
-        st.bar_chart(importance_df.set_index("Feature").head(10))
+        top_10 = importance_df.sort_values("Importance", ascending=False).head(10)
+        st.bar_chart(top_10.set_index("Feature"))
+
 
 
 
@@ -698,385 +673,330 @@ if df is not None:
 #################################        Data Transformation (Before PCA)       ##########################################
 ##########################################################################################################################
 
-    # === Step 2.5: Optional Data Transformation ===
+
+
+
     st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
 
-    # ✅ Load or initialize session state
+    # Initialize session keys
     init_session_key("X_train_resampled", st.session_state["X_train"].copy())
     init_session_key("X_val_resampled", st.session_state["X_val"].copy())
     init_session_key("y_train_resampled", st.session_state["y_train"].copy())
     init_session_key("transform_steps", [])
 
-    # Fetch latest copies
-    X_train_resampled = st.session_state["X_train_resampled"].copy()
-    X_val_resampled = st.session_state["X_val_resampled"].copy()
-    y_train_resampled = st.session_state["y_train_resampled"].copy()
+    # Current working copies
+    X_train_resampled = st.session_state["X_train_resampled"]
+    X_val_resampled = st.session_state["X_val_resampled"]
 
+    # Toggle transformation panel
     apply_transformation = st.checkbox("🧪 Would you like to transform the data before PCA?", value=False)
 
     if apply_transformation:
         st.info("Transformations will apply to both training and validation sets consistently.")
 
-        # === 1️⃣ Centering + Scaling ===
+        # === 1️⃣ Centering + Scaling (MinMaxScaler) ===
         if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
-            # Exclude `row_key` from selectable columns
-            feature_cols = [col for col in X_train_resampled.columns if col != "row_key"]
-            col_to_scale = st.selectbox("Select column to scale", feature_cols, key="scale_col")
+            numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+            col_to_scale = st.selectbox("Select column to scale", numeric_cols, key="scale_col")
 
             if st.button("✅ Confirm Scaling"):
                 before = X_train_resampled[col_to_scale].copy()
 
-                scaler = MinMaxScaler()
-                X_train_resampled[col_to_scale] = scaler.fit_transform(X_train_resampled[[col_to_scale]])
-                X_val_resampled[col_to_scale] = scaler.transform(X_val_resampled[[col_to_scale]])
+                # Apply scaling using helper
+                X_train_resampled, X_val_resampled, scaler = apply_minmax_scaling(
+                    X_train_resampled, X_val_resampled, col_to_scale
+                )
 
-                # Save transformation step
-                st.session_state["transform_steps"].append((f"minmax_{col_to_scale}", scaler, col_to_scale))
+                # Save updated datasets
+                st.session_state["X_train_resampled"] = X_train_resampled
+                st.session_state["X_val_resampled"] = X_val_resampled
 
-                # Persist transformed state
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
+                # Log step
+                log_transformation(f"minmax_{col_to_scale}", scaler, col_to_scale)
 
-                # Plot before/after
+                # Show plots using helper
                 after = X_train_resampled[col_to_scale]
-                fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-                sns.histplot(before, ax=ax[0], kde=True).set(title="Before Scaling (Train)")
-                sns.histplot(after, ax=ax[1], kde=True).set(title="After Scaling (Train)")
-                st.pyplot(fig)
+                plot_before_after(before, after, title=f"MinMax Scaling ({col_to_scale})")
 
-                # Allow user to download transformed set
+                # Optional download
                 st.markdown("#### 📥 Download Transformed Training Set")
                 csv_scaled = X_train_resampled.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Scaled Train Set", csv_scaled, "train_scaled.csv", "text/csv")
 
 
-        # === 2️⃣ Standardization ===
-        if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
-
-            # ✅ Restore latest transformed state (important!)
-            if "X_train_resampled" in st.session_state:
-                X_train_resampled = st.session_state["X_train_resampled"].copy()
-                X_val_resampled = st.session_state["X_val_resampled"].copy()
-                y_train_resampled = st.session_state["y_train_resampled"].copy()
-            else:
-                X_train_resampled = X_train.copy()
-                X_val_resampled = X_val.copy()
-                y_train_resampled = y_train.copy()
-
-            col_to_standardize = st.selectbox("Select column to standardize", X_train_resampled.columns, key="standardize_col")
-
-            if st.button("✅ Confirm Standarizing"):
-
-                before = X_train_resampled[col_to_standardize].copy()
-
-                std_scaler = StandardScaler()
-                X_train_resampled[col_to_standardize] = std_scaler.fit_transform(X_train_resampled[[col_to_standardize]])
-                X_val_resampled[col_to_standardize] = std_scaler.transform(X_val_resampled[[col_to_standardize]])
 
 
-                # Save step for test transformation
-                st.session_state["transform_steps"].append((f"standard_{col_to_standardize}", std_scaler, col_to_standardize))
+    # === 2️⃣ Standardization (Zero Mean, Unit Variance) ===
+    if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
+        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+        col_to_standardize = st.selectbox("Select column to standardize", numeric_cols, key="standardize_col")
 
+        if st.button("✅ Confirm Standardizing"):
+            before = X_train_resampled[col_to_standardize].copy()
 
-                # ✅ Persist the updated state after transformation
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+            # Apply transformation using helper
+            X_train_resampled, X_val_resampled, std_scaler = apply_standard_scaling(
+                X_train_resampled, X_val_resampled, col_to_standardize
+            )
 
+            # Save updated state
+            st.session_state["X_train_resampled"] = X_train_resampled
+            st.session_state["X_val_resampled"] = X_val_resampled
 
-                # Plot
-                after = X_train_resampled[col_to_standardize]
-                fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-                sns.histplot(before, ax=ax[0], kde=True).set(title="Before Standardization (Train)")
-                sns.histplot(after, ax=ax[1], kde=True).set(title="After Standardization (Train)")
-                st.pyplot(fig)
+            # Log transformation step
+            log_transformation(f"standard_{col_to_standardize}", std_scaler, col_to_standardize)
 
-                # Download button
-                csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
+            # Plot before/after using helper
+            after = X_train_resampled[col_to_standardize]
+            fig = plot_before_after(before, after, "Standardization")
+            st.pyplot(fig)
+
+            # Optional download
+            csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
+            st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
 
 
 
-        # === 3️⃣ Create New Feature ===
-        if st.checkbox("3️⃣ Create New Feature", value=False):
-            operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
-            col1 = st.selectbox("Select first column", X_train_resampled.columns, key="new_col1")
-            col2 = None
-            if operation in ["Add", "Subtract", "Multiply", "Divide"]:
-                col2 = st.selectbox("Select second column", X_train_resampled.columns, key="new_col2")
-
-            default_name = f"{col1}_{operation}_{col2}" if col2 else f"{col1}_{operation}"
-            new_col_name = st.text_input("New column name", value=default_name)
-
-            if st.button("➕ Add New Feature"):
-                # Apply transformation to train
-                # ✅ Restore latest transformed state (important!)
-                if "X_train_resampled" in st.session_state:
-                    X_train_resampled = st.session_state["X_train_resampled"].copy()
-                    X_val_resampled = st.session_state["X_val_resampled"].copy()
-                    y_train_resampled = st.session_state["y_train_resampled"].copy()
-                else:
-                    X_train_resampled = X_train.copy()
-                    X_val_resampled = X_val.copy()
-                    y_train_resampled = y_train.copy()
-                if operation == "Add":
-                    new_train_col = X_train_resampled[col1] + X_train_resampled[col2]
-                    new_val_col = X_val_resampled[col1] + X_val_resampled[col2]
-                elif operation == "Subtract":
-                    new_train_col = X_train_resampled[col1] - X_train_resampled[col2]
-                    new_val_col = X_val_resampled[col1] - X_val_resampled[col2]
-                elif operation == "Multiply":
-                    new_train_col = X_train_resampled[col1] * X_train_resampled[col2]
-                    new_val_col = X_val_resampled[col1] * X_val_resampled[col2]
-                elif operation == "Divide":
-                    new_train_col = X_train_resampled[col1] / (X_train_resampled[col2] + 1e-9)
-                    new_val_col = X_val_resampled[col1] / (X_val_resampled[col2] + 1e-9)
-                elif operation == "Log":
-                    new_train_col = np.log1p(X_train_resampled[col1])
-                    new_val_col = np.log1p(X_val_resampled[col1])
-                elif operation == "Square":
-                    new_train_col = X_train_resampled[col1] ** 2
-                    new_val_col = X_val_resampled[col1] ** 2
-
-                # Assign new feature
-                X_train_resampled[new_col_name] = new_train_col
-                X_val_resampled[new_col_name] = new_val_col
-
-                # Save transformation step
-                st.session_state["transform_steps"].append((
-                    "create_feature",
-                    {
-                        "operation": operation,
-                        "col1": col1,
-                        "col2": col2,
-                        "new_col": new_col_name
-                    },
-                    "custom"
-                ))
-
-                # ✅ Persist the updated state after transformation
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
 
 
-                st.success(f"Feature '{new_col_name}' added to both train and validation sets.")
+    # === 3️⃣ Create New Feature ===
+    if st.checkbox("3️⃣ Create New Feature", value=False):
+        operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
 
-                # Download button
+        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+        col1 = st.selectbox("Select first column", numeric_cols, key="new_col1")
+
+        col2 = None
+        if operation in ["Add", "Subtract", "Multiply", "Divide"]:
+            col2 = st.selectbox("Select second column", numeric_cols, key="new_col2")
+
+        default_name = f"{col1}_{operation}_{col2}" if col2 else f"{col1}_{operation}"
+        new_col_name = st.text_input("New column name", value=default_name)
+
+        if st.button("➕ Add New Feature"):
+            try:
+                # Apply helper
+                X_train_resampled, X_val_resampled = create_new_feature(
+                    X_train_resampled, X_val_resampled, operation, col1, col2, new_col_name
+                )
+
+                # Save updated sets
+                st.session_state["X_train_resampled"] = X_train_resampled
+                st.session_state["X_val_resampled"] = X_val_resampled
+
+                # Log transformation
+                log_transformation("create_feature", {
+                    "operation": operation,
+                    "col1": col1,
+                    "col2": col2,
+                    "new_col": new_col_name
+                }, target="custom")
+
+                st.success(f"✅ Feature '{new_col_name}' successfully added.")
+
+                # Optional download
                 csv_feat = X_train_resampled.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Train Set with New Feature", csv_feat, f"train_{new_col_name}.csv", "text/csv")
 
-
-
-
-        # === 4️⃣ Outlier Detection & Removal ===
-        if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
-
-            # ✅ Restore latest transformed state (important!)
-            if "X_train_resampled" in st.session_state:
-                X_train_resampled = st.session_state["X_train_resampled"].copy()
-                X_val_resampled = st.session_state["X_val_resampled"].copy()
-                y_train_resampled = st.session_state["y_train_resampled"].copy()
-            else:
-                X_train_resampled = X_train.copy()
-                X_val_resampled = X_val.copy()
-                y_train_resampled = y_train.copy()
-                
-            outlier_col = st.selectbox("Select column", X_train_resampled.columns, key="outlier_col")
-            method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
-
-            col_data = X_train_resampled[outlier_col]
-            q1, q3 = col_data.quantile([0.25, 0.75])
-            iqr = q3 - q1
-            lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
-
-            outliers_train = (col_data < lower) | (col_data > upper)
-            outlier_count = outliers_train.sum()
-
-            st.write(f"Outliers detected in training set: {outlier_count} / {len(col_data)}")
-
-            # Show boxplot
-            fig, ax = plt.subplots()
-            sns.boxplot(x=col_data, ax=ax)
-            ax.set_title("Boxplot with IQR Thresholds")
-            st.pyplot(fig)
-
-            if st.button("🧹 Confirm Outlier Removal (Train Only)"):
-                # Recover row_id from session
-                row_id_train = st.session_state.get("row_id_train", pd.Series(np.arange(len(X_train_resampled)), name="row_id"))
-
-                # Identify which rows to keep and which to drop
-                keep_indices = ~outliers_train
-                removed_row_ids = row_id_train[outliers_train].reset_index(drop=True)
-
-                # Filter and reset index
-                X_train_resampled = X_train_resampled[keep_indices].reset_index(drop=True)
-                y_train_resampled = pd.Series(y_train_resampled[keep_indices]).reset_index(drop=True)
-
-                # Save transformation
-                st.session_state["transform_steps"].append((
-                    "remove_outliers",
-                    {
-                        "method": "IQR",
-                        "column": outlier_col,
-                        "thresholds": [float(lower), float(upper)],
-                        "removed_rows": int(outlier_count)
-                    },
-                    "row_filter"
-                ))
-
-                # Persist cleaned data for later download
-                st.session_state["X_train_outlier_removed"] = X_train_resampled.copy()
-                st.session_state["y_train_outlier_removed"] = y_train_resampled.copy()
-                st.session_state["removed_row_ids"] = removed_row_ids.copy()
-                st.session_state["outlier_confirmed"] = True
-                st.success("✅ Outliers removed. You can now download both files below.")
-
-        # === Show download buttons only after confirmation ===
-        if st.session_state.get("outlier_confirmed", False):
-            csv_cleaned = st.session_state["X_train_outlier_removed"].to_csv(index=False).encode("utf-8")
-            csv_removed_ids = st.session_state["removed_row_ids"].to_frame(name="row_id").to_csv(index=False).encode("utf-8")
-
-            st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
-            st.download_button("⬇️ Download Row IDs of Removed Outliers", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
+            except Exception as e:
+                st.error(f"⚠️ Error creating feature: {e}")
 
 
 
 
 
-        # === 5️⃣ Class Imbalance Handling (Train Set Only) ===
-        st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
 
-        imbalance_strategy = st.radio(
-            "Choose a resampling method:",
-            ["None", "Undersampling", "Oversampling", "SMOTE"],
-            index=0
-        )
+    # === 4️⃣ Outlier Detection & Removal ===
+    if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
 
-        # Preview current class distribution
-        st.write("📊 Current class distribution:")
-        st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
+        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+        outlier_col = st.selectbox("Select column", numeric_cols, key="outlier_col")
+        method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
 
-        # ✅ Restore latest transformed state (important!)
-        if "X_train_resampled" in st.session_state:
-            X_train_resampled = st.session_state["X_train_resampled"].copy()
-            X_val_resampled = st.session_state["X_val_resampled"].copy()
-            y_train_resampled = st.session_state["y_train_resampled"].copy()
-        else:
-            X_train_resampled = X_train.copy()
-            X_val_resampled = X_val.copy()
-            y_train_resampled = y_train.copy()
+        col_data = X_train_resampled[outlier_col]
+        q1, q3 = col_data.quantile([0.25, 0.75])
+        iqr = q3 - q1
+        lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
 
-        sampler = None
-        if imbalance_strategy == "Undersampling":
-            sampler = RandomUnderSampler(random_state=42)
-        elif imbalance_strategy == "Oversampling":
-            sampler = RandomOverSampler(random_state=42)
-        elif imbalance_strategy == "SMOTE":
-            sampler = SMOTE(random_state=42)
+        outliers_train = (col_data < lower) | (col_data > upper)
+        outlier_count = outliers_train.sum()
 
-        if sampler:
-            if st.button("✅ Apply Resampling"):
-                # Apply sampler
-                X_train_resampled, y_train_resampled = sampler.fit_resample(X_train_resampled, y_train_resampled)
+        st.write(f"📊 Outliers detected in training set: **{outlier_count}** out of **{len(col_data)}**")
 
-                # ✅ Optional: Remove previous resample step if present (prevents duplication)
-                st.session_state["transform_steps"] = [
-                    step for step in st.session_state.get("transform_steps", [])
-                    if step[0] != "resample"
-                ]
+        # Visualize boxplot
+        fig, ax = plt.subplots()
+        sns.boxplot(x=col_data, ax=ax)
+        ax.axvline(lower, color="red", linestyle="--", label="Lower Threshold")
+        ax.axvline(upper, color="red", linestyle="--", label="Upper Threshold")
+        ax.set_title("Boxplot with IQR Thresholds")
+        ax.legend()
+        st.pyplot(fig)
 
-                # Save transformation step
-                st.session_state["transform_steps"].append((
-                    "resample",
-                    {
-                        "strategy": imbalance_strategy,
-                        "sampler": type(sampler).__name__
-                    },
-                    "resample"
-                ))
+        if st.button("🧹 Confirm Outlier Removal (Train Only)"):
+            # Keep non-outlier rows
+            keep_indices = ~outliers_train
+            X_train_clean = X_train_resampled[keep_indices].reset_index(drop=True)
+            y_train_clean = y_train_resampled[keep_indices].reset_index(drop=True)
 
-                # ✅ Persist the updated state after transformation
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+            # Get row_ids removed
+            removed_ids = X_train_resampled.loc[outliers_train, "row_id"].reset_index(drop=True)
 
-                # Show new distribution
-                st.success(f"✅ {imbalance_strategy} applied. New class distribution:")
-                st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
+            # Update session state
+            st.session_state["X_train_resampled"] = X_train_clean
+            st.session_state["y_train_resampled"] = y_train_clean
+            st.session_state["removed_row_ids"] = removed_ids
+            st.session_state["outlier_confirmed"] = True
 
-                # Download resampled dataset
-                df_resampled = X_train_resampled.copy()
-                df_resampled["Target"] = y_train_resampled
-                csv_resampled = df_resampled.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Download Resampled Train Set", csv_resampled, f"train_{imbalance_strategy.lower()}.csv", "text/csv")
+            st.session_state["transform_steps"].append((
+                "remove_outliers",
+                {
+                    "method": "IQR",
+                    "column": outlier_col,
+                    "thresholds": [float(lower), float(upper)],
+                    "removed_count": int(outlier_count)
+                },
+                "row_filter"
+            ))
+
+            st.success("✅ Outliers removed and row IDs recorded.")
+
+    # === Show download buttons if removal was confirmed ===
+    if st.session_state.get("outlier_confirmed", False):
+        st.markdown("#### 💾 Download Cleaned Data")
+        csv_cleaned = st.session_state["X_train_resampled"].to_csv(index=False).encode("utf-8")
+        csv_removed_ids = st.session_state["removed_row_ids"].to_frame(name="row_id").to_csv(index=False).encode("utf-8")
+
+        st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
+        st.download_button("⬇️ Download Removed Outlier Row IDs", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
 
 
 
 
-        # === 5️⃣🆕 Optional: Drop Columns Manually Before PCA ===
-        st.markdown("### 🧹 Optional: Drop Unwanted Columns Before PCA")
-
-        st.write("You can choose to remove any features (including engineered ones) before applying PCA or training models.")
-
-        # ✅ Restore latest transformed state (important!)
-        if "X_train_resampled" in st.session_state:
-            X_train_resampled = st.session_state["X_train_resampled"].copy()
-            X_val_resampled = st.session_state["X_val_resampled"].copy()
-            y_train_resampled = st.session_state["y_train_resampled"].copy()
-        else:
-            X_train_resampled = X_train.copy()
-            X_val_resampled = X_val.copy()
-            y_train_resampled = y_train.copy()
 
 
-        # Show full list of columns (after imbalance handling and feature engineering)
-        cols_to_consider = X_train_resampled.columns.tolist()
+    # === 5️⃣ Class Imbalance Handling (Train Set Only) ===
+    st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
 
-        cols_to_drop = st.multiselect(
-            "Select columns to drop:",
-            options=cols_to_consider,
-            help="These columns will be removed from both the train and validation sets."
-        )
-        if st.button("✅ Confirm Colummn Drop"):
-            if cols_to_drop:
-                X_train_resampled.drop(columns=cols_to_drop, inplace=True)
-                X_val_resampled.drop(columns=[col for col in cols_to_drop if col in X_val_resampled.columns], inplace=True)
+    imbalance_strategy = st.radio(
+        "Choose a resampling method:",
+        ["None", "Undersampling", "Oversampling", "SMOTE"],
+        index=0
+    )
 
-                st.success(f"✅ Dropped {len(cols_to_drop)} column(s): {', '.join(cols_to_drop)}")
+    # Preview current class distribution
+    st.write("📊 Current class distribution:")
+    st.dataframe(pd.Series(y_train_resampled).value_counts().rename("Count"))
 
-                # Save transformation step
-                st.session_state["transform_steps"].append((
-                    "drop_columns",
-                    {
-                        "columns_dropped": cols_to_drop
-                    },
-                    "cleanup"
-                ))
+    sampler = None
+    if imbalance_strategy == "Undersampling":
+        sampler = RandomUnderSampler(random_state=42)
+    elif imbalance_strategy == "Oversampling":
+        sampler = RandomOverSampler(random_state=42)
+    elif imbalance_strategy == "SMOTE":
+        sampler = SMOTE(random_state=42)
 
-                # ✅ Persist the updated state after transformation
-                st.session_state["X_train_resampled"] = X_train_resampled.copy()
-                st.session_state["X_val_resampled"] = X_val_resampled.copy()
-                st.session_state["y_train_resampled"] = y_train_resampled.copy()
+    if sampler:
+        if st.button("✅ Apply Resampling"):
+            # Apply sampling
+            X_train_resampled_new, y_train_resampled_new = sampler.fit_resample(X_train_resampled, y_train_resampled)
 
-                # 📥 Download updated train set
-                df_cleaned = X_train_resampled.copy()
-                df_cleaned["Target"] = y_train_resampled
-                csv_cleaned = df_cleaned.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    "⬇️ Download Train Set After Column Deletion",
-                    csv_cleaned,
-                    "train_columns_dropped.csv",
-                    "text/csv"
-                )
+            # Remove previous resampling entry to avoid duplicates
+            st.session_state["transform_steps"] = [
+                step for step in st.session_state.get("transform_steps", [])
+                if step[0] != "resample"
+            ]
+
+            # Save transformation
+            st.session_state["transform_steps"].append((
+                "resample",
+                {
+                    "strategy": imbalance_strategy,
+                    "sampler": type(sampler).__name__,
+                    "original_class_counts": pd.Series(y_train_resampled).value_counts().to_dict(),
+                    "resampled_class_counts": pd.Series(y_train_resampled_new).value_counts().to_dict()
+                },
+                "resample"
+            ))
+
+            # Persist new state
+            st.session_state["X_train_resampled"] = X_train_resampled_new.copy()
+            st.session_state["y_train_resampled"] = y_train_resampled_new.copy()
+
+            st.success(f"✅ {imbalance_strategy} applied.")
+            st.write("📊 New class distribution:")
+            st.dataframe(pd.Series(y_train_resampled_new).value_counts().rename("Count"))
+
+            # Download updated dataset
+            df_resampled = X_train_resampled_new.copy()
+            df_resampled["Target"] = y_train_resampled_new
+            csv_resampled = df_resampled.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️ Download Resampled Train Set",
+                csv_resampled,
+                f"train_{imbalance_strategy.lower()}.csv",
+                "text/csv"
+            )
 
 
 
-    # Save final transformed datasets
-    st.session_state["X_train"] = X_train_resampled.copy()
-    st.session_state["y_train"] = y_train_resampled.copy()
-    st.session_state["X_val"] = X_val_resampled.copy()
-    st.session_state["y_val"] = y_val.copy()
+
+
+    # === 5️⃣🆕 Optional: Drop Columns Manually Before PCA ===
+    st.markdown("### 🧹 Optional: Drop Unwanted Columns Before PCA")
+    st.write("You can remove any features (including engineered ones) before applying PCA or training models.")
+
+    # ✅ Restore latest transformed state (important!)
+    X_train_resampled = st.session_state.get("X_train_resampled", st.session_state["X_train"]).copy()
+    X_val_resampled = st.session_state.get("X_val_resampled", st.session_state["X_val"]).copy()
+    y_train_resampled = st.session_state.get("y_train_resampled", st.session_state["y_train"]).copy()
+
+    # Show full list of columns (after all transformations)
+    cols_to_consider = X_train_resampled.columns.tolist()
+
+    cols_to_drop = st.multiselect(
+        "Select columns to drop:",
+        options=cols_to_consider,
+        help="These columns will be removed from both the train and validation sets."
+    )
+
+    if st.button("✅ Confirm Column Drop"):
+        if cols_to_drop:
+            X_train_resampled.drop(columns=cols_to_drop, inplace=True)
+            X_val_resampled.drop(columns=[col for col in cols_to_drop if col in X_val_resampled.columns], inplace=True)
+
+            st.success(f"✅ Dropped {len(cols_to_drop)} column(s): {', '.join(cols_to_drop)}")
+
+            # Save transformation step
+            st.session_state["transform_steps"].append((
+                "drop_columns",
+                {
+                    "columns_dropped": cols_to_drop
+                },
+                "cleanup"
+            ))
+
+            # ✅ Persist the updated state after transformation
+            st.session_state["X_train_resampled"] = X_train_resampled
+            st.session_state["X_val_resampled"] = X_val_resampled
+            st.session_state["y_train_resampled"] = y_train_resampled
+
+            # 📥 Download updated train set
+            df_cleaned = X_train_resampled.copy()
+            df_cleaned["Target"] = y_train_resampled
+            csv_cleaned = df_cleaned.to_csv(index=False).encode("utf-8")
+            st.download_button(
+                "⬇️ Download Train Set After Column Deletion",
+                csv_cleaned,
+                "train_columns_dropped.csv",
+                "text/csv"
+            )
+
+    # ✅ Final overwrite to main session keys (ensures PCA & Preview see latest version)
+    st.session_state["X_train"] = X_train_resampled
+    st.session_state["y_train"] = y_train_resampled
+    st.session_state["X_val"] = X_val_resampled
+    st.session_state["y_val"] = st.session_state["y_val"]  # Unchanged, but reassigned for safety
+
 
 
 ##########################################################################################################################
@@ -1221,25 +1141,26 @@ if df is not None:
 ###########################    Data Preview before Model Training     ####################################################
 ##########################################################################################################################
 
-
-
-
     # === Step 3.5: Preview Final Data & Pipeline Before Modeling ===
     st.markdown("### 🔬 Final Check: Transformed Data & Pipeline Overview")
 
+    # Ensure the final datasets are consistent with PCA or not
+    X_train_final, X_val_final = get_final_train_val_sets()
+    set_final_datasets(X_train_final, X_val_final)
+
     # Preview final training data
     st.subheader("📦 Preview of Final Training Data")
-    st.dataframe(st.session_state["X_train_final"].head())
+    st.dataframe(X_train_final.head())
 
     # Show shape info
     st.write("🔢 **Shape of Training and Validation Sets:**")
-    st.write(f"- X_train_final: {st.session_state['X_train_final'].shape}")
-    st.write(f"- X_val_final: {st.session_state['X_val_final'].shape}")
+    st.write(f"- X_train_final: {X_train_final.shape}")
+    st.write(f"- X_val_final: {X_val_final.shape}")
     st.write(f"- y_train: {st.session_state['y_train'].shape}")
     st.write(f"- y_val: {st.session_state['y_val'].shape}")
 
     # Preview pipeline
-    st.subheader("🧪 Applied Transformation Pipeline")
+    st.subheader("🧪 Applied Transformation Pipeline (after train/validate split)")
     if "transform_steps" in st.session_state and st.session_state["transform_steps"]:
         for step_name, transformer, target in st.session_state["transform_steps"]:
             with st.expander(f"🔧 {step_name} on `{target}`"):
@@ -1254,13 +1175,12 @@ if df is not None:
     else:
         st.info("No transformation steps recorded.")
 
-
     # 📥 Download Transformed Datasets (Before Modeling)
     st.markdown("### 💾 Download Transformed Data Before Modeling")
 
-    # Get final train/val sets (either with or without PCA)
-    df_train_final = st.session_state["X_train_final"].copy()
-    df_val_final = st.session_state["X_val_final"].copy()
+    # Copy final datasets
+    df_train_final = X_train_final.copy()
+    df_val_final = X_val_final.copy()
 
     # Re-attach row_id if missing (safeguard)
     if "row_id" not in df_train_final.columns:
@@ -1268,11 +1188,11 @@ if df is not None:
     if "row_id" not in df_val_final.columns:
         df_val_final["row_id"] = st.session_state["X_val"]["row_id"].values
 
-    # Add target variable
+    # Add target column
     df_train_final["Target"] = st.session_state["y_train"]
     df_val_final["Target"] = st.session_state["y_val"]
 
-    # Encode and offer for download
+    # Encode and offer download
     csv_train_final = df_train_final.to_csv(index=False).encode("utf-8")
     csv_val_final = df_val_final.to_csv(index=False).encode("utf-8")
 
@@ -1297,23 +1217,23 @@ if df is not None:
 
 
 
+
 ##########################################################################################################################
 ###########################    Machine Learning Methods for Binary Classification     ####################################
 ##########################################################################################################################
-
 
     # Only show model selection if user has confirmed
     if st.session_state.get("ready_for_modeling", False):
 
         st.markdown("### 🧠 Step 4: Select ML Models to Train")
 
-        # Initialize session state if not already set
+        # Initialize model state
         if "models_confirmed" not in st.session_state:
             st.session_state["models_confirmed"] = False
         if "selected_models" not in st.session_state:
             st.session_state["selected_models"] = []
 
-        # Let user choose models
+        # User model selection input
         model_selection_input = st.multiselect(
             "Select models to include:",
             options=[
@@ -1333,7 +1253,7 @@ if df is not None:
             default=st.session_state["selected_models"]
         )
 
-        # Button to confirm selection
+        # Confirm button
         if st.button("✅ Confirm Model Selection"):
 
             if len(model_selection_input) < 4:
@@ -1344,21 +1264,19 @@ if df is not None:
             st.session_state["models_confirmed"] = True
             st.rerun()
 
-        # Halt here unless confirmed
+        # Require confirmation to proceed
         if not st.session_state["models_confirmed"]:
             st.info("👈 Please confirm model selection to continue.")
             st.stop()
 
-        # Get confirmed list
-        selected_models = st.session_state["selected_models"]
-        st.success(f"✅ {len(selected_models)} model(s) selected and confirmed.")
+        # ✅ Get the final training/validation sets from transformation or PCA
+        X_train_final, X_val_final = get_final_train_val_sets()
 
+        # ✅ Get labels (after transformation section)
+        y_train = st.session_state["y_train"]
+        y_val = st.session_state["y_val"]
 
-
-        # === Ensure consistent binary label encoding ===
-        # If labels are strings (e.g., 'M', 'B'), map them to 0/1
-        # If they're already numbers, enforce 0/1 and store mapping
-
+        # === Label Encoding ===
         if y_train.dtype == 'object' or y_train.dtype.name == 'category':
             label_classes = sorted(np.unique(y_train))
             label_map = {label: i for i, label in enumerate(label_classes)}
@@ -1366,17 +1284,23 @@ if df is not None:
             label_classes = [0, 1]
             label_map = {0: 0, 1: 1}
 
-        # Apply label mapping
-        y_train = y_train.map(label_map) if hasattr(y_train, "map") else np.vectorize(label_map.get)(y_train)
+        # Apply mapping
+        y_train_encoded = y_train.map(label_map) if hasattr(y_train, "map") else np.vectorize(label_map.get)(y_train)
 
-        # Save for use during testing
+        # Save to session
+        st.session_state["y_train_encoded"] = y_train_encoded
         st.session_state["label_classes_"] = label_classes
         st.session_state["label_map_"] = label_map
 
-        # Optional debug info
-        st.write("✅ Label encoding applied during training:")
+        # Debug info
+        st.success(f"✅ {len(model_selection_input)} model(s) selected and confirmed.")
+        st.write("🎯 Label encoding applied during training:")
         st.write("Classes:", label_classes)
         st.write("Mapping:", label_map)
+
+
+
+
 
 
 
@@ -1482,12 +1406,6 @@ if df is not None:
 
         # === Lasso Logistic Regression (with CV + Tuning) ===
         if "Lasso Logistic Regression" in selected_models:
-            from sklearn.linear_model import LogisticRegression
-            from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
-            from sklearn.metrics import (
-                accuracy_score, precision_score, recall_score,
-                f1_score, roc_auc_score
-            )
 
             with st.expander("🧊 Lasso Logistic Regression (L1)"):
                 st.write("**Hyperparameters**")
@@ -1585,12 +1503,7 @@ if df is not None:
 
         # === Elastic Net Logistic Regression (with CV + Tuning) ===
         if "ElasticNet Logistic Regression" in selected_models:
-            from sklearn.linear_model import LogisticRegression
-            from sklearn.model_selection import cross_validate, GridSearchCV, RandomizedSearchCV
-            from sklearn.metrics import (
-                accuracy_score, precision_score, recall_score,
-                f1_score, roc_auc_score
-            )
+
 
             with st.expander("🧬 Elastic Net Logistic Regression"):
                 st.write("**Hyperparameters**")
@@ -2762,14 +2675,9 @@ if df is not None:
         }))
 
 
-
-
-
 ##########################################################################################################################
 ######################################         Final Test File             ###############################################
 ##########################################################################################################################
-
-
 
         # === Final Test File Upload and Prediction ===
         st.markdown("## 🔍 Apply Models to New Test Data")
@@ -2788,12 +2696,9 @@ if df is not None:
             filepath = f"Datasets/{file_format}/{dataset} test.{file_format}"
 
             try:
-                if file_format == "csv":
-                    df_test = pd.read_csv(filepath)
-                elif file_format == "xlsx":
-                    df_test = pd.read_excel(filepath)
-                elif file_format == "json":
-                    df_test = pd.read_json(filepath)
+                df_test = pd.read_csv(filepath) if file_format == "csv" else \
+                        pd.read_excel(filepath) if file_format == "xlsx" else \
+                        pd.read_json(filepath)
                 st.success(f"✅ Loaded sample test file: {dataset} ({file_format})")
             except Exception as e:
                 st.error(f"❌ Could not load sample test file: {e}")
@@ -2801,142 +2706,158 @@ if df is not None:
 
         else:
             test_file = st.file_uploader("Upload a test dataset (same structure as training data):", type=["csv", "xlsx", "json"], key="test_file")
-
             if test_file is not None:
                 try:
-                    if test_file.name.endswith(".csv"):
-                        df_test = pd.read_csv(test_file)
-                    elif test_file.name.endswith(".xlsx"):
-                        df_test = pd.read_excel(test_file)
-                    elif test_file.name.endswith(".json"):
-                        df_test = pd.read_json(test_file)
-                    else:
-                        st.error("Unsupported file type.")
-                        st.stop()
+                    df_test = pd.read_csv(test_file) if test_file.name.endswith(".csv") else \
+                            pd.read_excel(test_file) if test_file.name.endswith(".xlsx") else \
+                            pd.read_json(test_file)
+                    st.success("✅ Test file loaded successfully.")
                 except Exception as e:
                     st.error(f"Error reading test file: {e}")
                     st.stop()
 
-                st.success("✅ Test file loaded successfully.")
-
-        # Optional: preview data after either loading method
+        # === Preview and Process Test Data ===
         if df_test is not None:
             st.dataframe(df_test.head())
 
-
             df_test_original = df_test.copy()
-            try:
-                # === Columns from training ===
-                expected_columns = st.session_state.get("selected_columns")
-                if expected_columns is None:
-                    st.error("Training columns not found. Please run the training section first.")
+
+            # === Ensure row_id exists for tracking ===
+            if "row_id" not in df_test.columns:
+                df_test.insert(0, "row_id", np.arange(1, len(df_test) + 1))
+
+            # === Preserve original row_id for final output ===
+            row_ids = df_test["row_id"].copy()
+
+            # === Columns used during training (excluding row_id) ===
+            expected_columns = st.session_state.get("selected_columns", [])
+            expected_columns = [col for col in expected_columns if col != "row_id"]
+
+            # === Validate presence of expected columns ===
+            missing_columns = [col for col in expected_columns if col not in df_test.columns]
+            if missing_columns:
+                st.error(f"❌ Your test file is missing these required columns: {missing_columns}")
+                st.stop()
+
+            # === Filter test data to expected columns ===
+            df_test = df_test.reindex(columns=expected_columns, fill_value=0)
+
+            # === Encode categorical variables ===
+            df_test_encoded = pd.get_dummies(df_test, drop_first=True)
+
+            # === Reapply missing value handling steps from training ===
+            if "missing_value_steps" in st.session_state:
+                for method, col, value in st.session_state["missing_value_steps"]:
+                    if col not in df_test_encoded.columns:
+                        continue  # Skip columns not in test set
+
+                    if method == "drop_rows":
+                        df_test_encoded = df_test_encoded[df_test_encoded[col].notna()]
+                        row_ids = row_ids.loc[df_test_encoded.index].reset_index(drop=True)
+
+                    elif method == "drop_column":
+                        df_test_encoded.drop(columns=[col], inplace=True)
+
+                    elif method == "zero":
+                        df_test_encoded[col].fillna(0, inplace=True)
+
+                    elif method == "mean":
+                        df_test_encoded[col].fillna(value, inplace=True)
+
+                    elif method == "median":
+                        df_test_encoded[col].fillna(value, inplace=True)
+
+
+            # === Align with training set columns ===
+            training_cols = st.session_state["X_raw"].columns
+            missing_in_test = set(training_cols) - set(df_test_encoded.columns)
+            for col in missing_in_test:
+                df_test_encoded[col] = 0
+            df_test_encoded = df_test_encoded[training_cols].astype("float64")
+
+            # === Drop rows with invalid values ===
+            df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
+            invalid_rows = df_test_encoded.isnull().any(axis=1)
+            if invalid_rows.any():
+                st.warning(f"⚠️ Removed {invalid_rows.sum()} rows with NaNs/infs.")
+                df_test_encoded = df_test_encoded[~invalid_rows]
+                df_test = df_test[~invalid_rows]
+                df_test_original = df_test_original[~invalid_rows]
+                row_ids = row_ids[~invalid_rows].reset_index(drop=True)
+
+            # === Check for target column ===
+            has_target_column = st.radio(
+                "Does your test set include the target column (e.g. diagnosis)?",
+                ["Yes", "No"],
+                index=0,
+                key="has_target_in_test"
+            )
+
+            target_column = st.session_state.get("target_column", None)
+            target_column_present = (
+                has_target_column == "Yes" and
+                target_column is not None and
+                target_column in df_test.columns
+            )
+
+            if target_column_present:
+                st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
+                st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
+                st.dataframe(df_test[target_column].value_counts())
+
+                df_test_target = df_test[[target_column]].copy()
+
+                label_classes = st.session_state.get("label_classes_", None)
+                label_map = st.session_state.get("label_map_", None)
+
+                if label_classes is None or label_map is None:
+                    st.error("❌ Missing label mapping from training. Please re-run training.")
                     st.stop()
 
-                # Filter test set to training columns (fill missing with 0s)
-                df_test = df_test.reindex(columns=expected_columns, fill_value=0)
+                test_labels = set(df_test_target[target_column].dropna().unique())
+                expected_labels = set(label_classes)
+                if test_labels != expected_labels:
+                    st.error(f"❌ Test labels do not match training labels: {sorted(expected_labels)}. Found: {sorted(test_labels)}")
+                    st.stop()
 
-                # === Encode features ===
-                df_test_encoded = pd.get_dummies(df_test, drop_first=True)
+                df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
+                df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
 
-                # Align with training columns
-                missing_cols = set(st.session_state["X_raw"].columns) - set(df_test_encoded.columns)
-                for col in missing_cols:
-                    df_test_encoded[col] = 0
-                df_test_encoded = df_test_encoded[st.session_state["X_raw"].columns].astype("float64")
+                # Align rows across test structures
+                df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
+                df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
+                row_ids = row_ids.loc[df_test_target.index].reset_index(drop=True)
 
-                # Remove bad rows
-                df_test_encoded.replace([np.inf, -np.inf], np.nan, inplace=True)
-                invalid_test_rows = df_test_encoded.isnull().any(axis=1)
-                if invalid_test_rows.any():
-                    st.warning(f"⚠️ Removed {invalid_test_rows.sum()} rows with NaNs/infs.")
-                    df_test_encoded = df_test_encoded[~invalid_test_rows]
-                    df_test = df_test[~invalid_test_rows]
-                    df_test_original = df_test_original[~invalid_test_rows]
+                df_test_target_final = df_test_target["encoded_target"]
+                st.markdown("#### ✅ Encoded Target Value Distribution")
+                st.dataframe(df_test_target_final.value_counts())
+            else:
+                st.info("ℹ️ No target column found in test set. Predictions will be made but evaluation metrics will be skipped.")
 
-                
-                # === Ask user if test set includes target column ===
-                has_target_column = st.radio(
-                    "Does your test set include the target column (e.g. diagnosis)?",
-                    ["Yes", "No"],
-                    index=0,
-                    key="has_target_in_test"
-                )
+            # === Apply all stored transformation steps ===
+            df_test_transformed = df_test_encoded.copy()
+            transformed_cols = []
 
-                # === Handle target column logic ===
-                target_column = st.session_state.get("target_column", None)
-                target_column_present = (
-                    has_target_column == "Yes" and
-                    target_column is not None and
-                    target_column in df_test.columns
-                )
-
-                if target_column_present:
-                    st.markdown(f"✅ Target column **`{target_column}`** detected in test set.")
-                    st.markdown("#### 📊 Test Set Target Value Distribution (Raw)")
-                    st.dataframe(df_test[target_column].value_counts())
-
-                    df_test_target = df_test[[target_column]].copy()
-
-                    # === Retrieve label mapping from training ===
-                    label_classes = st.session_state.get("label_classes_", None)
-                    label_map = st.session_state.get("label_map_", None)
-
-                    if label_classes is None or label_map is None:
-                        st.error("❌ Missing label mapping from training. Please re-run training.")
-                        st.stop()
-
-                    # Validate label match
-                    test_labels = set(df_test_target[target_column].dropna().unique())
-                    expected_labels = set(label_classes)
-
-                    if test_labels != expected_labels:
-                        st.error(
-                            f"❌ Test set target labels must exactly match training labels {sorted(expected_labels)}.\n"
-                            f"Found: {sorted(test_labels)}"
-                        )
-                        st.stop()
-
-                    # Apply label map
-                    df_test_target["encoded_target"] = df_test_target[target_column].map(label_map)
-                    df_test_target = df_test_target.dropna(subset=["encoded_target"]).astype({"encoded_target": "int64"})
-
-                    # Align rows across all test-related dataframes
-                    df_test_encoded = df_test_encoded.loc[df_test_target.index].reset_index(drop=True)
-                    df_test_original = df_test_original.loc[df_test_target.index].reset_index(drop=True)
-
-                    # Store final test labels
-                    df_test_target_final = df_test_target["encoded_target"]
-
-                    st.markdown("#### ✅ Encoded Target Value Distribution")
-                    st.dataframe(df_test_target_final.value_counts())
-
-                else:
-                    st.info("ℹ️ No target column found in test set. Predictions will be made but evaluation metrics will be skipped.")
-
-
-
-
-
-                # === Apply all stored manual transformation steps ===
-                df_test_transformed = df_test_encoded.copy()
-
-                # 🆕 Initialize list to track transformed (non-original) columns
-                transformed_cols = []
-
-                if "transform_steps" in st.session_state:
-                    # First all transformations (Add, Multiply, Scale, etc.)
-                    for step_name, transformer, target in st.session_state["transform_steps"]:
-                        if step_name.startswith("minmax") or step_name.startswith("standard"):
+            if "transform_steps" in st.session_state:
+                for step_name, transformer, target in st.session_state["transform_steps"]:
+                    if step_name.startswith("minmax") or step_name.startswith("standard"):
+                        if target in df_test_transformed.columns:
                             df_test_transformed[target] = transformer.transform(df_test_transformed[[target]])
-                            if target not in transformed_cols:
-                                transformed_cols.append(target)
+                            transformed_cols.append(target)
+                        else:
+                            st.warning(f"⚠️ Skipped scaling for '{target}' — column not found.")
 
-                        elif step_name == "create_feature":
-                            op = transformer["operation"]
-                            col1 = transformer["col1"]
-                            col2 = transformer.get("col2")
-                            new_name = transformer["new_col"]
+                    elif step_name == "create_feature":
+                        op = transformer["operation"]
+                        col1 = transformer["col1"]
+                        col2 = transformer.get("col2")
+                        new_name = transformer["new_col"]
 
+                        if col1 not in df_test_transformed.columns or (col2 and col2 not in df_test_transformed.columns):
+                            st.warning(f"⚠️ Skipped creating feature '{new_name}' — missing columns.")
+                            continue
+
+                        try:
                             if op == "Add":
                                 df_test_transformed[new_name] = df_test_transformed[col1] + df_test_transformed[col2]
                             elif op == "Subtract":
@@ -2949,29 +2870,25 @@ if df is not None:
                                 df_test_transformed[new_name] = np.log1p(df_test_transformed[col1])
                             elif op == "Square":
                                 df_test_transformed[new_name] = df_test_transformed[col1] ** 2
+                            transformed_cols.append(new_name)
+                        except Exception as e:
+                            st.warning(f"⚠️ Error creating '{new_name}': {e}")
 
-                            if new_name not in transformed_cols:
-                                transformed_cols.append(new_name)
+                for step_name, transformer, target in st.session_state["transform_steps"]:
+                    if step_name == "drop_columns":
+                        cols_to_drop = transformer.get("columns_dropped", [])
+                        df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
+                        transformed_cols = [col for col in transformed_cols if col not in cols_to_drop]
 
-                    # Then drop any columns
-                    for step_name, transformer, target in st.session_state["transform_steps"]:
-                        if step_name == "drop_columns":
-                            cols_to_drop = transformer.get("columns_dropped", [])
-                            df_test_transformed.drop(columns=[col for col in cols_to_drop if col in df_test_transformed.columns], inplace=True)
-                            transformed_cols = [col for col in transformed_cols if col not in cols_to_drop]  # 🧼 Remove dropped columns
 
                 # Save pre-PCA transformed version
                 df_test_transformed_pre_pca = df_test_transformed.copy()
 
-                # 🆕 Save this list for export logic later
+                # Save this list for export logic later
                 st.session_state["transformed_test_columns"] = transformed_cols
-
-                # Save pre-PCA transformed version
-                df_test_transformed_pre_pca = df_test_transformed.copy()
 
                 # === Apply PCA if used ===
                 use_pca = st.session_state.get("use_pca", "No")
-
                 if use_pca == "Yes" and st.session_state.get("pca_ready"):
                     scaler = st.session_state["scaler"]
                     pca = st.session_state["pca"]
@@ -2984,17 +2901,15 @@ if df is not None:
                         columns=[f"PC{i+1}" for i in range(n_components)]
                     )
 
-
-
                 # === Optional: Download Transformed Test Set (before prediction) ===
-                df_test_download = df_test_encoded.copy()
+                df_test_download = pd.DataFrame({"row_id": row_ids})  # ⬅️ Include row_id for tracking
                 for col in df_test_transformed.columns:
                     df_test_download[col] = df_test_transformed[col].values
 
                 csv_test = df_test_download.to_csv(index=False).encode("utf-8")
                 st.download_button("⬇️ Download Final Transformed Test Set", csv_test, "test_transformed.csv", "text/csv")
 
-
+                # === Thresholds for traffic light classification ===
                 st.markdown("### 🎯 Traffic Light Thresholds")
                 threshold_0 = st.slider("Confidence threshold for class 0 (Green)", 0.5, 1.0, 0.85, 0.01)
                 threshold_1 = st.slider("Confidence threshold for class 1 (Red)", 0.5, 1.0, 0.85, 0.01)
@@ -3007,6 +2922,9 @@ if df is not None:
                     else:
                         return "Yellow"
 
+            # ✅ The transformed test set is now ready for prediction
+            # And you have row_ids for final output like:
+            # st.write(pd.DataFrame({"row_id": row_ids, "prediction": ..., "actual": ...}))
 
                 # === Retrieve selected models ===
                 selected_models = st.session_state.get("selected_models", [])
@@ -3225,7 +3143,8 @@ if df is not None:
 
 
 
-                # === Show and Download ===
+            # === Show and Download ===
+            try:
                 st.markdown("### 📄 Predictions on Uploaded Test Data")
 
                 # Let the user choose which columns to include
