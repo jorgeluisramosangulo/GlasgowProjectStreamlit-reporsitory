@@ -278,56 +278,38 @@ import streamlit as st
 
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+import streamlit as st
+
 def export_ridge_training_data(X_train_final, y_train_raw, model, encoder=None):
-    """
-    Export Ridge training data with predictions and probabilities.
-
-    Args:
-        X_train_final (pd.DataFrame): Final preprocessed features used for training
-        y_train_raw (pd.Series): Original (unencoded) target values
-        model: Trained Ridge model with predict and decision_function methods
-        encoder (LabelEncoder, optional): Used to transform y_train_raw. If None, encoding is skipped
-
-    Returns:
-        pd.DataFrame: Training data with predictions and probabilities
-        dict: Dictionary with performance metrics
-    """
-    # === Step 1: Preserve Row ID ===
-    row_ids = y_train_raw.reset_index(drop=True).index
-
-    # === Step 2: Encode target if encoder is provided ===
-    if encoder:
-        y_train_encoded = encoder.transform(y_train_raw)
-    else:
-        y_train_encoded = y_train_raw.values
-
-    # === Step 3: Predictions ===
+    # Predict
     y_pred = model.predict(X_train_final)
+    y_prob = model.predict_proba(X_train_final)[:, 1]
 
-    try:
-        y_prob = model.predict_proba(X_train_final)[:, 1]  # works with logistic models
-    except AttributeError:
-        y_prob = model.decision_function(X_train_final)  # works for RidgeClassifier
+    # Build export DataFrame
+    export_df = X_train_final.copy()
 
-    # === Step 4: Assemble Export DataFrame ===
-    df_export = X_train_final.copy()
-    df_export.insert(0, "row_id", row_ids)
-    df_export["target"] = y_train_encoded
-    df_export["Ridge_Prediction"] = y_pred
-    df_export["Ridge_Prob"] = y_prob
+    # === Reinsert original row_id if available ===
+    if "row_id" in st.session_state:
+        row_ids = st.session_state["row_id"].reset_index(drop=True)
+        export_df.insert(0, "row_id", row_ids)
+    else:
+        export_df.insert(0, "row_id", range(len(export_df)))
 
-    # === Step 5: Metrics ===
-    try:
-        auc = roc_auc_score(y_train_encoded, y_prob)
-    except Exception:
-        auc = None  # In case of constant predictions
+    # Append target and predictions
+    export_df["target"] = y_train_raw.reset_index(drop=True)
+    export_df["Ridge_Prediction"] = y_pred
+    export_df["Ridge_Prob"] = y_prob
 
+    # Compute metrics
     metrics = {
-        "Accuracy": accuracy_score(y_train_encoded, y_pred),
-        "Precision": precision_score(y_train_encoded, y_pred),
-        "Recall": recall_score(y_train_encoded, y_pred),
-        "F1-Score": f1_score(y_train_encoded, y_pred),
-        "AUC": auc
+        "Accuracy": accuracy_score(y_train_raw, y_pred),
+        "Precision": precision_score(y_train_raw, y_pred),
+        "Recall": recall_score(y_train_raw, y_pred),
+        "F1-Score": f1_score(y_train_raw, y_pred),
+        "AUC": roc_auc_score(y_train_raw, y_prob)
     }
 
-    return df_export, metrics
+    return export_df, metrics
+

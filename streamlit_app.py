@@ -1335,8 +1335,10 @@ if df is not None:
                             if search_method == "Grid Search":
                                 ridge_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
                             else:
-                                ridge_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
-                                                                cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+                                ridge_search = RandomizedSearchCV(
+                                    base_model, param_distributions=param_grid, n_iter=10,
+                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42
+                                )
 
                             ridge_search.fit(X_train_final, y_train)
                             ridge_model = ridge_search.best_estimator_
@@ -1345,6 +1347,7 @@ if df is not None:
                             st.session_state["ridge_probabilities"] = get_class1_proba(ridge_model, X_train_final)
                             st.success(f"Best C: {ridge_model.C:.4f}")
                             ridge_model_ready = True
+
                 else:
                     ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0, key="ridge_C_manual")
                     ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000, step=100, key="ridge_iter_manual")
@@ -1365,20 +1368,11 @@ if df is not None:
                             st.success("Model trained successfully!")
                             ridge_model_ready = True
 
-                # === Show metrics only if model is trained ===
+                # === After training (common to both paths) ===
                 if "ridge_model" in st.session_state:
                     ridge_model = st.session_state["ridge_model"]
-                    y_pred_ridge_train = st.session_state["ridge_predictions"]
-                    y_prob_ridge_train = st.session_state["ridge_probabilities"]
 
-                    st.markdown("**📊 Training Set Performance**")
-                    st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
-                    st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
-                    st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
-                    st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
-                    st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
-
-                    # === Optional: 10-Fold Cross-Validation ===
+                    # Optional cross-validation
                     if st.checkbox("🔁 Run 10-Fold Cross-Validation for Ridge?", key="ridge_run_cv"):
                         scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
                         with st.spinner("Running cross-validation..."):
@@ -1393,17 +1387,16 @@ if df is not None:
                             std_score = cv_results[f'test_{metric}'].std()
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
+                    # Training performance and export
                     from ml_utils import export_ridge_training_data
 
-                    # Automatically export training set with predictions and metrics
                     df_ridge_train_export, ridge_metrics = export_ridge_training_data(
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
                         model=st.session_state["ridge_model"],
-                        encoder=st.session_state.get("label_encoder")  # Optional: only if using LabelEncoder
+                        encoder=st.session_state.get("label_encoder")  # Optional
                     )
 
-                    # Show training metrics again (clean display)
                     st.markdown("**📊 Training Set Performance**")
                     for metric, value in ridge_metrics.items():
                         if value is not None:
@@ -1411,7 +1404,6 @@ if df is not None:
                         else:
                             st.text(f"{metric}: N/A")
 
-                    # Download button
                     st.markdown("#### 📥 Download Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
