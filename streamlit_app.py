@@ -1214,6 +1214,11 @@ if df is not None:
 
 
 
+    # === Ready for Modeling Confirmation ===
+    if st.button("🚀 Proceed to Model Selection and Training"):
+        st.session_state["ready_for_modeling"] = True
+        st.success("✅ You can now proceed to model training below.")
+        st.rerun()
 
 
 
