@@ -19,20 +19,19 @@ def decode_labels(y_encoded):
 # Ensures compatibility with models where class labels may be [0, 1] or [1, 0].
 def get_class1_proba(model, X):
     """
-    Returns predicted probability for class 1 (positive class).
-    Handles unexpected class orders robustly.
+    Returns predicted probability for the class the user mapped to 1.
+    Handles cases where model.classes_ != [0, 1].
     """
-    if hasattr(model, "classes_"):
-        classes = list(model.classes_)
-        if 1 in classes:
-            class_idx = classes.index(1)
-        else:
-            st.warning(f"⚠️ Class 1 not in model.classes_: {classes}. Using index 0 as fallback.")
-            class_idx = 0
-    else:
-        class_idx = 1  # Fallback default
+    if "label_map" not in st.session_state:
+        raise ValueError("label_map not found in session state.")
 
+    # Get the label the user mapped to 1
+    mapped_class_1 = [k for k, v in st.session_state["label_map"].items() if v == 1][0]
+
+    # Find which column of predict_proba corresponds to the mapped class 1
+    class_idx = list(model.classes_).index(mapped_class_1)
     return model.predict_proba(X)[:, class_idx]
+
 
 # === Ensure DataFrame and Series Format ===
 # Converts NumPy arrays to pandas DataFrame (X) and Series (y) if needed.
