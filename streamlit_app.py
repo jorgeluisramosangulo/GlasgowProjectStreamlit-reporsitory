@@ -1393,9 +1393,14 @@ if df is not None:
                             std_score = cv_results[f'test_{metric}'].std()
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
-                    # === Download Training Set with Predictions ===
+                    # === Download Training Set with Predictions (including row_id) ===
                     X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
                     df_ridge_train_export = X_train_final_safe.copy()
+
+                    # If row_id exists in original data, add it back
+                    if "row_id" in st.session_state:
+                        df_ridge_train_export.insert(0, "row_id", st.session_state["row_id"].reset_index(drop=True))
+
                     df_ridge_train_export["target"] = y_train_safe.reset_index(drop=True)
                     df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
                     df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
@@ -1408,6 +1413,7 @@ if df is not None:
                         file_name="ridge_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
