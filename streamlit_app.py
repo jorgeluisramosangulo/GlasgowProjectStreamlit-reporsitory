@@ -341,24 +341,43 @@ if df is not None:
         st.info("👈 Please confirm target column to continue.")
         st.stop()
 
-    # ✅ Use confirmed value
+    # ✅ Use confirmed target column
     target_column = st.session_state["target_column"]
+    y_raw_original = df[target_column]
     X_raw = df.drop(columns=[target_column])
-    y_raw = df[target_column]
 
-    # === Validate target column ===
-    unique_vals = y_raw.dropna().unique()
-    if len(unique_vals) != 2 or not set(unique_vals).issubset({0, 1}):
-        st.error("❌ Target column must contain exactly two values: 0 and 1.")
+    # === Class Mapping UI ===
+    unique_vals = y_raw_original.dropna().unique()
+
+    if len(unique_vals) != 2:
+        st.error("❌ Target column must contain exactly two unique values for binary classification.")
         st.stop()
 
-    # Save label mapping for test-time consistency (optional here but safe)
-    st.session_state["label_classes_"] = sorted(unique_vals)
+    st.markdown("### 🔁 Map Target Classes to 0 and 1")
+    class_0 = st.selectbox("Select class to map to **0**", unique_vals, key="map_class_0")
+    class_1 = st.selectbox("Select class to map to **1**", [val for val in unique_vals if val != class_0], key="map_class_1")
 
-    # Show class distribution
+    if st.button("🎯 Apply Class Mapping"):
+        label_mapping = {class_0: 0, class_1: 1}
+        y_raw = y_raw_original.map(label_mapping)
+
+        if y_raw.isnull().any():
+            st.error("❌ Error in mapping target classes. Please check selections.")
+            st.stop()
+
+        y_raw = pd.Series(y_raw.astype("int64"), name="target")
+        st.session_state["target_mapping"] = label_mapping
+        st.session_state["label_classes_"] = [class_0, class_1]
+        st.session_state["y_raw"] = y_raw
+        st.success(f"✅ Class mapping applied: {class_0} → 0, {class_1} → 1")
+    else:
+        st.info("👈 Apply class mapping to continue.")
+        st.stop()
+
+    # === Target Class Summary ===
     st.markdown("#### 📊 Target Value Distribution")
 
-    target_counts = pd.Series(y_raw).value_counts().sort_index()
+    target_counts = y_raw.value_counts().sort_index()
     target_percents = round(target_counts / len(y_raw) * 100, 2)
 
     target_summary_df = pd.DataFrame({
@@ -1403,8 +1422,10 @@ if df is not None:
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
                         model=st.session_state["ridge_model"],
-                        row_ids=st.session_state.get("row_id_train")  # or row_id_train if available
+                        row_ids=st.session_state.get("row_id_train"),
+                        use_original_labels=True
                     )
+
 
 
                     st.markdown("**📊 Training Set Performance**")

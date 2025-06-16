@@ -286,7 +286,7 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import streamlit as st
 
-def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None):
+def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None, use_original_labels=False):
     """
     Returns:
         - DataFrame with row_id, features, target, prediction, and probability
@@ -296,6 +296,12 @@ def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None):
     y_pred = model.predict(X_train_final)
     y_prob = get_class1_proba(model, X_train_final)
 
+    # Restore original labels if needed
+    if use_original_labels and "label_map" in st.session_state:
+        inverse_map = {v: k for k, v in st.session_state["label_map"].items()}
+        y_train_raw = pd.Series(y_train_raw).map(inverse_map)
+        y_pred = pd.Series(y_pred).map(inverse_map)
+
     # Assemble export DataFrame
     df_export = X_train_final.copy().reset_index(drop=True)
     if row_ids is not None:
@@ -304,16 +310,20 @@ def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None):
     df_export["Ridge_Prediction"] = y_pred
     df_export["Ridge_Prob"] = y_prob
 
-    # Compute metrics
+    # Compute metrics (always use numeric form internally)
     metrics = {
         "Accuracy": accuracy_score(y_train_raw, y_pred),
-        "Precision": precision_score(y_train_raw, y_pred),
-        "Recall": recall_score(y_train_raw, y_pred),
-        "F1-Score": f1_score(y_train_raw, y_pred),
-        "AUC": roc_auc_score(y_train_raw, y_prob)
+        "Precision": precision_score(y_train_raw, y_pred, pos_label=1),
+        "Recall": recall_score(y_train_raw, y_pred, pos_label=1),
+        "F1-Score": f1_score(y_train_raw, y_pred, pos_label=1),
+        "AUC": roc_auc_score(
+            pd.Series(y_train_raw).map(st.session_state["label_map"]),
+            y_prob
+        ) if "label_map" in st.session_state else None
     }
 
     return df_export, metrics
+
 
 
 
