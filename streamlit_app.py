@@ -1405,7 +1405,7 @@ if df is not None:
                     df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
                     df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
 
-                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
+                    st.markdown("#### 📥 Downloaddddd Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Ridge Training Data",
