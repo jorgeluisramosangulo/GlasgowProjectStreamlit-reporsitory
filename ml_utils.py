@@ -282,20 +282,24 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import streamlit as st
 
-def export_ridge_training_data(X_train_final, y_train_raw, model, encoder=None):
+import pandas as pd
+from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+import streamlit as st
+
+def export_ridge_training_data(X_train_final, y_train_raw, model):
     # Predict
     y_pred = model.predict(X_train_final)
     y_prob = model.predict_proba(X_train_final)[:, 1]
 
-    # Build export DataFrame
+    # Create export DataFrame
     export_df = X_train_final.copy()
 
-    # === Reinsert original row_id if available ===
-    if "row_id" in st.session_state:
-        row_ids = st.session_state["row_id"].reset_index(drop=True)
+    # Restore row_id from session state if available
+    if "row_id" in st.session_state and "train_idx" in st.session_state:
+        row_ids = st.session_state["row_id"].iloc[st.session_state["train_idx"]].reset_index(drop=True)
         export_df.insert(0, "row_id", row_ids)
     else:
-        export_df.insert(0, "row_id", range(len(export_df)))
+        export_df.insert(0, "row_id", range(len(export_df)))  # fallback
 
     # Append target and predictions
     export_df["target"] = y_train_raw.reset_index(drop=True)
@@ -312,4 +316,5 @@ def export_ridge_training_data(X_train_final, y_train_raw, model, encoder=None):
     }
 
     return export_df, metrics
+
 

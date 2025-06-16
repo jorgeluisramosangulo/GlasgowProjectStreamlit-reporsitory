@@ -583,6 +583,9 @@ if df is not None:
     # === Feature Importance ===
     st.markdown("### Split Data Train and Validate")
 
+    # Save original row_id
+    st.session_state["row_id"] = original_df["row_id"]
+
     # Drop target column
     X_raw = df.drop(columns=[target_column])
     y_raw = df[target_column]
@@ -656,6 +659,8 @@ if df is not None:
         st.download_button("⬇️ Download y_val.csv", y_val_df.to_csv(index=False).encode("utf-8"),
                         "y_val.csv", "text/csv")
 
+    # Save train indices
+    st.session_state["train_idx"] = X_train.index
 
 
 
