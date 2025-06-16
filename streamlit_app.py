@@ -47,7 +47,7 @@ from ml_utils import (
     
     # New transformation helpers
     apply_minmax_scaling, apply_standard_scaling,
-    apply_custom_feature_transformation, apply_column_dropping,
+    apply_column_dropping,
     plot_before_after, create_new_feature
 )
 
