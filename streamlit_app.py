@@ -584,7 +584,11 @@ if df is not None:
     st.markdown("### Split Data Train and Validate")
 
     # Save original row_id
-    st.session_state["row_id"] = original_df["row_id"]
+    if "row_id" in df.columns:
+        st.session_state["row_id"] = df["row_id"].copy()
+    else:
+        st.session_state["row_id"] = pd.Series(np.arange(len(df)), name="row_id")
+
 
     # Drop target column
     X_raw = df.drop(columns=[target_column])
