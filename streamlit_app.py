@@ -1315,98 +1315,99 @@ if df is not None:
         # === Train Models ===
 
 
-        # === Ridge Logistic Regression (with CV + Tuning) ===
         if "Ridge Logistic Regression" in selected_models:
-
-
             with st.expander("🧱 Ridge Logistic Regression (L2)"):
                 st.write("**Hyperparameters**")
-
-                # === Optional: Enable tuning ===
                 enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning (Grid or Random Search)?", key="ridge_tuning")
+
+                ridge_model_ready = False
 
                 if enable_tuning:
                     search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="ridge_search_method")
-
                     ridge_max_iter = st.slider("Ridge: Max Iterations", 100, 2000, 1000, step=100, key="ridge_max_iter")
-
                     c_range = st.slider("C Range (log scale)", 0.01, 10.0, (0.1, 5.0), step=0.1, key="ridge_c_range")
                     param_grid = {"C": np.logspace(np.log10(c_range[0]), np.log10(c_range[1]), num=10)}
-
                     n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="ridge_cv_folds")
 
-                    with st.spinner("Running hyperparameter tuning..."):
-                        base_model = LogisticRegression(
-                            penalty='l2', solver='lbfgs', max_iter=ridge_max_iter, random_state=42
-                        )
+                    if st.button("🚀 Train Ridge Model with Tuning"):
+                        with st.spinner("Running hyperparameter tuning..."):
+                            base_model = LogisticRegression(penalty='l2', solver='lbfgs', max_iter=ridge_max_iter, random_state=42)
+                            if search_method == "Grid Search":
+                                ridge_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                            else:
+                                ridge_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                                cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
 
-                        if search_method == "Grid Search":
-                            ridge_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
-                        else:
-                            ridge_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
-                                                            cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
-
-                        ridge_search.fit(X_train_final, y_train)
-                        ridge_model = ridge_search.best_estimator_
-
-                        st.success(f"Best C: {ridge_model.C:.4f}")
+                            ridge_search.fit(X_train_final, y_train)
+                            ridge_model = ridge_search.best_estimator_
+                            st.session_state["ridge_model"] = ridge_model
+                            st.session_state["ridge_predictions"] = ridge_model.predict(X_train_final)
+                            st.session_state["ridge_probabilities"] = get_class1_proba(ridge_model, X_train_final)
+                            st.success(f"Best C: {ridge_model.C:.4f}")
+                            ridge_model_ready = True
                 else:
-                    # Manual hyperparameters
                     ridge_C = st.slider("Ridge: Regularization strength (C)", 0.01, 10.0, 1.0, key="ridge_C_manual")
                     ridge_max_iter = st.slider("Ridge: Max iterations", 100, 2000, 1000, step=100, key="ridge_iter_manual")
 
-                    ridge_model = LogisticRegression(
-                        penalty='l2',
-                        C=ridge_C,
-                        solver='lbfgs',
-                        max_iter=ridge_max_iter,
-                        random_state=42
+                    if st.button("🚀 Train Ridge Model (Manual)"):
+                        with st.spinner("Training Ridge model..."):
+                            ridge_model = LogisticRegression(
+                                penalty='l2',
+                                C=ridge_C,
+                                solver='lbfgs',
+                                max_iter=ridge_max_iter,
+                                random_state=42
+                            )
+                            ridge_model.fit(X_train_final, y_train)
+                            st.session_state["ridge_model"] = ridge_model
+                            st.session_state["ridge_predictions"] = ridge_model.predict(X_train_final)
+                            st.session_state["ridge_probabilities"] = get_class1_proba(ridge_model, X_train_final)
+                            st.success("Model trained successfully!")
+                            ridge_model_ready = True
+
+                # === Show metrics only if model is trained ===
+                if "ridge_model" in st.session_state:
+                    ridge_model = st.session_state["ridge_model"]
+                    y_pred_ridge_train = st.session_state["ridge_predictions"]
+                    y_prob_ridge_train = st.session_state["ridge_probabilities"]
+
+                    st.markdown("**📊 Training Set Performance**")
+                    st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
+                    st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
+                    st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
+                    st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
+                    st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
+
+                    # === Optional: 10-Fold Cross-Validation ===
+                    if st.checkbox("🔁 Run 10-Fold Cross-Validation for Ridge?", key="ridge_run_cv"):
+                        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                        with st.spinner("Running cross-validation..."):
+                            cv_results = cross_validate(
+                                ridge_model, X_train_final, y_train,
+                                cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                            )
+
+                        st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                        for metric in scoring:
+                            mean_score = cv_results[f'test_{metric}'].mean()
+                            std_score = cv_results[f'test_{metric}'].std()
+                            st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                    # === Download Training Set with Predictions ===
+                    X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
+                    df_ridge_train_export = X_train_final_safe.copy()
+                    df_ridge_train_export["target"] = y_train_safe.reset_index(drop=True)
+                    df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
+                    df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
+
+                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
+                    csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Ridge Training Data",
+                        data=csv_ridge_train,
+                        file_name="ridge_training_predictions.csv",
+                        mime="text/csv"
                     )
-                    ridge_model.fit(X_train_final, y_train)
-
-                # === Training performance on full training set ===
-
-                y_pred_ridge_train = ridge_model.predict(X_train_final)
-                y_prob_ridge_train = get_class1_proba(ridge_model, X_train_final)
-
-
-                st.markdown("**📊 Training Set Performance**")
-                st.text(f"Accuracy:  {accuracy_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"Precision: {precision_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"Recall:    {recall_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"F1-Score:  {f1_score(y_train, y_pred_ridge_train):.4f}")
-                st.text(f"AUC:       {roc_auc_score(y_train, y_prob_ridge_train):.4f}")
-
-                # === Optional: 10-Fold Cross-Validation ===
-                if st.checkbox("🔁 Run 10-Fold Cross-Validation for Ridge?", key="ridge_run_cv"):
-                    scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
-                    with st.spinner("Running cross-validation..."):
-                        cv_results = cross_validate(
-                            ridge_model, X_train_final, y_train,
-                            cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
-                        )
-
-                    st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
-                    for metric in scoring:
-                        mean_score = cv_results[f'test_{metric}'].mean()
-                        std_score = cv_results[f'test_{metric}'].std()
-                        st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
-
-                # === Download Training Set with Ridge Predictions ===
-                X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
-                df_ridge_train_export = X_train_final_safe.copy()
-                df_ridge_train_export["target"] = y_train_safe.reset_index(drop=True)
-                df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
-                df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
-
-                st.markdown("#### 📥 Download Ridge Training Set with Predictions")
-                csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="⬇️ Download Ridge Training Data",
-                    data=csv_ridge_train,
-                    file_name="ridge_training_predictions.csv",
-                    mime="text/csv"
-                )
 
 
 
