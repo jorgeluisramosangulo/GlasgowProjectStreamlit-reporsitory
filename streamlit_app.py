@@ -3,8 +3,6 @@ import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-import json
-import io
 
 # Scikit-learn: Model Selection & Evaluation
 from sklearn.model_selection import (
@@ -18,15 +16,12 @@ from sklearn.metrics import (
     precision_score,
     recall_score,
     f1_score,
-    roc_auc_score,
-    classification_report,
-    make_scorer
+    roc_auc_score
 )
 
 # Scikit-learn: Preprocessing, Feature Engineering, Models
-from sklearn.preprocessing import StandardScaler, MinMaxScaler, FunctionTransformer
+from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.pipeline import Pipeline
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
 from sklearn.neural_network import MLPClassifier
@@ -40,14 +35,9 @@ from imblearn.under_sampling import RandomUnderSampler
 # Helper functions
 from ml_utils import (
     # General utilities
-    decode_labels, get_class1_proba, ensure_dataframe_and_series,
-    init_session_key, log_metrics, display_cv_scores,
-    get_final_train_val_sets, get_final_y_sets, set_final_datasets,
-    log_transformation, train_model,
-    
-    # New transformation helpers
-    apply_minmax_scaling, apply_standard_scaling,
-    apply_column_dropping,
+    get_class1_proba, ensure_dataframe_and_series,
+    init_session_key, get_final_train_val_sets, set_final_datasets,
+    log_transformation, apply_minmax_scaling, apply_standard_scaling,
     plot_before_after, create_new_feature
 )
 
