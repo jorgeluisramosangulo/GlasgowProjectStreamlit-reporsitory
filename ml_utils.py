@@ -20,18 +20,16 @@ def decode_labels(y_encoded):
 def get_class1_proba(model, X):
     """
     Returns predicted probability for the class the user mapped to 1.
+    Handles cases where model.classes_ may not be in [0, 1] order.
     """
     if "label_map" not in st.session_state:
         raise ValueError("label_map not found in session state.")
 
-    # Class the user mapped to 1
-    class_1_label = [k for k, v in st.session_state["label_map"].items() if v == 1][0]
+    # This is the integer that represents class "1" in model.classes_
+    mapped_class_1_value = 1
 
-    # Get model.classes_ order
-    if not hasattr(model, "classes_"):
-        raise ValueError("Model does not have classes_ attribute.")
-
-    class_idx = list(model.classes_).index(class_1_label)
+    # Now lookup this value in model.classes_ (e.g., classes_ = [1, 0] or [0, 1])
+    class_idx = list(model.classes_).index(mapped_class_1_value)
 
     return model.predict_proba(X)[:, class_idx]
 
