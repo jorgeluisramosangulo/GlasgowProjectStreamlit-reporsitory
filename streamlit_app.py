@@ -1403,8 +1403,9 @@ if df is not None:
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
                         model=st.session_state["ridge_model"],
-                        encoder=st.session_state.get("label_encoder")  # Optional
+                        row_ids=st.session_state.get("row_id_train")  # or row_id_train if available
                     )
+
 
                     st.markdown("**📊 Training Set Performance**")
                     for metric, value in ridge_metrics.items():

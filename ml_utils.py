@@ -286,25 +286,23 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import streamlit as st
 
-def export_ridge_training_data(X_train_final, y_train_raw, model):
+def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None):
+    """
+    Returns:
+        - DataFrame with row_id, features, target, prediction, and probability
+        - Dictionary with training performance metrics
+    """
     # Predict
     y_pred = model.predict(X_train_final)
-    y_prob = model.predict_proba(X_train_final)[:, 1]
+    y_prob = get_class1_proba(model, X_train_final)
 
-    # Create export DataFrame
-    export_df = X_train_final.copy()
-
-    # Restore row_id from session state if available
-    if "row_id" in st.session_state and "train_idx" in st.session_state:
-        row_ids = st.session_state["row_id"].iloc[st.session_state["train_idx"]].reset_index(drop=True)
-        export_df.insert(0, "row_id", row_ids)
-    else:
-        export_df.insert(0, "row_id", range(len(export_df)))  # fallback
-
-    # Append target and predictions
-    export_df["target"] = y_train_raw.reset_index(drop=True)
-    export_df["Ridge_Prediction"] = y_pred
-    export_df["Ridge_Prob"] = y_prob
+    # Assemble export DataFrame
+    df_export = X_train_final.copy().reset_index(drop=True)
+    if row_ids is not None:
+        df_export.insert(0, "row_id", row_ids.reset_index(drop=True))
+    df_export["target"] = y_train_raw.reset_index(drop=True)
+    df_export["Ridge_Prediction"] = y_pred
+    df_export["Ridge_Prob"] = y_prob
 
     # Compute metrics
     metrics = {
@@ -315,6 +313,7 @@ def export_ridge_training_data(X_train_final, y_train_raw, model):
         "AUC": roc_auc_score(y_train_raw, y_prob)
     }
 
-    return export_df, metrics
+    return df_export, metrics
+
 
 
