@@ -1404,7 +1404,7 @@ if df is not None:
                         else:
                             st.text(f"{metric}: N/A")
 
-                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
+                    st.markdown("#### 📥 Downloadddddd Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Ridge Training Data",
