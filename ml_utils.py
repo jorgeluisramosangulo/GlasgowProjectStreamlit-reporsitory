@@ -22,15 +22,16 @@ def get_class1_proba(model, X):
     Returns predicted probability for the class the user mapped to 1.
     Handles cases where model.classes_ != [0, 1].
     """
-    if "label_map" not in st.session_state:
-        raise ValueError("label_map not found in session state.")
+    if "target_mapping" not in st.session_state:
+        raise ValueError("target_mapping not found in session state.")
 
-    # Get the label the user mapped to 1
-    mapped_class_1 = [k for k, v in st.session_state["label_map"].items() if v == 1][0]
+    # Get the original label the user mapped to 1
+    mapped_class_1 = [k for k, v in st.session_state["target_mapping"].items() if v == 1][0]
 
-    # Find which column of predict_proba corresponds to the mapped class 1
+    # Find which column in predict_proba corresponds to that class
     class_idx = list(model.classes_).index(mapped_class_1)
     return model.predict_proba(X)[:, class_idx]
+
 
 
 # === Ensure DataFrame and Series Format ===
