@@ -1274,6 +1274,9 @@ if df is not None:
             st.info("👈 Please confirm model selection to continue.")
             st.stop()
 
+        # ✅ Extract selected models after confirmation
+        selected_models = st.session_state["selected_models"]
+
         # ✅ Get the final training/validation sets from transformation or PCA
         X_train_final, X_val_final = get_final_train_val_sets()
 
