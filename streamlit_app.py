@@ -799,6 +799,10 @@ if df is not None:
     # === 4️⃣ Outlier Detection & Removal ===
     if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
 
+        # Restore current state of train data and labels
+        X_train_resampled = st.session_state.get("X_train_resampled", st.session_state["X_train"]).copy()
+        y_train_resampled = st.session_state.get("y_train_resampled", st.session_state["y_train"]).copy()
+
         numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
         outlier_col = st.selectbox("Select column", numeric_cols, key="outlier_col")
         method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
