@@ -371,6 +371,7 @@ if df is not None:
             y_raw = pd.Series(y_raw.astype("int64"), name="target")
             st.session_state["target_mapping"] = label_mapping
             st.session_state["label_map"] = st.session_state["target_mapping"]
+            st.write("Label map stored:", st.session_state["label_map"])
             st.session_state["label_classes_"] = [class_0, class_1]
             st.session_state["y_raw"] = y_raw
             st.success(f"✅ Class mapping applied: {class_0} → 0, {class_1} → 1")
