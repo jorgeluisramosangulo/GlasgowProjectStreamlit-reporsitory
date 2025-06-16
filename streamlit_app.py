@@ -1393,19 +1393,26 @@ if df is not None:
                             std_score = cv_results[f'test_{metric}'].std()
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
-                    # === Download Training Set with Predictions (including row_id) ===
-                    X_train_final_safe, y_train_safe = ensure_dataframe_and_series(X_train_final, y_train)
-                    df_ridge_train_export = X_train_final_safe.copy()
+                    from ml_utils import export_ridge_training_data
 
-                    # If row_id exists in original data, add it back
-                    if "row_id" in st.session_state:
-                        df_ridge_train_export.insert(0, "row_id", st.session_state["row_id"].reset_index(drop=True))
+                    # Automatically export training set with predictions and metrics
+                    df_ridge_train_export, ridge_metrics = export_ridge_training_data(
+                        X_train_final=X_train_final,
+                        y_train_raw=y_train,
+                        model=st.session_state["ridge_model"],
+                        encoder=st.session_state.get("label_encoder")  # Optional: only if using LabelEncoder
+                    )
 
-                    df_ridge_train_export["target"] = y_train_safe.reset_index(drop=True)
-                    df_ridge_train_export["Ridge_Prediction"] = y_pred_ridge_train
-                    df_ridge_train_export["Ridge_Prob"] = y_prob_ridge_train
+                    # Show training metrics again (clean display)
+                    st.markdown("**📊 Training Set Performance**")
+                    for metric, value in ridge_metrics.items():
+                        if value is not None:
+                            st.text(f"{metric}: {value:.4f}")
+                        else:
+                            st.text(f"{metric}: N/A")
 
-                    st.markdown("#### 📥 Downloaddddd Ridge Training Set with Predictions")
+                    # Download button
+                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Ridge Training Data",
