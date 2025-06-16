@@ -1376,6 +1376,7 @@ if df is not None:
 
                             ridge_search.fit(X_train_final, y_train)
                             ridge_model = ridge_search.best_estimator_
+                            st.write(f"Best estimator classes: {ridge_model.classes_}")  # ✅ Show model class order
                             st.session_state["ridge_model"] = ridge_model
                             st.session_state["ridge_predictions"] = ridge_model.predict(X_train_final)
                             st.session_state["ridge_probabilities"] = get_class1_proba(ridge_model, X_train_final)
@@ -1396,6 +1397,7 @@ if df is not None:
                                 random_state=42
                             )
                             ridge_model.fit(X_train_final, y_train)
+                            st.write(f"Model trained with classes: {ridge_model.classes_}")  # ✅ Show model class order
                             st.session_state["ridge_model"] = ridge_model
                             st.session_state["ridge_predictions"] = ridge_model.predict(X_train_final)
                             st.session_state["ridge_probabilities"] = get_class1_proba(ridge_model, X_train_final)
@@ -1432,8 +1434,6 @@ if df is not None:
                         use_original_labels=True
                     )
 
-
-
                     st.markdown("**📊 Training Set Performance**")
                     for metric, value in ridge_metrics.items():
                         if value is not None:
@@ -1441,7 +1441,7 @@ if df is not None:
                         else:
                             st.text(f"{metric}: N/A")
 
-                    st.markdown("#### 📥 Downloadddddd Ridge Training Set with Predictions")
+                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Ridge Training Data",

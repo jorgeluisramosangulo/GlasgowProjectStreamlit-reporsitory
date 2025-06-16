@@ -19,10 +19,19 @@ def decode_labels(y_encoded):
 # Ensures compatibility with models where class labels may be [0, 1] or [1, 0].
 def get_class1_proba(model, X):
     """
-    Returns predicted probability for class 1.
-    Handles cases where model.classes_ is [1, 0] or [0, 1]
+    Returns predicted probability for class 1 (positive class).
+    Handles unexpected class orders robustly.
     """
-    class_idx = list(model.classes_).index(1) if hasattr(model, "classes_") else 1
+    if hasattr(model, "classes_"):
+        classes = list(model.classes_)
+        if 1 in classes:
+            class_idx = classes.index(1)
+        else:
+            st.warning(f"⚠️ Class 1 not in model.classes_: {classes}. Using index 0 as fallback.")
+            class_idx = 0
+    else:
+        class_idx = 1  # Fallback default
+
     return model.predict_proba(X)[:, class_idx]
 
 # === Ensure DataFrame and Series Format ===
