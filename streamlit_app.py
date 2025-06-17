@@ -2953,25 +2953,14 @@ if df is not None:
                 else:
                     meta_model_choice = st.selectbox(
                         "Meta-model (Final Estimator)",
-                        ["Logistic Regression", "Random Forest", "Ridge", "Lasso", "ElasticNet"],
+                        ["Logistic Regression", "Random Forest"],
                         key="stacking_meta"
                     )
 
                     if st.button("🚀 Train Stacking Classifier"):
                         with st.spinner("Training Stacking Classifier..."):
-                            # Choose final estimator
                             if meta_model_choice == "Logistic Regression":
                                 final_estimator = LogisticRegression(solver="lbfgs", max_iter=1000)
-                            elif meta_model_choice == "Ridge":
-                                from sklearn.linear_model import RidgeClassifier
-                                final_estimator = RidgeClassifier()
-                            elif meta_model_choice == "Lasso":
-                                from sklearn.linear_model import LogisticRegression
-                                final_estimator = LogisticRegression(penalty='l1', solver='saga', max_iter=1000)
-                            elif meta_model_choice == "ElasticNet":
-                                from sklearn.linear_model import LogisticRegression
-                                final_estimator = LogisticRegression(penalty='elasticnet', solver='saga',
-                                                                    l1_ratio=0.5, max_iter=1000)
                             else:
                                 final_estimator = RandomForestClassifier(n_estimators=100, random_state=42)
 
@@ -3034,6 +3023,7 @@ if df is not None:
                     file_name="stacking_training_predictions.csv",
                     mime="text/csv"
                 )
+
 
 
 
