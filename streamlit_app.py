@@ -334,7 +334,7 @@ if df is not None:
 
     
     # === Target Selection ===
-    st.markdown("### 🎯 Step 2: Select Target Column")
+    st.markdown("### 🎯 Step 2: Select Target Columnnnnnnnnnnn")
 
     # Initialization
     if "target_confirmed" not in st.session_state:
