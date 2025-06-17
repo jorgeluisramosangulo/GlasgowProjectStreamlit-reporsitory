@@ -3350,6 +3350,10 @@ if df is not None:
 
                     existing_cols = [col for col in prediction_cols if col in df_results.columns]
                     df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+                    # ✅ Always add row_id to the front, if available
+                    if "row_id_test" in st.session_state:
+                        df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
+
 
 
 
