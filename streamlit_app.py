@@ -332,37 +332,40 @@ if df is not None:
 #################################        Target Selection    #############################################################
 ##########################################################################################################################
 
-    
-    # === Target Selection ===
-    st.markdown("### 🎯 Step 2: Select Target Columnnnnnnnnnnn")
+    st.markdown("### 🎯 Step 2: Select Target Column")
 
-    # Initialization
+    # Initialize session state variables if not already set
     if "target_confirmed" not in st.session_state:
         st.session_state["target_confirmed"] = False
     if "target_column" not in st.session_state:
         st.session_state["target_column"] = None
 
-    # Run selection UI only if not yet confirmed
-    if not st.session_state["target_confirmed"]:
-        target_column_input = st.selectbox("Select the target column:", df.columns)
+    # Always show the target column selector
+    target_column_input = st.selectbox(
+        "Select the target column:",
+        df.columns,
+        index=df.columns.get_loc(st.session_state["target_column"]) if st.session_state["target_column"] else 0,
+        disabled=st.session_state["target_confirmed"]
+    )
 
+    # Confirm button
+    if not st.session_state["target_confirmed"]:
         if st.button("✅ Confirm Target Selection"):
             st.session_state["target_column"] = target_column_input
             st.session_state["target_confirmed"] = True
             st.rerun()
 
+    if not st.session_state["target_confirmed"]:
         st.info("👈 Please confirm target column to continue.")
         st.stop()
 
-    # ✅ Use confirmed value from here on
+    # Proceed with confirmed column
     target_column = st.session_state["target_column"]
     y_raw_original = df[target_column]
     X_raw = df.drop(columns=[target_column])
 
-    # If y_raw already exists, skip remapping
+    # Always show mapping block (disable after mapping is applied)
     if "y_raw" not in st.session_state:
-
-        # === Class Mapping ===
         unique_vals = y_raw_original.dropna().unique()
 
         if len(unique_vals) != 2:
@@ -384,8 +387,7 @@ if df is not None:
 
             y_raw = pd.Series(y_raw.astype("int64"), name="target")
             st.session_state["target_mapping"] = label_mapping
-            st.session_state["label_map"] = st.session_state["target_mapping"]
-            st.write("Label map stored:", st.session_state["label_map"])
+            st.session_state["label_map"] = label_mapping
             st.session_state["label_classes_"] = [class_0, class_1]
             st.session_state["y_raw"] = y_raw
             st.success(f"✅ Class mapping applied: {class_0} → 0, {class_1} → 1")
@@ -394,19 +396,16 @@ if df is not None:
         st.info("👈 Apply class mapping to continue.")
         st.stop()
 
-
-    # === Continue with mapped target and display mapping for record ===
+    # After mapping is applied
     y_raw = st.session_state["y_raw"]
 
+    # Show the confirmed mapping
     if "label_map" in st.session_state:
         st.markdown("### 🧭 Target Mapping Applied")
-        label_map_display = {
-            f"{orig} → {mapped}" for orig, mapped in st.session_state["label_map"].items()
-        }
+        label_map_display = [f"{k} → {v}" for k, v in st.session_state["label_map"].items()]
         st.info("Target classes mapped as: " + ", ".join(label_map_display))
 
-
-    # === Target Class Summary ===
+    # Target Class Summary Table
     st.markdown("#### 📊 Target Value Distribution")
 
     target_counts = y_raw.value_counts().sort_index()
@@ -419,6 +418,7 @@ if df is not None:
     })
 
     st.dataframe(target_summary_df)
+
 
 
 
