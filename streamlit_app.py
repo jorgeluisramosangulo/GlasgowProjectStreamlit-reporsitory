@@ -3309,9 +3309,8 @@ if df is not None:
 
                     test_metrics = []
                     for model_name, (y_pred, y_prob) in test_predictions.items():
-                        # Only flip predictions/probs if requested
-                        y_pred_mod, y_prob_mod = apply_flipping(model_name, y_pred, y_prob, flip_predictions)
-                        test_metrics.append(compute_metrics(df_test_target_final, y_pred_mod, y_prob_mod, model_name))
+                        test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
+
 
                     if flip_predictions:
                         st.info("🔁 Predictions and probabilities were flipped to match expected label orientation.")
