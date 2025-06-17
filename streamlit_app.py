@@ -24,23 +24,28 @@ from sklearn.metrics import (
     roc_auc_score
 )
 
-# === Scikit-learn: Preprocessing, Feature Engineering, Models ===
-from sklearn.preprocessing import StandardScaler
-from sklearn.decomposition import PCA
-from sklearn.feature_selection import mutual_info_classif
-from sklearn.inspection import permutation_importance
-from sklearn.utils.multiclass import type_of_target
-
-# === Scikit-learn: Base Models ===
+# === Scikit-learn: Models ===
 from sklearn.linear_model import LogisticRegression
 from sklearn.tree import DecisionTreeClassifier
 from sklearn.ensemble import (
     RandomForestClassifier,
     GradientBoostingClassifier,
     BaggingClassifier,
-    StackingClassifier
+    StackingClassifier,
+    VotingClassifier
 )
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
 from sklearn.neural_network import MLPClassifier
+from sklearn.cross_decomposition import PLSRegression
+
+# === Scikit-learn: Preprocessing & Feature Engineering ===
+from sklearn.preprocessing import StandardScaler
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.inspection import permutation_importance
+from sklearn.utils.multiclass import type_of_target
 
 # === Imbalanced-learn ===
 from imblearn.over_sampling import SMOTE, RandomOverSampler
@@ -49,12 +54,20 @@ from imblearn.under_sampling import RandomUnderSampler
 # === Custom Utility Functions ===
 from ml_utils import (
     apply_flipping,
-    get_class1_proba, ensure_dataframe_and_series,
-    init_session_key, get_final_train_val_sets, set_final_datasets,
-    log_transformation, apply_minmax_scaling, apply_standard_scaling,
-    plot_before_after, create_new_feature,
-    export_training_data_general, export_training_data_pls_da
+    get_class1_proba,
+    ensure_dataframe_and_series,
+    init_session_key,
+    get_final_train_val_sets,
+    set_final_datasets,
+    log_transformation,
+    apply_minmax_scaling,
+    apply_standard_scaling,
+    plot_before_after,
+    create_new_feature,
+    export_training_data_general,
+    export_training_data_pls_da
 )
+
 
 
 
@@ -64,7 +77,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Apppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -429,7 +442,7 @@ if df is not None:
 ##########################################################################################################################
 
 
-    # === Optional: Data Visualization ===
+    # === Data Visualization ===
     st.markdown("### 📊 Data Visualization")
 
     enable_vis = st.checkbox("🔍 Enable Data Visualization?", value=False)
@@ -1734,7 +1747,6 @@ if df is not None:
 
         # === Partial Least Squares Discriminant Analysis (PLS-DA) ===
         if "PLS-DA" in selected_models:
-            from sklearn.cross_decomposition import PLSRegression
 
             with st.expander("🧪 Partial Least Squares Discriminant Analysis (PLS-DA)"):
                 enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for n_components?", key="pls_tuning")
@@ -1848,7 +1860,6 @@ if df is not None:
 
         # === K-Nearest Neighbors (KNN) with CV + Tuning ===
         if "K-Nearest Neighbors" in selected_models:
-            from sklearn.neighbors import KNeighborsClassifier
 
             with st.expander("📍 K-Nearest Neighbors (KNN)"):
                 st.write("**Hyperparameters**")
@@ -1967,7 +1978,6 @@ if df is not None:
 
         # === Naive Bayes (GaussianNB) with CV + Tuning ===
         if "Naive Bayes" in selected_models:
-            from sklearn.naive_bayes import GaussianNB
 
             with st.expander("📦 Naive Bayes (GaussianNB)"):
                 st.write("Naive Bayes assumes feature independence and models each feature using a normal distribution.")
@@ -2074,7 +2084,6 @@ if df is not None:
 
         # === Support Vector Machine (SVM) with CV + Tuning ===
         if "Support Vector Machine" in selected_models:
-            from sklearn.svm import SVC
 
             with st.expander("🔲 Support Vector Machine (SVM)"):
                 st.write("**Hyperparameters**")
@@ -2192,7 +2201,6 @@ if df is not None:
 
         # === Decision Tree Classifier with CV + Tuning ===
         if "Decision Tree" in selected_models:
-            from sklearn.tree import DecisionTreeClassifier
 
             with st.expander("🌲 Decision Tree"):
                 st.write("**Hyperparameters**")
@@ -2314,7 +2322,6 @@ if df is not None:
 
         # === Random Forest Classifier with CV + Tuning ===
         if "Random Forest" in selected_models:
-            from sklearn.ensemble import RandomForestClassifier
 
             with st.expander("🌳 Random Forest"):
                 st.write("**Hyperparameters**")
@@ -2430,7 +2437,6 @@ if df is not None:
 
         # === Gradient Boosting Machine (GBM) with CV + Tuning ===
         if "Gradient Boosting" in selected_models:
-            from sklearn.ensemble import GradientBoostingClassifier
 
             with st.expander("🚀 Gradient Boosting Machine (GBM)"):
                 st.write("**Hyperparameters**")
@@ -2556,7 +2562,6 @@ if df is not None:
 
         # === Neural Network (MLPClassifier) with CV + Tuning ===
         if "Neural Network" in selected_models:
-            from sklearn.neural_network import MLPClassifier
 
             with st.expander("🧠 Neural Network (MLPClassifier)"):
                 st.write("**Hyperparameters**")
@@ -3050,8 +3055,6 @@ if df is not None:
 
 
         # === Voting Classifier (Soft Voting Only) with CV ===
-        from sklearn.ensemble import VotingClassifier
-
         if "Voting Classifier" in selected_models:
             with st.expander("🗳️ Voting Classifier (Soft Voting Ensemble)"):
                 st.write("**Soft voting averages predicted probabilities across models.**")
@@ -3711,8 +3714,6 @@ if df is not None:
 
 
                 # === Compute and Display Metrics on Test Data ===
-
-                from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
                 test_predictions = {}
 
