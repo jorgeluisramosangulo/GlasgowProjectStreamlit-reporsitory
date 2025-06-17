@@ -2960,7 +2960,7 @@ if df is not None:
                     if st.button("🚀 Train Stacking Classifier"):
                         with st.spinner("Training Stacking Classifier..."):
                             if meta_model_choice == "Logistic Regression":
-                                final_estimator = LogisticRegression(solver="lbfgs", max_iter=1000)
+                                final_estimator = LogisticRegression(solver="saga", max_iter=1000)
                             else:
                                 final_estimator = RandomForestClassifier(n_estimators=100, random_state=42)
 
