@@ -351,3 +351,9 @@ def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None, 
 
 
 
+def apply_flipping(model_name, pred, prob, flip):
+    if not flip:
+        return pred, prob
+    if model_name == "PLS-DA":
+        return 1 - pred, -1 * prob
+    return 1 - pred, 1 - prob

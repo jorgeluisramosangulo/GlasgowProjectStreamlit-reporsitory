@@ -4,6 +4,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.utils.multiclass import type_of_target
+from ml_utils import apply_flipping
+
+
 
 # Scikit-learn: Model Selection & Evaluation
 from sklearn.model_selection import (
@@ -3059,9 +3062,16 @@ if df is not None:
                 # row id session update
                 st.session_state["row_id_test"] = row_ids.reset_index(drop=True)
 
+                # === Allow optional flipping ===
+                flip_predictions = st.checkbox("🔁 Flip predictions and probabilities for all models?", value=False)
 
 
+
+
+                ###########################################################
                 # ✅ The transformed test set is now ready for prediction
+                ###########################################################
+
 
                 # === Retrieve selected models ===
                 selected_models = st.session_state.get("selected_models", [])
@@ -3083,9 +3093,11 @@ if df is not None:
                     df_results["row_id"] = st.session_state["row_id_test"].reset_index(drop=True)
 
 
+
                 if "Random Forest" in selected_models:
                     test_pred_rf = rf_model.predict(df_test_input)
                     prob_pred_rf = rf_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_rf, prob_pred_rf = apply_flipping("Random Forest", test_pred_rf, prob_pred_rf, flip_predictions)
                     df_results["RandomForest_Prediction"] = test_pred_rf
                     df_results["RandomForest_Prob"] = prob_pred_rf
                     df_results["RandomForest_TrafficLight"] = [
@@ -3096,6 +3108,7 @@ if df is not None:
                 if "Ridge Logistic Regression" in selected_models:
                     test_pred_ridge = ridge_model.predict(df_test_input)
                     prob_pred_ridge = ridge_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_ridge, prob_pred_ridge = apply_flipping("Ridge Logistic Regression", test_pred_ridge, prob_pred_ridge, flip_predictions)
                     df_results["Ridge_Prediction"] = test_pred_ridge
                     df_results["Ridge_Prob"] = prob_pred_ridge
                     df_results["Ridge_TrafficLight"] = [
@@ -3106,6 +3119,7 @@ if df is not None:
                 if "Lasso Logistic Regression" in selected_models:
                     test_pred_lasso = lasso_model.predict(df_test_input)
                     prob_pred_lasso = lasso_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_lasso, prob_pred_lasso = apply_flipping("Lasso Logistic Regression", test_pred_lasso, prob_pred_lasso, flip_predictions)
                     df_results["Lasso_Prediction"] = test_pred_lasso
                     df_results["Lasso_Prob"] = prob_pred_lasso
                     df_results["Lasso_TrafficLight"] = [
@@ -3116,6 +3130,7 @@ if df is not None:
                 if "ElasticNet Logistic Regression" in selected_models:
                     test_pred_enet = enet_model.predict(df_test_input)
                     prob_pred_enet = enet_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_enet, prob_pred_enet = apply_flipping("ElasticNet Logistic Regression", test_pred_enet, prob_pred_enet, flip_predictions)
                     df_results["ElasticNet_Prediction"] = test_pred_enet
                     df_results["ElasticNet_Prob"] = prob_pred_enet
                     df_results["ElasticNet_TrafficLight"] = [
@@ -3126,6 +3141,7 @@ if df is not None:
                 if "PLS-DA" in selected_models:
                     test_scores_pls = pls_model.predict(df_test_input).ravel()
                     test_pred_pls = (test_scores_pls >= 0.5).astype(int)
+                    test_pred_pls, test_scores_pls = apply_flipping("PLS-DA", test_pred_pls, test_scores_pls, flip_predictions)
                     df_results["PLSDA_Prediction"] = test_pred_pls
                     df_results["PLSDA_Test_scores"] = test_scores_pls
                     df_results["PLSDA_TrafficLight (no yellow)"] = [
@@ -3136,6 +3152,7 @@ if df is not None:
                 if "K-Nearest Neighbors" in selected_models:
                     test_pred_knn = knn_model.predict(df_test_input)
                     prob_pred_knn = knn_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_knn, prob_pred_knn = apply_flipping("K-Nearest Neighbors", test_pred_knn, prob_pred_knn, flip_predictions)
                     df_results["KNN_Prediction"] = test_pred_knn
                     df_results["KNN_Prob"] = prob_pred_knn
                     df_results["KNN_TrafficLight"] = [
@@ -3146,6 +3163,7 @@ if df is not None:
                 if "Naive Bayes" in selected_models:
                     test_pred_nb = nb_model.predict(df_test_input)
                     prob_pred_nb = nb_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_nb, prob_pred_nb = apply_flipping("Naive Bayes", test_pred_nb, prob_pred_nb, flip_predictions)
                     df_results["NB_Prediction"] = test_pred_nb
                     df_results["NB_Prob"] = prob_pred_nb
                     df_results["NB_TrafficLight"] = [
@@ -3156,6 +3174,7 @@ if df is not None:
                 if "Support Vector Machine" in selected_models:
                     test_pred_svm = svm_model.predict(df_test_input)
                     prob_pred_svm = svm_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_svm, prob_pred_svm = apply_flipping("Support Vector Machine", test_pred_svm, prob_pred_svm, flip_predictions)
                     df_results["SVM_Prediction"] = test_pred_svm
                     df_results["SVM_Prob"] = prob_pred_svm
                     df_results["SVM_TrafficLight"] = [
@@ -3166,6 +3185,7 @@ if df is not None:
                 if "Decision Tree" in selected_models:
                     test_pred_tree = tree_model.predict(df_test_input)
                     prob_pred_tree = tree_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_tree, prob_pred_tree = apply_flipping("Decision Tree", test_pred_tree, prob_pred_tree, flip_predictions)
                     df_results["DecisionTree_Prediction"] = test_pred_tree
                     df_results["DecisionTree_Prob"] = prob_pred_tree
                     df_results["DecisionTree_TrafficLight"] = [
@@ -3176,6 +3196,7 @@ if df is not None:
                 if "Gradient Boosting" in selected_models:
                     test_pred_gbm = gbm_model.predict(df_test_input)
                     prob_pred_gbm = gbm_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_gbm, prob_pred_gbm = apply_flipping("Gradient Boosting", test_pred_gbm, prob_pred_gbm, flip_predictions)
                     df_results["GBM_Prediction"] = test_pred_gbm
                     df_results["GBM_Prob"] = prob_pred_gbm
                     df_results["GBM_TrafficLight"] = [
@@ -3186,6 +3207,7 @@ if df is not None:
                 if "Neural Network" in selected_models:
                     test_pred_nn = nn_model.predict(df_test_input)
                     prob_pred_nn = nn_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_nn, prob_pred_nn = apply_flipping("Neural Network", test_pred_nn, prob_pred_nn, flip_predictions)
                     df_results["NN_Prediction"] = test_pred_nn
                     df_results["NN_Prob"] = prob_pred_nn
                     df_results["NN_TrafficLight"] = [
@@ -3196,12 +3218,14 @@ if df is not None:
                 if "Voting Classifier" in selected_models:
                     test_pred_vote = voting_clf.predict(df_test_input)
                     prob_pred_vote = voting_clf.predict_proba(df_test_input)[:, 1]
+                    test_pred_vote, prob_pred_vote = apply_flipping("Voting Classifier", test_pred_vote, prob_pred_vote, flip_predictions)
                     df_results["Vote_Prediction"] = test_pred_vote
                     df_results["Vote_Prob"] = prob_pred_vote
                     df_results["Vote_TrafficLight"] = [
                         get_traffic_light(pred, prob, threshold_0, threshold_1)
                         for pred, prob in zip(test_pred_vote, prob_pred_vote)
                     ]
+
 
 
 
@@ -3284,24 +3308,10 @@ if df is not None:
                             'AUC': auc_score
                         }
 
-                    # === Allow optional flipping ===
-                    flip_predictions = st.checkbox("🔁 Flip predictions and probabilities for all models?", value=False)
-
                     test_metrics = []
                     for model_name, (y_pred, y_prob) in test_predictions.items():
-                        # Clone originals to avoid overwriting session state
-                        y_pred_mod = np.array(y_pred)
-                        y_prob_mod = np.array(y_prob)
-
-                        # Flip predictions if requested
-                        if flip_predictions:
-                            if model_name == "PLS-DA":
-                                y_prob_mod = -1 * y_prob_mod  # flip scores for PLS-DA
-                                y_pred_mod = 1 - y_pred_mod   # just in case, flip binary pred
-                            else:
-                                y_prob_mod = 1 - y_prob_mod
-                                y_pred_mod = 1 - y_pred_mod
-
+                        # Flip predictions using helper if enabled
+                        y_pred_mod, y_prob_mod = apply_flipping(model_name, y_pred, y_prob, flip_predictions)
                         test_metrics.append(compute_metrics(df_test_target_final, y_pred_mod, y_prob_mod, model_name))
 
                     if flip_predictions:
@@ -3315,6 +3325,7 @@ if df is not None:
 
                 else:
                     st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
+
 
 
 
