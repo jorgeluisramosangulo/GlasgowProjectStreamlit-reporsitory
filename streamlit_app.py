@@ -621,7 +621,9 @@ if df is not None:
     # Optional bar chart
     if st.checkbox("📊 Show Top 10 Features as Bar Chart"):
         top_10 = importance_df.sort_values("Importance", ascending=False).head(10)
-        st.bar_chart(top_10.set_index("Feature"))
+        top_10_sorted = top_10.set_index("Feature").sort_values("Importance", ascending=True)  # ascending=True for left-to-right descending bar height
+        st.bar_chart(top_10_sorted)
+
 
 
 
@@ -631,9 +633,6 @@ if df is not None:
 ##########################################################################################################################
 
     # === Step: Split Data Train and Validate ===
-
-    # === Feature Importance ===
-    st.markdown("### Split Data Train and Validate")
 
     # Save original row_id
     if "row_id" in df.columns:
