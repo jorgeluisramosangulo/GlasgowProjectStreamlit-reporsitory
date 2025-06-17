@@ -42,10 +42,8 @@ from ml_utils import (
     get_class1_proba, ensure_dataframe_and_series,
     init_session_key, get_final_train_val_sets, set_final_datasets,
     log_transformation, apply_minmax_scaling, apply_standard_scaling,
-    plot_before_after, create_new_feature
+    plot_before_after, create_new_feature, export_training_data_general
 )
-
-
 
 
 
@@ -1430,14 +1428,16 @@ if df is not None:
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
                     # Training performance and export
-                    from ml_utils import export_ridge_training_data
 
-                    df_ridge_train_export, ridge_metrics = export_ridge_training_data(
+                    df_ridge_train_export, ridge_metrics = export_training_data_general(
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
                         model=st.session_state["ridge_model"],
                         row_ids=st.session_state.get("row_id_train"),
-                        use_original_labels=True
+                        model_name="Ridge",
+                        use_original_labels=True,
+                        flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="ridge_flip_export"),
+                        label_map=st.session_state.get("label_map_")
                     )
 
                     st.markdown("**📊 Training Set Performance**")

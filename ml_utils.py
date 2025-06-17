@@ -296,56 +296,82 @@ import pandas as pd
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 import streamlit as st
 
-def export_ridge_training_data(X_train_final, y_train_raw, model, row_ids=None, use_original_labels=False):
+def export_training_data_general(
+    X_train_final,
+    y_train_raw,
+    model,
+    row_ids=None,
+    model_name="Model",
+    use_original_labels=False,
+    flip_outputs=False,
+    label_map=None
+):
     """
-    Returns:
-        - DataFrame with row_id, features, target, prediction, and probability
-        - Dictionary with training performance metrics
+    General export function for training data:
+    - Includes row_id, original target, model prediction, and probability
+    - Supports flipping outputs for alignment
+    - Supports original label restoration
+    - Computes standard training metrics
     """
     import pandas as pd
-    from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, roc_auc_score
-    )
+    import numpy as np
+    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
-    # Predict labels and probabilities
+    def get_class1_proba(model, X):
+        if hasattr(model, "predict_proba"):
+            return model.predict_proba(X)[:, 1]
+        elif hasattr(model, "decision_function"):
+            return model.decision_function(X)
+        else:
+            return None
+
+    # Predict
     y_pred = model.predict(X_train_final)
     y_prob = get_class1_proba(model, X_train_final)
 
-    # Handle label restoration if needed
-    if use_original_labels and "label_map_" in st.session_state:
-        inverse_map = {v: k for k, v in st.session_state["label_map_"].items()}
-        y_train_display = pd.Series(y_train_raw).map(inverse_map)
+    # Flip if requested
+    if flip_outputs:
+        y_pred = 1 - y_pred
+        y_prob = 1 - y_prob
+        y_train_flipped = 1 - pd.Series(y_train_raw)
+    else:
+        y_train_flipped = pd.Series(y_train_raw)
+
+    # Restore original labels for display if applicable
+    if use_original_labels and label_map is not None:
+        inverse_map = {v: k for k, v in label_map.items()}
+        y_target_display = y_train_flipped.map(inverse_map)
         y_pred_display = pd.Series(y_pred).map(inverse_map)
     else:
-        y_train_display = pd.Series(y_train_raw)
+        y_target_display = y_train_flipped
         y_pred_display = pd.Series(y_pred)
 
     # Assemble export DataFrame
-    df_export = X_train_final.copy().reset_index(drop=True)
+    df_export = pd.DataFrame()
     if row_ids is not None:
-        df_export.insert(0, "row_id", pd.Series(row_ids).reset_index(drop=True))
-    df_export["target"] = y_train_display.reset_index(drop=True)
-    df_export["Ridge_Prediction"] = y_pred_display
-    df_export["Ridge_Prob"] = y_prob
+        df_export["row_id"] = pd.Series(row_ids).reset_index(drop=True)
+    df_export["target"] = y_target_display.reset_index(drop=True)
+    df_export[f"{model_name}_Prediction"] = y_pred_display.reset_index(drop=True)
+    df_export[f"{model_name}_Prob"] = y_prob
 
-    # Compute metrics using encoded labels for correct scoring
-    if "label_map_" in st.session_state:
-        numeric_y_true = pd.Series(y_train_raw).map(st.session_state["label_map_"])
-        numeric_y_pred = pd.Series(y_pred).map(st.session_state["label_map_"])
+    # Metrics using numeric labels
+    if label_map is not None:
+        y_true_numeric = y_train_flipped.map(label_map)
+        y_pred_numeric = pd.Series(y_pred).map(label_map)
     else:
-        numeric_y_true = pd.Series(y_train_raw)
-        numeric_y_pred = pd.Series(y_pred)
+        y_true_numeric = y_train_flipped
+        y_pred_numeric = y_pred
 
     metrics = {
-        "Accuracy": accuracy_score(numeric_y_true, numeric_y_pred),
-        "Precision": precision_score(numeric_y_true, numeric_y_pred, pos_label=1),
-        "Recall": recall_score(numeric_y_true, numeric_y_pred, pos_label=1),
-        "F1-Score": f1_score(numeric_y_true, numeric_y_pred, pos_label=1),
-        "AUC": roc_auc_score(numeric_y_true, y_prob) if y_prob is not None else None
+        "Accuracy": accuracy_score(y_true_numeric, y_pred_numeric),
+        "Precision": precision_score(y_true_numeric, y_pred_numeric, pos_label=1),
+        "Recall": recall_score(y_true_numeric, y_pred_numeric, pos_label=1),
+        "F1-Score": f1_score(y_true_numeric, y_pred_numeric, pos_label=1),
+        "AUC": roc_auc_score(y_true_numeric, y_prob) if y_prob is not None else None
     }
 
     return df_export, metrics
+
 
 
 
