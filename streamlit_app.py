@@ -63,7 +63,7 @@ st.markdown("""
 **Project:** MSc Data Analytics – Binary Classification Dashboard  
 """)
 
-st.info("This app trains up to 12 machine learning models for datasets with a binary target (0 or 1).")
+st.info("This app trains up to 15 machine learning models for datasets with a binary target (0 or 1).")
 
 
 
