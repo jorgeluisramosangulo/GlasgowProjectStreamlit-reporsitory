@@ -55,7 +55,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2652,10 +2652,14 @@ if df is not None:
         if "Bagging" in selected_models:
             from sklearn.ensemble import BaggingClassifier
             from sklearn.tree import DecisionTreeClassifier
+            from sklearn import __version__ as sklearn_version
+            from packaging import version
 
             with st.expander("🌿 Bagging Classifier"):
                 st.write("**Hyperparameters**")
                 enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Bagging?", key="bag_tuning")
+
+                use_base_estimator = version.parse(sklearn_version) < version.parse("1.2")
 
                 if enable_tuning:
                     search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="bag_search_method")
@@ -2674,10 +2678,15 @@ if df is not None:
 
                     if st.button("🚀 Train Bagging Classifier with Tuning"):
                         with st.spinner("Running Bagging hyperparameter tuning..."):
-                            base_model = BaggingClassifier(
-                                estimator=DecisionTreeClassifier(),
-                                random_state=42
-                            )
+                            base_args = {
+                                "random_state": 42
+                            }
+                            if use_base_estimator:
+                                base_args["base_estimator"] = DecisionTreeClassifier()
+                            else:
+                                base_args["estimator"] = DecisionTreeClassifier()
+
+                            base_model = BaggingClassifier(**base_args)
 
                             if search_method == "Grid Search":
                                 bag_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
@@ -2701,13 +2710,18 @@ if df is not None:
 
                     if st.button("🚀 Train Bagging Classifier (Manual)"):
                         with st.spinner("Training Bagging Classifier..."):
-                            bag_model = BaggingClassifier(
-                                estimator=DecisionTreeClassifier(),
-                                n_estimators=bag_n_estimators,
-                                max_samples=bag_max_samples,
-                                bootstrap=bag_bootstrap,
-                                random_state=42
-                            )
+                            base_args = {
+                                "n_estimators": bag_n_estimators,
+                                "max_samples": bag_max_samples,
+                                "bootstrap": bag_bootstrap,
+                                "random_state": 42
+                            }
+                            if use_base_estimator:
+                                base_args["base_estimator"] = DecisionTreeClassifier()
+                            else:
+                                base_args["estimator"] = DecisionTreeClassifier()
+
+                            bag_model = BaggingClassifier(**base_args)
                             bag_model.fit(X_train_final, y_train)
 
                             st.session_state["bagging_model"] = bag_model
@@ -2759,10 +2773,20 @@ if df is not None:
                         mime="text/csv"
                     )
 
+
+
+
+
+
+
+
+
         # === Pasting Classifier (Bagging with bootstrap=False) ===
         if "Pasting" in selected_models:
             from sklearn.ensemble import BaggingClassifier
             from sklearn.tree import DecisionTreeClassifier
+            from sklearn import __version__ as sklearn_version
+            from packaging import version
 
             with st.expander("📦 Pasting Classifier (No Replacement)"):
                 st.write("**Hyperparameters**")
@@ -2783,11 +2807,18 @@ if df is not None:
 
                     if st.button("🚀 Train Pasting Classifier with Tuning"):
                         with st.spinner("Running Pasting hyperparameter tuning..."):
-                            base_model = BaggingClassifier(
-                                base_estimator=DecisionTreeClassifier(),
-                                bootstrap=False,
-                                random_state=42
-                            )
+                            if version.parse(sklearn_version) >= version.parse("1.2"):
+                                base_model = BaggingClassifier(
+                                    estimator=DecisionTreeClassifier(),
+                                    bootstrap=False,
+                                    random_state=42
+                                )
+                            else:
+                                base_model = BaggingClassifier(
+                                    base_estimator=DecisionTreeClassifier(),
+                                    bootstrap=False,
+                                    random_state=42
+                                )
 
                             if search_method == "Grid Search":
                                 paste_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
@@ -2813,13 +2844,22 @@ if df is not None:
 
                     if st.button("🚀 Train Pasting Classifier (Manual)"):
                         with st.spinner("Training Pasting..."):
-                            paste_model = BaggingClassifier(
-                                base_estimator=DecisionTreeClassifier(),
-                                n_estimators=n_estimators,
-                                max_samples=max_samples,
-                                bootstrap=False,
-                                random_state=42
-                            )
+                            if version.parse(sklearn_version) >= version.parse("1.2"):
+                                paste_model = BaggingClassifier(
+                                    estimator=DecisionTreeClassifier(),
+                                    n_estimators=n_estimators,
+                                    max_samples=max_samples,
+                                    bootstrap=False,
+                                    random_state=42
+                                )
+                            else:
+                                paste_model = BaggingClassifier(
+                                    base_estimator=DecisionTreeClassifier(),
+                                    n_estimators=n_estimators,
+                                    max_samples=max_samples,
+                                    bootstrap=False,
+                                    random_state=42
+                                )
                             paste_model.fit(X_train_final, y_train)
 
                             st.session_state["pasting_model"] = paste_model
@@ -2859,10 +2899,7 @@ if df is not None:
 
                     st.markdown("**📊 Training Set Performance**")
                     for metric, value in paste_metrics.items():
-                        if value is not None:
-                            st.text(f"{metric}: {value:.4f}")
-                        else:
-                            st.text(f"{metric}: N/A")
+                        st.text(f"{metric}: {value:.4f}" if value is not None else f"{metric}: N/A")
 
                     st.markdown("#### 📥 Download Pasting Training Set with Predictions")
                     csv_paste_train = df_paste_train_export.to_csv(index=False).encode("utf-8")
@@ -2872,6 +2909,14 @@ if df is not None:
                         file_name="pasting_training_predictions.csv",
                         mime="text/csv"
                     )
+
+
+
+
+
+
+
+
 
 
         # === Stacking Classifier (Stacking Ensemble) ===
