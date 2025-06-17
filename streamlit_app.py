@@ -1395,7 +1395,7 @@ if df is not None:
                             ridge_model = LogisticRegression(
                                 penalty='l2',
                                 C=ridge_C,
-                                solver='lbfgs',
+                                solver='liblinear',
                                 max_iter=ridge_max_iter,
                                 random_state=42
                             )
