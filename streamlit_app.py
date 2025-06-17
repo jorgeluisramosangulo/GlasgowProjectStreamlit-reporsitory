@@ -3054,6 +3054,13 @@ if df is not None:
                     else:
                         return "Yellow"
 
+
+
+                # row id session update
+                st.session_state["row_id_test"] = row_ids.reset_index(drop=True)
+
+
+
                 # ✅ The transformed test set is now ready for prediction
 
                 # === Retrieve selected models ===
