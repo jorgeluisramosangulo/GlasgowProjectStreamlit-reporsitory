@@ -51,7 +51,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -3277,10 +3277,28 @@ if df is not None:
                             'AUC': auc_score
                         }
 
+                    # === Allow optional flipping ===
+                    flip_predictions = st.checkbox("🔁 Flip predictions and probabilities for all models?", value=False)
 
                     test_metrics = []
                     for model_name, (y_pred, y_prob) in test_predictions.items():
-                        test_metrics.append(compute_metrics(df_test_target_final, y_pred, y_prob, model_name))
+                        # Clone originals to avoid overwriting session state
+                        y_pred_mod = np.array(y_pred)
+                        y_prob_mod = np.array(y_prob)
+
+                        # Flip predictions if requested
+                        if flip_predictions:
+                            if model_name == "PLS-DA":
+                                y_prob_mod = -1 * y_prob_mod  # flip scores for PLS-DA
+                                y_pred_mod = 1 - y_pred_mod   # just in case, flip binary pred
+                            else:
+                                y_prob_mod = 1 - y_prob_mod
+                                y_pred_mod = 1 - y_pred_mod
+
+                        test_metrics.append(compute_metrics(df_test_target_final, y_pred_mod, y_prob_mod, model_name))
+
+                    if flip_predictions:
+                        st.info("🔁 Predictions and probabilities were flipped to match expected label orientation.")
 
                     test_summary_df = pd.DataFrame(test_metrics)
                     st.dataframe(test_summary_df.style.format({
@@ -3356,13 +3374,17 @@ if df is not None:
 
 
 
+                # ✅ Ensure row_id is present at the beginning
+                if "row_id_test" in st.session_state:
+                    if "row_id" not in df_export.columns:
+                        df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
 
 
 
 
 
                 # Show preview
-                st.markdown("#### 📝 Preview of Download Fileeeeeeeee")
+                st.markdown("#### 📝 Preview of Download File")
                 st.dataframe(df_export.head())
 
                 # Select file format
