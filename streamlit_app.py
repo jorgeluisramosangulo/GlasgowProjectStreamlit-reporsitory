@@ -3280,21 +3280,6 @@ if df is not None:
                 if target_column_present:
                     st.markdown("### 📊 Test Set Performance Metrics")
 
-
-                    test_metrics = []
-                    for model_name, (y_pred, y_prob) in test_predictions.items():
-                        # Clone true labels
-                        y_true = df_test_target_final.copy()
-
-                        # Flip predictions and true labels using helper logic
-                        y_pred_mod, y_prob_mod = apply_flipping(model_name, y_pred, y_prob, flip_predictions)
-
-                        if flip_predictions:
-                            y_true = 1 - y_true  # ✅ Flip the target labels as well to match
-
-                        test_metrics.append(compute_metrics(y_true, y_pred_mod, y_prob_mod, model_name))
-
-
                     def compute_metrics(y_true, y_pred, y_prob, model_name):
                         # ✅ Safeguard: skip if labels aren't binary numeric
                         if type_of_target(y_true) != "binary":
@@ -3308,9 +3293,8 @@ if df is not None:
                                 'AUC': None
                             }
 
-                        # Normal metrics computation
+                        # Compute AUC to check for signal direction
                         auc_score = roc_auc_score(y_true, y_prob)
-
                         if auc_score < 0.5:
                             st.warning(f"⚠️ AUC for {model_name} is {auc_score:.4f}, indicating a possible label inversion.")
 
@@ -3325,7 +3309,7 @@ if df is not None:
 
                     test_metrics = []
                     for model_name, (y_pred, y_prob) in test_predictions.items():
-                        # Flip predictions using helper if enabled
+                        # Only flip predictions/probs if requested
                         y_pred_mod, y_prob_mod = apply_flipping(model_name, y_pred, y_prob, flip_predictions)
                         test_metrics.append(compute_metrics(df_test_target_final, y_pred_mod, y_prob_mod, model_name))
 
@@ -3337,7 +3321,6 @@ if df is not None:
                         "Accuracy": "{:.4f}", "Precision": "{:.4f}",
                         "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
                     }))
-
                 else:
                     st.info("ℹ️ Target column not found in test data. Skipping performance metrics.")
 
@@ -3405,7 +3388,7 @@ if df is not None:
                     df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
 
                 # === Show preview
-                st.markdown("#### 📝 Preview of Download Fileeeeeeeeeeeeeeeeeeee")
+                st.markdown("#### 📝 Preview of Download File")
                 st.dataframe(df_export.head())
 
                 # Select file format
