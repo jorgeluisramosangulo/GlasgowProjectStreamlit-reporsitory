@@ -2662,7 +2662,7 @@ if df is not None:
         # === Bagging Classifier (Manual + Tuning) ===
         if "Bagging" in selected_models:
 
-            with st.expander("🌿 Bagging Classifier"):
+            with st.expander("🌿 Baggingggggg Classifier"):
                 st.write("**Hyperparameters**")
                 enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Bagging?", key="bag_tuning")
 
