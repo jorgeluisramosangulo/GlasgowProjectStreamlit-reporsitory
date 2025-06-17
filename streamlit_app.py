@@ -618,11 +618,19 @@ if df is not None:
 
     st.dataframe(importance_df.style.format({"Importance": "{:.4f}"}))
 
-    # Optional bar chart
-    if st.checkbox("📊 Show Top 10 Features as Bar Chartttttttttttttttttt"):
+
+
+    # Optional bar chart (Matplotlib version for correct order)
+    if st.checkbox("📊 Show Top 10 Features as Bar Chart"):
         top_10 = importance_df.sort_values("Importance", ascending=False).head(10)
-        top_10_sorted = top_10.set_index("Feature").sort_values("Importance", ascending=True)  # ascending=True for left-to-right descending bar height
-        st.bar_chart(top_10_sorted)
+
+        fig, ax = plt.subplots()
+        ax.bar(top_10["Feature"], top_10["Importance"])
+        ax.set_xlabel("Feature")
+        ax.set_ylabel("Importance")
+        ax.set_title("Top 10 Feature Importances")
+        plt.xticks(rotation=45, ha='right')
+        st.pyplot(fig)
 
 
 
