@@ -3658,7 +3658,8 @@ if df is not None:
                     ]
 
 
-                if "Stacking" in selected_models:
+                if "Stacking" in selected_models and "stack_model" in st.session_state:
+                    stack_model = st.session_state["stack_model"]
                     test_pred_stack = stack_model.predict(df_test_input)
                     prob_pred_stack = stack_model.predict_proba(df_test_input)[:, 1]
                     test_pred_stack, prob_pred_stack = apply_flipping("Stacking", test_pred_stack, prob_pred_stack, flip_predictions)
