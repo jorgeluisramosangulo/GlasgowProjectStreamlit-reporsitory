@@ -52,7 +52,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppppppppppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1447,7 +1447,7 @@ if df is not None:
                         else:
                             st.text(f"{metric}: N/A")
 
-                    st.markdown("#### 📥 Download Ridge Training Set with Predictionsssssssssss")
+                    st.markdown("#### 📥 Download Ridge Training Set with Predictions")
                     csv_ridge_train = df_ridge_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download Ridge Training Data",
