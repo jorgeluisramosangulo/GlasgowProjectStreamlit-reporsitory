@@ -394,8 +394,17 @@ if df is not None:
         st.info("👈 Apply class mapping to continue.")
         st.stop()
 
-    # Continue with mapped target
+
+    # === Continue with mapped target and display mapping for record ===
     y_raw = st.session_state["y_raw"]
+
+    if "label_map" in st.session_state:
+        st.markdown("### 🧭 Target Mapping Applied")
+        label_map_display = {
+            f"{orig} → {mapped}" for orig, mapped in st.session_state["label_map"].items()
+        }
+        st.info("Target classes mapped as: " + ", ".join(label_map_display))
+
 
     # === Target Class Summary ===
     st.markdown("#### 📊 Target Value Distribution")
