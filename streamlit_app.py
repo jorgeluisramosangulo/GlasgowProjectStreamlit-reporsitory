@@ -619,7 +619,7 @@ if df is not None:
     st.dataframe(importance_df.style.format({"Importance": "{:.4f}"}))
 
     # Optional bar chart
-    if st.checkbox("📊 Show Top 10 Features as Bar Chart"):
+    if st.checkbox("📊 Show Top 10 Features as Bar Chartttttttttttttttttt"):
         top_10 = importance_df.sort_values("Importance", ascending=False).head(10)
         top_10_sorted = top_10.set_index("Feature").sort_values("Importance", ascending=True)  # ascending=True for left-to-right descending bar height
         st.bar_chart(top_10_sorted)
