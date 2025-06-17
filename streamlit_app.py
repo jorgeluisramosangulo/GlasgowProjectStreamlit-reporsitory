@@ -3337,11 +3337,10 @@ if df is not None:
                 if include_original:
                     df_export = df_test.copy()
 
-                # ✅ Insert row_id as the first column always (if available)
+                # ✅ Insert row_id as the first column if available AND not already present
                 if "row_id_test" in st.session_state:
-                    df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
-
-
+                    if "row_id" not in df_export.columns:
+                        df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
 
                 # ✅ Include manually transformed features (like Add Radius)
                 if include_transformed and "df_test_transformed_pre_pca" in locals():
@@ -3378,23 +3377,9 @@ if df is not None:
 
                     existing_cols = [col for col in prediction_cols if col in df_results.columns]
                     df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
-                    # ✅ Always add row_id to the front, if available
-                    if "row_id_test" in st.session_state:
-                        df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
 
-
-
-                # ✅ Ensure row_id is present at the beginning
-                if "row_id_test" in st.session_state:
-                    if "row_id" not in df_export.columns:
-                        df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
-
-
-
-
-
-                # Show preview
-                st.markdown("#### 📝 Preview of Download Fileeeeeeeeeeeeeeeeeeeeeeeeeee")
+                # === Show preview
+                st.markdown("#### 📝 Preview of Download File")
                 st.dataframe(df_export.head())
 
                 # Select file format
@@ -3405,7 +3390,6 @@ if df is not None:
                     file_data = df_export.to_csv(index=False).encode("utf-8")
                     file_name = "classified_results.csv"
                     mime_type = "text/csv"
-
                 elif file_format == "JSON":
                     file_data = df_export.to_json(orient="records", indent=2).encode("utf-8")
                     file_name = "classified_results.json"
@@ -3418,7 +3402,6 @@ if df is not None:
                     file_name=file_name,
                     mime=mime_type,
                 )
-
 
             except Exception as e:
                 st.error(f"Error during prediction: {e}")
