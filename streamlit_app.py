@@ -3280,6 +3280,21 @@ if df is not None:
                 if target_column_present:
                     st.markdown("### 📊 Test Set Performance Metrics")
 
+
+                    test_metrics = []
+                    for model_name, (y_pred, y_prob) in test_predictions.items():
+                        # Clone true labels
+                        y_true = df_test_target_final.copy()
+
+                        # Flip predictions and true labels using helper logic
+                        y_pred_mod, y_prob_mod = apply_flipping(model_name, y_pred, y_prob, flip_predictions)
+
+                        if flip_predictions:
+                            y_true = 1 - y_true  # ✅ Flip the target labels as well to match
+
+                        test_metrics.append(compute_metrics(y_true, y_pred_mod, y_prob_mod, model_name))
+
+
                     def compute_metrics(y_true, y_pred, y_prob, model_name):
                         # ✅ Safeguard: skip if labels aren't binary numeric
                         if type_of_target(y_true) != "binary":
