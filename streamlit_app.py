@@ -332,7 +332,7 @@ if df is not None:
 #################################        Target Selection    #############################################################
 ##########################################################################################################################
 
-    st.markdown("### 🎯 Step 2: Select Target Columrrrrrrrrrrrrrn")
+    st.markdown("### 🎯 Step 2: Select Target ColumrRRRRRRRRRRRRRRRn")
 
     # Initialize session state variables if not already set
     if "target_confirmed" not in st.session_state:
