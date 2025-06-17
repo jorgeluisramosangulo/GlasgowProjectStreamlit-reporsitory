@@ -2983,46 +2983,47 @@ if df is not None:
 
                             st.success(f"✅ Stacking model trained with: {', '.join(model_names)} → {meta_model_choice}")
 
-            if "stack_model" in st.session_state:
-                stacking_model = st.session_state["stack_model"]
+                if "stack_model" in st.session_state:
+                    stacking_model = st.session_state["stack_model"]
 
-                if st.checkbox("🔁 Run 10-Fold Cross-Validation for Stacking?", key="stacking_run_cv"):
-                    scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
-                    with st.spinner("Running cross-validation..."):
-                        cv_results = cross_validate(
-                            stacking_model, X_train_final, y_train,
-                            cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
-                        )
+                    if st.checkbox("🔁 Run 10-Fold Cross-Validation for Stacking?", key="stacking_run_cv"):
+                        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                        with st.spinner("Running cross-validation..."):
+                            cv_results = cross_validate(
+                                stacking_model, X_train_final, y_train,
+                                cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                            )
 
-                    st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
-                    for metric in scoring:
-                        mean_score = cv_results[f'test_{metric}'].mean()
-                        std_score = cv_results[f'test_{metric}'].std()
-                        st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+                        st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                        for metric in scoring:
+                            mean_score = cv_results[f'test_{metric}'].mean()
+                            std_score = cv_results[f'test_{metric}'].std()
+                            st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
-                df_stack_train_export, stack_metrics = export_training_data_general(
-                    X_train_final=X_train_final,
-                    y_train_raw=y_train,
-                    model=stacking_model,
-                    row_ids=st.session_state.get("row_id_train"),
-                    model_name="Stacking",
-                    use_original_labels=True,
-                    flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="stacking_flip_export"),
-                    label_map=st.session_state.get("label_map_")
-                )
+                    df_stack_train_export, stack_metrics = export_training_data_general(
+                        X_train_final=X_train_final,
+                        y_train_raw=y_train,
+                        model=stacking_model,
+                        row_ids=st.session_state.get("row_id_train"),
+                        model_name="Stacking",
+                        use_original_labels=True,
+                        flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="stacking_flip_export"),
+                        label_map=st.session_state.get("label_map_")
+                    )
 
-                st.markdown("**📊 Training Set Performance**")
-                for metric, value in stack_metrics.items():
-                    st.text(f"{metric}: {value:.4f}" if value is not None else f"{metric}: N/A")
+                    st.markdown("**📊 Training Set Performance**")
+                    for metric, value in stack_metrics.items():
+                        st.text(f"{metric}: {value:.4f}" if value is not None else f"{metric}: N/A")
 
-                st.markdown("#### 📥 Download Stacking Training Set with Predictions")
-                csv_stack_train = df_stack_train_export.to_csv(index=False).encode("utf-8")
-                st.download_button(
-                    label="⬇️ Download Stacking Training Data",
-                    data=csv_stack_train,
-                    file_name="stacking_training_predictions.csv",
-                    mime="text/csv"
-                )
+                    st.markdown("#### 📥 Download Stacking Training Set with Predictions")
+                    csv_stack_train = df_stack_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Stacking Training Data",
+                        data=csv_stack_train,
+                        file_name="stacking_training_predictions.csv",
+                        mime="text/csv"
+                    )
+
 
 
 
