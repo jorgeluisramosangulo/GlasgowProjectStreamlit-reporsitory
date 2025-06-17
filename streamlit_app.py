@@ -55,7 +55,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1294,6 +1294,9 @@ if df is not None:
                 "K-Nearest Neighbors",
                 "Naive Bayes",
                 "Neural Network",
+                "Bagging", 
+                "Pasting",
+                "Stacking",
                 "Voting Classifier"
             ],
             default=st.session_state["selected_models"]
@@ -2645,17 +2648,240 @@ if df is not None:
                     )
 
 
+        # === Bagging Classifier (Manual + Tuning) ===
+        if "Bagging" in selected_models:
+            from sklearn.ensemble import BaggingClassifier
+            from sklearn.tree import DecisionTreeClassifier
+
+            with st.expander("🌿 Bagging Classifier"):
+                st.write("**Hyperparameters**")
+                enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Bagging?", key="bag_tuning")
+
+                if enable_tuning:
+                    search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="bag_search_method")
+
+                    n_estimators_range = st.slider("Number of Estimators", 10, 200, (50, 100), step=10, key="bag_n_range")
+                    max_samples_range = st.slider("Max Samples (as % of training)", 0.1, 1.0, (0.5, 1.0), step=0.1, key="bag_samp_range")
+                    bootstrap_choice = st.radio("Sampling Strategy", ["Bootstrap (Bagging)", "No Bootstrap (Pasting)"], key="bag_bootstrap")
+
+                    param_grid = {
+                        "n_estimators": list(range(n_estimators_range[0], n_estimators_range[1] + 1, 10)),
+                        "max_samples": np.linspace(max_samples_range[0], max_samples_range[1], 5),
+                        "bootstrap": [True if bootstrap_choice == "Bootstrap (Bagging)" else False]
+                    }
+
+                    n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="bag_cv_folds")
+
+                    if st.button("🚀 Train Bagging Classifier with Tuning"):
+                        with st.spinner("Running Bagging hyperparameter tuning..."):
+                            base_model = BaggingClassifier(
+                                estimator=DecisionTreeClassifier(),
+                                random_state=42
+                            )
+
+                            if search_method == "Grid Search":
+                                bag_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                            else:
+                                bag_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                                cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                            bag_search.fit(X_train_final, y_train)
+                            bag_model = bag_search.best_estimator_
+
+                            st.session_state["bagging_model"] = bag_model
+                            st.session_state["bagging_predictions"] = bag_model.predict(X_train_final)
+                            st.session_state["bagging_probabilities"] = get_class1_proba(bag_model, X_train_final)
+
+                            st.success("Best Bagging Parameters selected.")
+
+                else:
+                    bag_n_estimators = st.slider("Number of Estimators", 10, 200, 100, key="bag_n_estimators")
+                    bag_max_samples = st.slider("Max Samples", 0.1, 1.0, 1.0, step=0.1, key="bag_max_samples")
+                    bag_bootstrap = st.checkbox("Use Bootstrap Sampling (Bagging)?", value=True, key="bag_bootstrap_manual")
+
+                    if st.button("🚀 Train Bagging Classifier (Manual)"):
+                        with st.spinner("Training Bagging Classifier..."):
+                            bag_model = BaggingClassifier(
+                                estimator=DecisionTreeClassifier(),
+                                n_estimators=bag_n_estimators,
+                                max_samples=bag_max_samples,
+                                bootstrap=bag_bootstrap,
+                                random_state=42
+                            )
+                            bag_model.fit(X_train_final, y_train)
+
+                            st.session_state["bagging_model"] = bag_model
+                            st.session_state["bagging_predictions"] = bag_model.predict(X_train_final)
+                            st.session_state["bagging_probabilities"] = get_class1_proba(bag_model, X_train_final)
+
+                            st.success("Bagging Classifier trained successfully!")
+
+                # === Evaluation & Download Section ===
+                if "bagging_model" in st.session_state:
+                    bag_model = st.session_state["bagging_model"]
+
+                    if st.checkbox("🔁 Run 10-Fold Cross-Validation for Bagging?", key="bag_run_cv"):
+                        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                        with st.spinner("Running cross-validation..."):
+                            cv_results = cross_validate(
+                                bag_model, X_train_final, y_train,
+                                cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                            )
+
+                        st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                        for metric in scoring:
+                            mean_score = cv_results[f'test_{metric}'].mean()
+                            std_score = cv_results[f'test_{metric}'].std()
+                            st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                    # Export and training performance
+                    df_bag_train_export, bag_metrics = export_training_data_general(
+                        X_train_final=X_train_final,
+                        y_train_raw=y_train,
+                        model=bag_model,
+                        row_ids=st.session_state.get("row_id_train"),
+                        model_name="Bagging",
+                        use_original_labels=True,
+                        flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="bag_flip_export"),
+                        label_map=st.session_state.get("label_map_")
+                    )
+
+                    st.markdown("**📊 Training Set Performance**")
+                    for metric, value in bag_metrics.items():
+                        st.text(f"{metric}: {value:.4f}" if value is not None else f"{metric}: N/A")
+
+                    st.markdown("#### 📥 Download Bagging Classifier Training Set with Predictions")
+                    csv_bag_train = df_bag_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Bagging Training Data",
+                        data=csv_bag_train,
+                        file_name="bagging_training_predictions.csv",
+                        mime="text/csv"
+                    )
+
+        # === Pasting Classifier (Bagging with bootstrap=False) ===
+        if "Pasting" in selected_models:
+            from sklearn.ensemble import BaggingClassifier
+            from sklearn.tree import DecisionTreeClassifier
+
+            with st.expander("📦 Pasting Classifier (No Replacement)"):
+                st.write("**Hyperparameters**")
+                enable_tuning = st.checkbox("🔍 Enable Hyperparameter Tuning for Pasting?", key="pasting_tuning")
+
+                if enable_tuning:
+                    search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="pasting_search_method")
+
+                    estimator_range = st.slider("Number of Base Estimators", 10, 200, (50, 150), step=10, key="pasting_n_range")
+                    max_samples_range = st.slider("Max Samples (Fraction)", 0.1, 1.0, (0.5, 1.0), step=0.1, key="pasting_sample_range")
+
+                    param_grid = {
+                        "n_estimators": list(range(estimator_range[0], estimator_range[1] + 1, 10)),
+                        "max_samples": np.linspace(max_samples_range[0], max_samples_range[1], 5),
+                    }
+
+                    n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="pasting_cv_folds")
+
+                    if st.button("🚀 Train Pasting Classifier with Tuning"):
+                        with st.spinner("Running Pasting hyperparameter tuning..."):
+                            base_model = BaggingClassifier(
+                                base_estimator=DecisionTreeClassifier(),
+                                bootstrap=False,
+                                random_state=42
+                            )
+
+                            if search_method == "Grid Search":
+                                paste_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                            else:
+                                paste_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
+                                                                  cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+
+                            paste_search.fit(X_train_final, y_train)
+                            paste_model = paste_search.best_estimator_
+
+                            st.session_state["pasting_model"] = paste_model
+                            st.session_state["pasting_predictions"] = paste_model.predict(X_train_final)
+                            st.session_state["pasting_probabilities"] = get_class1_proba(paste_model, X_train_final)
+
+                            st.success(
+                                f"Best Parameters: n_estimators={paste_model.n_estimators}, "
+                                f"max_samples={paste_model.max_samples}"
+                            )
+
+                else:
+                    n_estimators = st.slider("Number of Base Estimators", 10, 200, 100, key="pasting_n_estimators")
+                    max_samples = st.slider("Max Samples (Fraction)", 0.1, 1.0, 1.0, step=0.1, key="pasting_max_samples")
+
+                    if st.button("🚀 Train Pasting Classifier (Manual)"):
+                        with st.spinner("Training Pasting..."):
+                            paste_model = BaggingClassifier(
+                                base_estimator=DecisionTreeClassifier(),
+                                n_estimators=n_estimators,
+                                max_samples=max_samples,
+                                bootstrap=False,
+                                random_state=42
+                            )
+                            paste_model.fit(X_train_final, y_train)
+
+                            st.session_state["pasting_model"] = paste_model
+                            st.session_state["pasting_predictions"] = paste_model.predict(X_train_final)
+                            st.session_state["pasting_probabilities"] = get_class1_proba(paste_model, X_train_final)
+
+                            st.success("Model trained successfully!")
+
+                # === Evaluation & Export ===
+                if "pasting_model" in st.session_state:
+                    paste_model = st.session_state["pasting_model"]
+
+                    if st.checkbox("🔁 Run 10-Fold Cross-Validation for Pasting?", key="pasting_run_cv"):
+                        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                        with st.spinner("Running cross-validation..."):
+                            cv_results = cross_validate(
+                                paste_model, X_train_final, y_train,
+                                cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                            )
+
+                        st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                        for metric in scoring:
+                            mean_score = cv_results[f'test_{metric}'].mean()
+                            std_score = cv_results[f'test_{metric}'].std()
+                            st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                    df_paste_train_export, paste_metrics = export_training_data_general(
+                        X_train_final=X_train_final,
+                        y_train_raw=y_train,
+                        model=paste_model,
+                        row_ids=st.session_state.get("row_id_train"),
+                        model_name="Pasting",
+                        use_original_labels=True,
+                        flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="pasting_flip_export"),
+                        label_map=st.session_state.get("label_map_")
+                    )
+
+                    st.markdown("**📊 Training Set Performance**")
+                    for metric, value in paste_metrics.items():
+                        if value is not None:
+                            st.text(f"{metric}: {value:.4f}")
+                        else:
+                            st.text(f"{metric}: N/A")
+
+                    st.markdown("#### 📥 Download Pasting Training Set with Predictions")
+                    csv_paste_train = df_paste_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Pasting Training Data",
+                        data=csv_paste_train,
+                        file_name="pasting_training_predictions.csv",
+                        mime="text/csv"
+                    )
 
 
+        # === Stacking Classifier (Stacking Ensemble) ===
+        if "Stacking" in selected_models:
+            from sklearn.ensemble import StackingClassifier
+            from sklearn.linear_model import LogisticRegression
 
-
-        # === Voting Classifier (Soft Voting Only) with CV ===
-        from sklearn.ensemble import VotingClassifier
-
-        if "Voting Classifier" in selected_models:
-            with st.expander("🗳️ Voting Classifier (Soft Voting Ensemble)"):
-                st.write("**Soft voting averages predicted probabilities across models.**")
-                st.write("All models must support `predict_proba()`. At least 2 models are required.")
+            with st.expander("📚 Stacking Classifier (Meta-Ensemble)"):
+                st.write("Stacking uses base learners to feed predictions into a final estimator.")
+                st.write("Only trained models with `predict_proba` support can be stacked.")
 
                 model_map = {
                     "Ridge Logistic Regression": "ridge_model",
@@ -2667,7 +2893,9 @@ if df is not None:
                     "Gradient Boosting": "gbm_model",
                     "K-Nearest Neighbors": "knn_model",
                     "Naive Bayes": "nb_model",
-                    "Neural Network": "nn_model"
+                    "Neural Network": "nn_model",
+                    "Bagging": "bagging_model",
+                    "Pasting": "pasting_model"
                 }
 
                 available_models = []
@@ -2679,12 +2907,134 @@ if df is not None:
                         model_names.append(name)
 
                 if len(available_models) < 2:
-                    st.warning("⚠️ Please select and train at least two models that support `predict_proba()`.")
+                    st.warning("⚠️ Please select and train at least two models to stack.")
                 else:
+                    meta_model_choice = st.selectbox("Meta-model (Final Estimator)", ["Logistic Regression", "Random Forest"], key="stacking_meta")
+
+                    if st.button("🚀 Train Stacking Classifier"):
+                        with st.spinner("Training Stacking Classifier..."):
+                            if meta_model_choice == "Logistic Regression":
+                                final_estimator = LogisticRegression(solver="lbfgs", max_iter=1000)
+                            else:
+                                from sklearn.ensemble import RandomForestClassifier
+                                final_estimator = RandomForestClassifier(n_estimators=100, random_state=42)
+
+                            stacking_model = StackingClassifier(
+                                estimators=available_models,
+                                final_estimator=final_estimator,
+                                passthrough=False,
+                                cv=5,
+                                n_jobs=-1
+                            )
+
+                            stacking_model.fit(X_train_final, y_train)
+
+                            y_pred_stack = stacking_model.predict(X_train_final)
+                            y_prob_stack = get_class1_proba(stacking_model, X_train_final)
+
+                            st.session_state["stacking_model"] = stacking_model
+                            st.session_state["stacking_predictions"] = y_pred_stack
+                            st.session_state["stacking_probabilities"] = y_prob_stack
+
+                            st.success(f"Stacking model trained with: {', '.join(model_names)} and final estimator: {meta_model_choice}")
+
+                if "stacking_model" in st.session_state:
+                    stacking_model = st.session_state["stacking_model"]
+
+                    if st.checkbox("🔁 Run 10-Fold Cross-Validation for Stacking?", key="stacking_run_cv"):
+                        scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
+                        with st.spinner("Running cross-validation..."):
+                            cv_results = cross_validate(
+                                stacking_model, X_train_final, y_train,
+                                cv=10, scoring=scoring, return_train_score=False, n_jobs=-1
+                            )
+
+                        st.markdown("**📊 10-Fold Cross-Validation Results (Train Set)**")
+                        for metric in scoring:
+                            mean_score = cv_results[f'test_{metric}'].mean()
+                            std_score = cv_results[f'test_{metric}'].std()
+                            st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
+
+                    df_stack_train_export, stack_metrics = export_training_data_general(
+                        X_train_final=X_train_final,
+                        y_train_raw=y_train,
+                        model=stacking_model,
+                        row_ids=st.session_state.get("row_id_train"),
+                        model_name="Stacking",
+                        use_original_labels=True,
+                        flip_outputs=st.checkbox("🔄 Flip training predictions for export?", key="stacking_flip_export"),
+                        label_map=st.session_state.get("label_map_")
+                    )
+
+                    st.markdown("**📊 Training Set Performance**")
+                    for metric, value in stack_metrics.items():
+                        if value is not None:
+                            st.text(f"{metric}: {value:.4f}")
+                        else:
+                            st.text(f"{metric}: N/A")
+
+                    st.markdown("#### 📥 Download Stacking Training Set with Predictions")
+                    csv_stack_train = df_stack_train_export.to_csv(index=False).encode("utf-8")
+                    st.download_button(
+                        label="⬇️ Download Stacking Training Data",
+                        data=csv_stack_train,
+                        file_name="stacking_training_predictions.csv",
+                        mime="text/csv"
+                    )
+
+
+
+        # === Voting Classifier (Soft Voting Only) with CV ===
+        from sklearn.ensemble import VotingClassifier
+
+        if "Voting Classifier" in selected_models:
+            with st.expander("🗳️ Voting Classifier (Soft Voting Ensemble)"):
+                st.write("**Soft voting averages predicted probabilities across models.**")
+                st.write("All models must support `predict_proba()`. At least 2 models are required.")
+                st.write("PLS-DA and Stacking are excluded from voting ensemble due to incompatibility or nesting.")
+
+                # All eligible models for voting
+                voting_model_map = {
+                    "Ridge Logistic Regression": "ridge_model",
+                    "Lasso Logistic Regression": "lasso_model",
+                    "ElasticNet Logistic Regression": "enet_model",
+                    "Random Forest": "rf_model",
+                    "Decision Tree": "tree_model",
+                    "Support Vector Machine": "svm_model",
+                    "Gradient Boosting": "gbm_model",
+                    "K-Nearest Neighbors": "knn_model",
+                    "Naive Bayes": "nb_model",
+                    "Neural Network": "nn_model",
+                    "Bagging": "bagging_model",
+                    "Pasting": "pasting_model"
+                }
+
+                # Filter models that are trained and available
+                trained_voting_models = {
+                    name: st.session_state[var_name]
+                    for name, var_name in voting_model_map.items()
+                    if name in selected_models and var_name in st.session_state
+                }
+
+                # Let user choose which trained models to include in voting
+                vote_model_choices = st.multiselect(
+                    "Select models to include in the Voting Classifier:",
+                    options=list(trained_voting_models.keys()),
+                    default=list(trained_voting_models.keys()),
+                    key="voting_model_selection"
+                )
+
+                if len(vote_model_choices) < 2:
+                    st.warning("⚠️ Please select at least two trained models.")
+                else:
+                    selected_estimators = [
+                        (name[:3], trained_voting_models[name]) for name in vote_model_choices
+                    ]
+
                     if st.button("🚀 Train Voting Classifier", key="vote_train_btn"):
                         with st.spinner("Training Voting Classifier..."):
                             voting_clf = VotingClassifier(
-                                estimators=available_models,
+                                estimators=selected_estimators,
                                 voting="soft"
                             )
                             voting_clf.fit(X_train_final, y_train)
@@ -2695,8 +3045,10 @@ if df is not None:
                             st.session_state["voting_model"] = voting_clf
                             st.session_state["voting_predictions"] = y_pred_vote
                             st.session_state["voting_probabilities"] = y_prob_vote
-                            st.success(f"✅ Voting Classifier trained using: {', '.join(model_names)}")
 
+                            st.success(f"✅ Voting Classifier trained using: {', '.join(vote_model_choices)}")
+
+                # === Evaluation and Export ===
                 if "voting_model" in st.session_state:
                     voting_clf = st.session_state["voting_model"]
 
@@ -2717,7 +3069,7 @@ if df is not None:
                     df_vote_train_export, vote_metrics = export_training_data_general(
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
-                        model=st.session_state["voting_model"],
+                        model=voting_clf,
                         row_ids=st.session_state.get("row_id_train"),
                         model_name="Voting",
                         use_original_labels=True,
@@ -2740,6 +3092,7 @@ if df is not None:
                         file_name="voting_classifier_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
@@ -2774,8 +3127,12 @@ if df is not None:
             "Decision Tree": "tree_model",
             "Gradient Boosting": "gbm_model",
             "Neural Network": "nn_model",
+            "Bagging": "bag_model",
+            "Pasting": "past_model",
+            "Stacking": "stack_model",
             "Voting Classifier": "voting_model"
         }
+
 
         for model_name in selected_models:
             model_key = model_keys.get(model_name)
@@ -3220,6 +3577,43 @@ if df is not None:
                         for pred, prob in zip(test_pred_nn, prob_pred_nn)
                     ]
 
+                if "Bagging" in selected_models:
+                    test_pred_bag = bag_model.predict(df_test_input)
+                    prob_pred_bag = bag_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_bag, prob_pred_bag = apply_flipping("Bagging", test_pred_bag, prob_pred_bag, flip_predictions)
+                    df_results["Bagging_Prediction"] = test_pred_bag
+                    df_results["Bagging_Prob"] = prob_pred_bag
+                    df_results["Bagging_TrafficLight"] = [
+                        get_traffic_light(pred, prob, threshold_0, threshold_1)
+                        for pred, prob in zip(test_pred_bag, prob_pred_bag)
+                    ]
+
+
+                if "Pasting" in selected_models:
+                    test_pred_paste = paste_model.predict(df_test_input)
+                    prob_pred_paste = paste_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_paste, prob_pred_paste = apply_flipping("Pasting", test_pred_paste, prob_pred_paste, flip_predictions)
+                    df_results["Pasting_Prediction"] = test_pred_paste
+                    df_results["Pasting_Prob"] = prob_pred_paste
+                    df_results["Pasting_TrafficLight"] = [
+                        get_traffic_light(pred, prob, threshold_0, threshold_1)
+                        for pred, prob in zip(test_pred_paste, prob_pred_paste)
+                    ]
+
+
+                if "Stacking" in selected_models:
+                    test_pred_stack = stack_model.predict(df_test_input)
+                    prob_pred_stack = stack_model.predict_proba(df_test_input)[:, 1]
+                    test_pred_stack, prob_pred_stack = apply_flipping("Stacking", test_pred_stack, prob_pred_stack, flip_predictions)
+                    df_results["Stacking_Prediction"] = test_pred_stack
+                    df_results["Stacking_Prob"] = prob_pred_stack
+                    df_results["Stacking_TrafficLight"] = [
+                        get_traffic_light(pred, prob, threshold_0, threshold_1)
+                        for pred, prob in zip(test_pred_stack, prob_pred_stack)
+                    ]
+
+
+
                 if "Voting Classifier" in selected_models:
                     test_pred_vote = voting_clf.predict(df_test_input)
                     prob_pred_vote = voting_clf.predict_proba(df_test_input)[:, 1]
@@ -3276,6 +3670,15 @@ if df is not None:
 
                 if "Neural Network" in selected_models:
                     test_predictions["Neural Network"] = (test_pred_nn, prob_pred_nn)
+
+                if "Bagging" in selected_models:
+                    test_predictions["Bagging"] = (test_pred_bag, prob_pred_bag)
+
+                if "Pasting" in selected_models:
+                    test_predictions["Pasting"] = (test_pred_paste, prob_pred_paste)
+                    
+                if "Stacking" in selected_models:
+                    test_predictions["Stacking"] = (test_pred_stack, prob_pred_stack)
 
                 if "Voting Classifier" in selected_models:
                     test_predictions["Voting Classifier"] = (test_pred_vote, prob_pred_vote)
@@ -3385,11 +3788,15 @@ if df is not None:
                         elif "Naive Bayes" in model: prefix = "NaiveBayes"
                         elif "Neural Network" in model: prefix = "NN"
                         elif "Voting" in model: prefix = "Vote"
+                        elif "Bagging" in model: prefix = "Bagging"
+                        elif "Pasting" in model: prefix = "Pasting"
+                        elif "Stacking" in model: prefix = "Stacking"
 
                         prediction_cols += [f"{prefix}_Prediction", f"{prefix}_Prob", f"{prefix}_TrafficLight"]
 
                     existing_cols = [col for col in prediction_cols if col in df_results.columns]
                     df_export = pd.concat([df_export, df_results[existing_cols]], axis=1)
+
 
                 # === Show preview
                 st.markdown("#### 📝 Preview of Download File")
