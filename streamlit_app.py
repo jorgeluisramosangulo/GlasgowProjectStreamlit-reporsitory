@@ -5,6 +5,8 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.utils.multiclass import type_of_target
 from ml_utils import apply_flipping
+from sklearn.model_selection import cross_val_predict
+
 
 
 
@@ -42,7 +44,8 @@ from ml_utils import (
     get_class1_proba, ensure_dataframe_and_series,
     init_session_key, get_final_train_val_sets, set_final_datasets,
     log_transformation, apply_minmax_scaling, apply_standard_scaling,
-    plot_before_after, create_new_feature, export_training_data_general
+    plot_before_after, create_new_feature, export_training_data_general,
+    export_training_data_pls_da
 )
 
 
@@ -1697,7 +1700,6 @@ if df is not None:
 
 
 
-
         # === Partial Least Squares Discriminant Analysis (PLS-DA) ===
         if "PLS-DA" in selected_models:
             from sklearn.cross_decomposition import PLSRegression
@@ -1776,7 +1778,9 @@ if df is not None:
                             st.text(f"AUC:       {roc_auc_score(y_train, y_scores_cv_pls):.4f}")
 
                     # === Training performance and export ===
-                    df_pls_train_export, pls_metrics = export_training_data_general(
+                    from ml_utils import export_training_data_pls_da  # Make sure it's in your helpers
+
+                    df_pls_train_export, pls_metrics = export_training_data_pls_da(
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
                         model=pls_model,
@@ -1802,6 +1806,7 @@ if df is not None:
                         file_name="plsda_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
