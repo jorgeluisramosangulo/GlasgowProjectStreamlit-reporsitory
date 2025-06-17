@@ -648,7 +648,6 @@ if df is not None:
 
     # Store in session_state
     st.session_state["target_column"] = target_column
-    st.success(f"✅ Target column confirmed: `{target_column}`")
 
     # Add row_id for tracking (start at 1 if you prefer)
     row_ids = pd.Series(np.arange(len(df)), name="row_id")
@@ -673,8 +672,13 @@ if df is not None:
     # Store cleaned full data for test compatibility
     st.session_state["X_raw"] = X_encoded.copy()
 
-    # === Train/Validation Split ===
-    test_size = st.slider("Select validation set size (%)", 10, 50, 20, 5) / 100.0
+    # Add styled label above the slider
+    st.markdown("### 📏 Select Validation Set Size (%)")
+
+    # Slider (with no internal label)
+    test_size = st.slider("", 10, 50, 20, 5) / 100.0
+
+    # Perform the split
     X_train, X_val, y_train, y_val, row_id_train, row_id_val = train_test_split(
         X_encoded, y_raw, row_ids, test_size=test_size, random_state=42, shuffle=True
     )
