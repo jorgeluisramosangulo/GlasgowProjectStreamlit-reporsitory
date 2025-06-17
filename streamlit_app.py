@@ -1,21 +1,20 @@
+# === Core Imports ===
 import streamlit as st
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
-from sklearn.utils.multiclass import type_of_target
-from ml_utils import apply_flipping
-from sklearn.model_selection import cross_val_predict
 
+from packaging import version
+from sklearn import __version__ as sklearn_version
 
-
-
-# Scikit-learn: Model Selection & Evaluation
+# === Scikit-learn: Model Selection & Evaluation ===
 from sklearn.model_selection import (
     train_test_split,
     cross_validate,
     GridSearchCV,
-    RandomizedSearchCV
+    RandomizedSearchCV,
+    cross_val_predict
 )
 from sklearn.metrics import (
     accuracy_score,
@@ -25,28 +24,38 @@ from sklearn.metrics import (
     roc_auc_score
 )
 
-# Scikit-learn: Preprocessing, Feature Engineering, Models
+# === Scikit-learn: Preprocessing, Feature Engineering, Models ===
 from sklearn.preprocessing import StandardScaler
 from sklearn.decomposition import PCA
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestClassifier, GradientBoostingClassifier
-from sklearn.neural_network import MLPClassifier
-from sklearn.inspection import permutation_importance
 from sklearn.feature_selection import mutual_info_classif
+from sklearn.inspection import permutation_importance
+from sklearn.utils.multiclass import type_of_target
 
-# Imbalanced-learn
+# === Scikit-learn: Base Models ===
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    BaggingClassifier,
+    StackingClassifier
+)
+from sklearn.neural_network import MLPClassifier
+
+# === Imbalanced-learn ===
 from imblearn.over_sampling import SMOTE, RandomOverSampler
 from imblearn.under_sampling import RandomUnderSampler
 
-# Helper functions
+# === Custom Utility Functions ===
 from ml_utils import (
-    # General utilities
+    apply_flipping,
     get_class1_proba, ensure_dataframe_and_series,
     init_session_key, get_final_train_val_sets, set_final_datasets,
     log_transformation, apply_minmax_scaling, apply_standard_scaling,
-    plot_before_after, create_new_feature, export_training_data_general,
-    export_training_data_pls_da
+    plot_before_after, create_new_feature,
+    export_training_data_general, export_training_data_pls_da
 )
+
 
 
 
@@ -55,7 +64,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppppppppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2648,12 +2657,10 @@ if df is not None:
                     )
 
 
+
+
         # === Bagging Classifier (Manual + Tuning) ===
         if "Bagging" in selected_models:
-            from sklearn.ensemble import BaggingClassifier
-            from sklearn.tree import DecisionTreeClassifier
-            from sklearn import __version__ as sklearn_version
-            from packaging import version
 
             with st.expander("🌿 Bagging Classifier"):
                 st.write("**Hyperparameters**")
@@ -2783,10 +2790,6 @@ if df is not None:
 
         # === Pasting Classifier (Bagging with bootstrap=False) ===
         if "Pasting" in selected_models:
-            from sklearn.ensemble import BaggingClassifier
-            from sklearn.tree import DecisionTreeClassifier
-            from sklearn import __version__ as sklearn_version
-            from packaging import version
 
             with st.expander("📦 Pasting Classifier (No Replacement)"):
                 st.write("**Hyperparameters**")
@@ -2921,8 +2924,6 @@ if df is not None:
 
         # === Stacking Classifier (Stacking Ensemble) ===
         if "Stacking" in selected_models:
-            from sklearn.ensemble import StackingClassifier
-            from sklearn.linear_model import LogisticRegression
 
             with st.expander("📚 Stacking Classifier (Meta-Ensemble)"):
                 st.write("Stacking uses base learners to feed predictions into a final estimator.")
@@ -3153,13 +3154,14 @@ if df is not None:
 ######################################             Validation             ################################################
 ##########################################################################################################################
 
-    # Validation section
+    # === Final Validation Set Evaluation ===
     if st.session_state.get("models_confirmed", False):
         st.subheader("📊 Final Validation Set Comparison (Full Metrics)")
 
         selected_models = st.session_state.get("selected_models", [])
         val_predictions = {}
 
+        # Map model names to session state keys
         model_keys = {
             "Ridge Logistic Regression": "ridge_model",
             "Lasso Logistic Regression": "lasso_model",
@@ -3178,12 +3180,11 @@ if df is not None:
             "Voting Classifier": "voting_model"
         }
 
-
+        # Run validation predictions
         for model_name in selected_models:
             model_key = model_keys.get(model_name)
             if model_key in st.session_state:
                 model = st.session_state[model_key]
-
                 try:
                     if model_name == "PLS-DA":
                         scores = model.predict(X_val_final).ravel()
@@ -3191,30 +3192,42 @@ if df is not None:
                         val_predictions[model_name] = (preds, scores)
                     else:
                         preds = model.predict(X_val_final)
-                        probs = model.predict_proba(X_val_final)[:, 1]
+                        if hasattr(model, "predict_proba"):
+                            probs = model.predict_proba(X_val_final)[:, 1]
+                        else:
+                            # Fallback: Use decision function if available (e.g., some stacking setups)
+                            if hasattr(model, "decision_function"):
+                                probs = model.decision_function(X_val_final)
+                                probs = 1 / (1 + np.exp(-probs))  # Sigmoid to get probabilities
+                            else:
+                                probs = np.full_like(preds, fill_value=np.nan, dtype=np.float64)
                         val_predictions[model_name] = (preds, probs)
                 except Exception as e:
                     st.warning(f"⚠️ Could not generate validation predictions for {model_name}: {e}")
 
+        # Compute metrics for all successfully evaluated models
         def compute_metrics(y_true, y_pred, y_prob, model_name):
             return {
-                'Model': model_name,
-                'Accuracy': accuracy_score(y_true, y_pred),
-                'Precision': precision_score(y_true, y_pred),
-                'Recall': recall_score(y_true, y_pred),
-                'F1-Score': f1_score(y_true, y_pred),
-                'AUC': roc_auc_score(y_true, y_prob)
+                "Model": model_name,
+                "Accuracy": accuracy_score(y_true, y_pred),
+                "Precision": precision_score(y_true, y_pred),
+                "Recall": recall_score(y_true, y_pred),
+                "F1-Score": f1_score(y_true, y_pred),
+                "AUC": roc_auc_score(y_true, y_prob) if not np.isnan(y_prob).any() else None
             }
 
-        metrics = []
-        for model_name, (y_pred, y_prob) in val_predictions.items():
-            metrics.append(compute_metrics(y_val, y_pred, y_prob, model_name))
+        metrics = [
+            compute_metrics(y_val, y_pred, y_prob, model_name)
+            for model_name, (y_pred, y_prob) in val_predictions.items()
+        ]
 
+        # Show comparison table
         summary_df = pd.DataFrame(metrics)
         st.dataframe(summary_df.style.format({
             "Accuracy": "{:.4f}", "Precision": "{:.4f}",
             "Recall": "{:.4f}", "F1-Score": "{:.4f}", "AUC": "{:.4f}"
         }))
+
 
 
 ##########################################################################################################################
