@@ -165,7 +165,7 @@ if df is not None:
         st.session_state["columns_confirmed"] = False
 
     # === Column Selection ===
-    st.markdown("### 📌 Step 1: Select Columns to Include")
+    st.markdown("### 📌 Select Columns to Include")
 
     selected_columns = st.multiselect(
         "Select the columns you want to use. Do not delete row id:",
@@ -247,7 +247,7 @@ if df is not None:
 ##########################################################################################################################
 
     # === Missing Value Handling ===
-    st.markdown("### 🧹 Step 2: Handle Missing Values")
+    st.markdown("### 🧹 Handle Missing Values")
 
     # Recalculate missing values in current df
     missing_counts = df.isnull().sum()
@@ -332,7 +332,7 @@ if df is not None:
 #################################        Target Selection    #############################################################
 ##########################################################################################################################
 
-    st.markdown("### 🎯 Step 2: Select Target Column")
+    st.markdown("### 🎯 Select Target Column")
 
     # Initialize session state variables if not already set
     if "target_confirmed" not in st.session_state:
@@ -430,7 +430,7 @@ if df is not None:
 
 
     # === Optional: Data Visualization ===
-    st.markdown("### 📊 Optional: Data Visualization")
+    st.markdown("### 📊 Data Visualization")
 
     enable_vis = st.checkbox("🔍 Enable Data Visualization?", value=False)
 
@@ -441,14 +441,14 @@ if df is not None:
         st.markdown("#### 🎨 Visualization Options")
 
         # Histogram Matrix (Target Legend)
-        if st.checkbox("1️⃣ Histogram Matrix (Target Legend)", value=False):
+        if st.checkbox("1️⃣.1 Histogram Matrix (Target Legend)", value=False):
             hist_cols = st.multiselect("Select columns to include", numeric_cols, default=numeric_cols[:3], key="hist_target")
             if len(hist_cols) >= 2:
                 fig = sns.pairplot(df, vars=hist_cols, hue=target_column, kind="hist")
                 st.pyplot(fig)
 
         # Histogram Matrix (Custom Legend)
-        if st.checkbox("2️⃣ Histogram Matrix (Custom Legend)", value=False):
+        if st.checkbox("1️⃣.2 Histogram Matrix (Custom Legend)", value=False):
             hist_cols_custom = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="hist_custom_cols")
             legend_col = st.selectbox("Choose categorical column for legend", categorical_cols, key="hist_custom_legend")
             if len(hist_cols_custom) >= 2:
@@ -456,14 +456,14 @@ if df is not None:
                 st.pyplot(fig)
 
         # Scatter Matrix (Target)
-        if st.checkbox("3️⃣.1 Scatter Matrix (Target Legend)", value=False):
+        if st.checkbox("2️⃣.1 Scatter Matrix (Target Legend)", value=False):
             scatter_cols = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="scat_target")
             if len(scatter_cols) >= 2:
                 fig = sns.pairplot(df, vars=scatter_cols, hue=target_column)
                 st.pyplot(fig)
 
         # Scatter Matrix (Custom Legend)
-        if st.checkbox("3️⃣.2 Scatter Matrix (Custom Legend)", value=False):
+        if st.checkbox("2️⃣.2 Scatter Matrix (Custom Legend)", value=False):
             scatter_cols_custom = st.multiselect("Select columns", numeric_cols, default=numeric_cols[:3], key="scat_custom_cols")
             legend_col_scat = st.selectbox("Legend column", categorical_cols, key="scat_custom_leg")
             if len(scatter_cols_custom) >= 2:
@@ -471,7 +471,7 @@ if df is not None:
                 st.pyplot(fig)
 
         # Scatter Plot 2 Variables (Target)
-        if st.checkbox("4️⃣.1 Scatter Plot (Target Legend)", value=False):
+        if st.checkbox("3️⃣.1 Scatter Plot (Target Legend)", value=False):
             xcol = st.selectbox("X Axis", numeric_cols, key="scatter_x_target")
             ycol = st.selectbox("Y Axis", numeric_cols, key="scatter_y_target")
             fig, ax = plt.subplots()
@@ -479,7 +479,7 @@ if df is not None:
             st.pyplot(fig)
 
         # Scatter Plot 2 Variables (Custom Legend)
-        if st.checkbox("4️⃣.2 Scatter Plot (Custom Legend)", value=False):
+        if st.checkbox("3️⃣.2 Scatter Plot (Custom Legend)", value=False):
             xcol = st.selectbox("X Axis", numeric_cols, key="scatter_x_custom")
             ycol = st.selectbox("Y Axis", numeric_cols, key="scatter_y_custom")
             legend_col = st.selectbox("Legend Column", categorical_cols, key="scatter_leg_custom")
@@ -488,7 +488,7 @@ if df is not None:
             st.pyplot(fig)
 
         # Correlation (2 vars, Target Filter)
-        if st.checkbox("5️⃣.1 Correlation of Two Variables (Target Filter)", value=False):
+        if st.checkbox("4️⃣.1 Correlation of Two Variables (Target Filter)", value=False):
             xcol = st.selectbox("X Column", numeric_cols, key="corr_x1")
             ycol = st.selectbox("Y Column", numeric_cols, key="corr_y1")
             filter_opt = st.radio("Filter By Target?", ["No Filter", "Target = 0", "Target = 1"], key="corr_filter1")
@@ -504,7 +504,7 @@ if df is not None:
             st.pyplot(fig)
 
         # Correlation (2 vars, Custom Filter)
-        if st.checkbox("5️⃣.2 Correlation of Two Variables (Custom Category Filter)", value=False):
+        if st.checkbox("4️⃣.2 Correlation of Two Variables (Custom Category Filter)", value=False):
             xcol = st.selectbox("X Column", numeric_cols, key="corr_x2")
             ycol = st.selectbox("Y Column", numeric_cols, key="corr_y2")
             cat_filter = st.selectbox("Category Column", categorical_cols, key="corr_cat_col")
@@ -517,7 +517,7 @@ if df is not None:
             st.pyplot(fig)
 
         # Correlation Matrix of Selected Variables
-        if st.checkbox("6️⃣ Correlation Matrix (All Combinations)", value=False):
+        if st.checkbox("5️⃣ Correlation Matrix (All Combinations)", value=False):
             matrix_cols = st.multiselect("Choose numeric columns", numeric_cols, default=numeric_cols[:5], key="matrix_cols")
             filter_opt = st.radio("Filter?", ["No Filter", "Target = 0", "Target = 1"], key="matrix_filter")
             df_filt = df.copy()
@@ -533,7 +533,7 @@ if df is not None:
                 st.pyplot(fig)
 
         # === Summary Statistics & Box Plot for a Selected Column ===
-        if st.checkbox("📦 Summary Stats + Box Plot for One Column", value=False):
+        if st.checkbox("6️⃣ Summary Stats + Box Plot for One Column", value=False):
             selected_column = st.selectbox("Select a numeric column:", numeric_cols, key="summary_col")
 
             if selected_column:
@@ -565,7 +565,7 @@ if df is not None:
 ########################################################################################################################## 
 
     # === Feature Importance ===
-    st.markdown("### 🧠 Optional: Explore Feature Importance")
+    st.markdown("### 🧠 Explore Feature Importance")
 
     # Preprocess (basic encoding)
     X_encoded = pd.get_dummies(X_raw, drop_first=True).astype('float64')
@@ -738,7 +738,7 @@ if df is not None:
 
 
 
-    st.markdown("### 🔧 Step 2.5: Optional Data Transformation")
+    st.markdown("### 🔧 Optional Data Transformation")
 
     # Initialize session keys
     init_session_key("X_train_resampled", st.session_state["X_train"].copy())
@@ -1013,8 +1013,8 @@ if df is not None:
 
 
 
-    # === 5️⃣🆕 Optional: Drop Columns Manually Before PCA ===
-    st.markdown("### 🧹 Optional: Drop Unwanted Columns Before PCA")
+    # === 6️⃣ Optional: Drop Columns Manually Before PCA ===
+    st.markdown("### 6️⃣ Drop Unwanted Columns Before PCA")
     st.write("You can remove any features (including engineered ones) before applying PCA or training models.")
 
     # ✅ Restore latest transformed state (important!)
@@ -1075,8 +1075,8 @@ if df is not None:
 ################################       PCA Step    #######################################################################
 ##########################################################################################################################
 
-    # === Step 3: PCA Selection ===
-    st.markdown("### 🧬 Step 3: PCA Dimensionality Reduction")
+    # === PCA Selection ===
+    st.markdown("### 🧬 PCA Dimensionality Reduction")
 
     # Initialization
     if "pca_confirmed" not in st.session_state:
