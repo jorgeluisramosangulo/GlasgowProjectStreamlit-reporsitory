@@ -346,13 +346,18 @@ def export_training_data_general(
         y_target_display = y_train_flipped
         y_pred_display = pd.Series(y_pred)
 
-    # Assemble export DataFrame
-    df_export = pd.DataFrame()
+    # Assemble export DataFrame — include full training features
+    df_export = X_train_final.copy().reset_index(drop=True)
+
+    # Insert row_id as first column if available
     if row_ids is not None:
-        df_export["row_id"] = pd.Series(row_ids).reset_index(drop=True)
+        df_export.insert(0, "row_id", pd.Series(row_ids).reset_index(drop=True))
+
+    # Add target, prediction, and probability columns
     df_export["target"] = y_target_display.reset_index(drop=True)
     df_export[f"{model_name}_Prediction"] = y_pred_display.reset_index(drop=True)
     df_export[f"{model_name}_Prob"] = y_prob
+
 
     # Metrics using numeric labels
     if label_map is not None:
