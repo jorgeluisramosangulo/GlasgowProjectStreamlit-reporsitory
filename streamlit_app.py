@@ -3329,8 +3329,11 @@ if df is not None:
                 # ✅ Include original raw test data
                 if include_original:
                     df_export = df_test.copy()
-                    if "row_id_test" in st.session_state:
-                        df_export["row_id"] = st.session_state["row_id_test"].reset_index(drop=True)
+
+                # ✅ Insert row_id as the first column always (if available)
+                if "row_id_test" in st.session_state:
+                    df_export.insert(0, "row_id", st.session_state["row_id_test"].reset_index(drop=True))
+
 
 
                 # ✅ Include manually transformed features (like Add Radius)
