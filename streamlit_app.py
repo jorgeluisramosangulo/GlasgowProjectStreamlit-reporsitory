@@ -64,7 +64,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apqqqqqp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -2678,16 +2678,14 @@ if df is not None:
                     param_grid = {
                         "n_estimators": list(range(n_estimators_range[0], n_estimators_range[1] + 1, 10)),
                         "max_samples": np.linspace(max_samples_range[0], max_samples_range[1], 5),
-                        "bootstrap": [True if bootstrap_choice == "Bootstrap (Bagging)" else False]
+                        "bootstrap": [bootstrap_choice == "Bootstrap (Bagging)"]
                     }
 
                     n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="bag_cv_folds")
 
                     if st.button("🚀 Train Bagging Classifier with Tuning"):
                         with st.spinner("Running Bagging hyperparameter tuning..."):
-                            base_args = {
-                                "random_state": 42
-                            }
+                            base_args = {"random_state": 42}
                             if use_base_estimator:
                                 base_args["base_estimator"] = DecisionTreeClassifier()
                             else:
@@ -2698,17 +2696,19 @@ if df is not None:
                             if search_method == "Grid Search":
                                 bag_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
                             else:
-                                bag_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
-                                                                cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+                                bag_search = RandomizedSearchCV(
+                                    base_model, param_distributions=param_grid, n_iter=10,
+                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42
+                                )
 
                             bag_search.fit(X_train_final, y_train)
                             bag_model = bag_search.best_estimator_
 
-                            st.session_state["bagging_model"] = bag_model
-                            st.session_state["bagging_predictions"] = bag_model.predict(X_train_final)
-                            st.session_state["bagging_probabilities"] = get_class1_proba(bag_model, X_train_final)
+                            st.session_state["bag_model"] = bag_model
+                            st.session_state["bag_predictions"] = bag_model.predict(X_train_final)
+                            st.session_state["bag_probabilities"] = get_class1_proba(bag_model, X_train_final)
 
-                            st.success("Best Bagging Parameters selected.")
+                            st.success("✅ Best Bagging Parameters selected.")
 
                 else:
                     bag_n_estimators = st.slider("Number of Estimators", 10, 200, 100, key="bag_n_estimators")
@@ -2731,15 +2731,15 @@ if df is not None:
                             bag_model = BaggingClassifier(**base_args)
                             bag_model.fit(X_train_final, y_train)
 
-                            st.session_state["bagging_model"] = bag_model
-                            st.session_state["bagging_predictions"] = bag_model.predict(X_train_final)
-                            st.session_state["bagging_probabilities"] = get_class1_proba(bag_model, X_train_final)
+                            st.session_state["bag_model"] = bag_model
+                            st.session_state["bag_predictions"] = bag_model.predict(X_train_final)
+                            st.session_state["bag_probabilities"] = get_class1_proba(bag_model, X_train_final)
 
-                            st.success("Bagging Classifier trained successfully!")
+                            st.success("✅ Bagging Classifier trained successfully!")
 
                 # === Evaluation & Download Section ===
-                if "bagging_model" in st.session_state:
-                    bag_model = st.session_state["bagging_model"]
+                if "bag_model" in st.session_state:
+                    bag_model = st.session_state["bag_model"]
 
                     if st.checkbox("🔁 Run 10-Fold Cross-Validation for Bagging?", key="bag_run_cv"):
                         scoring = ['accuracy', 'precision', 'recall', 'f1', 'roc_auc']
@@ -2779,6 +2779,7 @@ if df is not None:
                         file_name="bagging_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
@@ -3235,7 +3236,7 @@ if df is not None:
 ##########################################################################################################################
 
         # === Final Test File Upload and Prediction ===
-        st.markdown("## 🔍 Apply Models to New Test Dataaaaa")
+        st.markdown("## 🔍 Apply Models to New Test Data")
 
         # === Choose sample or upload ===
         use_sample_test = st.radio("Provide test data via:", ["Use sample test file", "Upload your own test file"], key="test_source")
