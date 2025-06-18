@@ -1,8 +1,58 @@
+# === Core Libraries ===
 import numpy as np
 import pandas as pd
 import streamlit as st
-from sklearn.model_selection import GridSearchCV, RandomizedSearchCV, cross_validate
-from sklearn.metrics import (accuracy_score, precision_score, recall_score, f1_score, roc_auc_score)
+import matplotlib.pyplot as plt
+import seaborn as sns
+
+# === Versioning ===
+from packaging import version
+from sklearn import __version__ as sklearn_version
+
+# === Scikit-learn: Model Selection & Evaluation ===
+from sklearn.model_selection import (
+    train_test_split,
+    cross_validate,
+    GridSearchCV,
+    RandomizedSearchCV,
+    cross_val_predict
+)
+from sklearn.metrics import (
+    accuracy_score,
+    precision_score,
+    recall_score,
+    f1_score,
+    roc_auc_score
+)
+
+# === Scikit-learn: Models ===
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.ensemble import (
+    RandomForestClassifier,
+    GradientBoostingClassifier,
+    BaggingClassifier,
+    StackingClassifier,
+    VotingClassifier
+)
+from sklearn.naive_bayes import GaussianNB
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.cross_decomposition import PLSRegression
+
+# === Scikit-learn: Preprocessing & Feature Engineering ===
+from sklearn.preprocessing import StandardScaler, MinMaxScaler
+from sklearn.decomposition import PCA
+from sklearn.feature_selection import mutual_info_classif
+from sklearn.inspection import permutation_importance
+from sklearn.utils.multiclass import type_of_target
+
+# === Imbalanced-learn ===
+from imblearn.over_sampling import SMOTE, RandomOverSampler
+from imblearn.under_sampling import RandomUnderSampler
+
+
 
 # === Helper Functions ===
 
@@ -148,12 +198,7 @@ def train_model(
     Trains a classification model with optional hyperparameter tuning.
     Returns the fitted model, predictions, and probabilities.
     """
-    from sklearn.model_selection import GridSearchCV, RandomizedSearchCV
-    from sklearn.model_selection import cross_validate
-    from sklearn.metrics import (
-        accuracy_score, precision_score, recall_score,
-        f1_score, roc_auc_score
-    )
+
 
     if enable_tuning:
         if search_method == "Grid Search":
@@ -226,7 +271,6 @@ def apply_standard_scaling(X_train, X_val, column):
 
 # === Visualization of Before/After ===
 def plot_before_after(before, after, title):
-    import streamlit as st
     fig, ax = plt.subplots(1, 2, figsize=(10, 4))
     sns.histplot(before, ax=ax[0], kde=True).set(title=f"Before {title}")
     sns.histplot(after, ax=ax[1], kde=True).set(title=f"After {title}")
@@ -283,18 +327,7 @@ def create_new_feature(X_train, X_val, operation, col1, col2=None, new_col_name=
     return X_train, X_val
 
 
-import pandas as pd
-import streamlit as st
 
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-
-import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-import streamlit as st
-
-import pandas as pd
-from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
-import streamlit as st
 
 def export_training_data_general(
     X_train_final,
@@ -313,9 +346,6 @@ def export_training_data_general(
     - Supports original label restoration
     - Computes standard training metrics
     """
-    import pandas as pd
-    import numpy as np
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
 
     def get_class1_proba(model, X):
         if hasattr(model, "predict_proba"):
@@ -396,9 +426,7 @@ def export_training_data_pls_da(
     - Supports flipped outputs and original label mapping
     - Returns export DataFrame and performance metrics
     """
-    import pandas as pd
-    import numpy as np
-    from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score, roc_auc_score
+
 
     def get_class1_proba(model, X):
         if hasattr(model, "predict_proba"):
