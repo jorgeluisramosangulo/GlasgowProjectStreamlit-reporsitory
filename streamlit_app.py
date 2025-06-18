@@ -776,7 +776,7 @@ if df is not None:
         st.info("Transformations will apply to both training and validation sets consistently.")
 
         # === 1️⃣ Centering + Scaling (MinMaxScaler) ===
-        if st.checkbox("1️⃣ Centering + Scaling (MinMaxScalerrrr)", value=False):
+        if st.checkbox("1️⃣ Centering + Scaling (MinMaxScaler)", value=False):
             numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
             col_to_scale = st.selectbox("Select column to scale", numeric_cols, key="scale_col")
 
