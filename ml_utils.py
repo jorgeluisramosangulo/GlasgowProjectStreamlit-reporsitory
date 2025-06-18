@@ -271,10 +271,24 @@ def apply_standard_scaling(X_train, X_val, column):
 
 # === Visualization of Before/After ===
 def plot_before_after(before, after, title):
-    fig, ax = plt.subplots(1, 2, figsize=(10, 4))
-    sns.histplot(before, ax=ax[0], kde=True).set(title=f"Before {title}")
-    sns.histplot(after, ax=ax[1], kde=True).set(title=f"After {title}")
-    st.pyplot(fig)
+    import matplotlib.pyplot as plt
+    import seaborn as sns
+
+    fig, ax = plt.subplots(1, 2, figsize=(10, 4), sharey=True)
+
+    sns.histplot(before, ax=ax[0], kde=True, color='skyblue')
+    ax[0].set_title(f"Before {title}")
+    ax[0].set_xlabel(before.name)
+    ax[0].set_ylabel("Count")
+
+    sns.histplot(after, ax=ax[1], kde=True, color='steelblue')
+    ax[1].set_title(f"After {title}")
+    ax[1].set_xlabel(after.name)
+    ax[1].set_ylabel("Count")
+
+    plt.tight_layout()
+    return fig  # ✅ Return fig for thread-safe use in Streamlit
+
 
 # === Missing Value Step Logger ===
 def log_missing_value_action(method, column, value=None):
