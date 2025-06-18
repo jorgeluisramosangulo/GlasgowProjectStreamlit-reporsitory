@@ -654,13 +654,17 @@ if df is not None:
 ##########################################################################################################################
 
     # === Step: Split Data Train and Validate ===
+    st.markdown("### 🪓 Split Data Train and Validate")
+
+    # Initialize confirmation key
+    if "split_confirmed" not in st.session_state:
+        st.session_state["split_confirmed"] = False
 
     # Save original row_id
     if "row_id" in df.columns:
         st.session_state["row_id"] = df["row_id"].copy()
     else:
         st.session_state["row_id"] = pd.Series(np.arange(len(df)), name="row_id")
-
 
     # Drop target column
     X_raw = df.drop(columns=[target_column])
@@ -669,7 +673,7 @@ if df is not None:
     # Store in session_state
     st.session_state["target_column"] = target_column
 
-    # Add row_id for tracking (start at 1 if you prefer)
+    # Add row_id for tracking
     row_ids = pd.Series(np.arange(len(df)), name="row_id")
 
     # Convert target to integer labels
@@ -694,53 +698,54 @@ if df is not None:
 
     # Add styled label above the slider
     st.markdown("### 📏 Select Validation Set Size (%)")
-
-    # Slider (with no internal label)
     test_size = st.slider("", 10, 50, 20, 5) / 100.0
 
-    # Perform the split
-    X_train, X_val, y_train, y_val, row_id_train, row_id_val = train_test_split(
-        X_encoded, y_raw, row_ids, test_size=test_size, random_state=42, shuffle=True
-    )
+    # Show confirmation button if not yet confirmed
+    if not st.session_state["split_confirmed"]:
+        if st.button("✅ Confirm Data Split"):
+            # Perform the split
+            X_train, X_val, y_train, y_val, row_id_train, row_id_val = train_test_split(
+                X_encoded, y_raw, row_ids, test_size=test_size, random_state=42, shuffle=True
+            )
+            st.session_state["X_train"] = X_train.copy()
+            st.session_state["X_val"] = X_val.copy()
+            st.session_state["y_train"] = y_train.copy()
+            st.session_state["y_val"] = y_val.copy()
+            st.session_state["row_id_train"] = row_id_train.copy()
+            st.session_state["row_id_val"] = row_id_val.copy()
+            st.session_state["train_idx"] = X_train.index
+            st.session_state["split_confirmed"] = True
+            st.rerun()
 
-    # Keep copies without row_id for modeling
-    st.session_state["X_train"] = X_train.copy()
-    st.session_state["X_val"] = X_val.copy()
-    st.session_state["y_train"] = y_train.copy()
-    st.session_state["y_val"] = y_val.copy()
-    st.session_state["row_id_train"] = row_id_train.copy()
-    st.session_state["row_id_val"] = row_id_val.copy()
+        st.info("👈 Please confirm data split to continue.")
+        st.stop()
 
     # === Downloads with row_id as first column ===
     st.markdown("### 💾 Download Processed Train/Validation Splits")
 
     # Reinsert row_id as first column in features
-    X_train_with_id = pd.concat([row_id_train.reset_index(drop=True), X_train.reset_index(drop=True)], axis=1)
-    X_val_with_id = pd.concat([row_id_val.reset_index(drop=True), X_val.reset_index(drop=True)], axis=1)
+    X_train_with_id = pd.concat([st.session_state["row_id_train"].reset_index(drop=True),
+                                st.session_state["X_train"].reset_index(drop=True)], axis=1)
+    X_val_with_id = pd.concat([st.session_state["row_id_val"].reset_index(drop=True),
+                            st.session_state["X_val"].reset_index(drop=True)], axis=1)
 
     y_train_df = pd.DataFrame({
-        "row_id": row_id_train.reset_index(drop=True),
-        "target": y_train.reset_index(drop=True)
+        "row_id": st.session_state["row_id_train"].reset_index(drop=True),
+        "target": st.session_state["y_train"].reset_index(drop=True)
     })
     y_val_df = pd.DataFrame({
-        "row_id": row_id_val.reset_index(drop=True),
-        "target": y_val.reset_index(drop=True)
+        "row_id": st.session_state["row_id_val"].reset_index(drop=True),
+        "target": st.session_state["y_val"].reset_index(drop=True)
     })
 
     col1, col2 = st.columns(2)
     with col1:
-        st.download_button("⬇️ Download X_train.csv", X_train_with_id.to_csv(index=False).encode("utf-8"),
-                        "X_train.csv", "text/csv")
-        st.download_button("⬇️ Download y_train.csv", y_train_df.to_csv(index=False).encode("utf-8"),
-                        "y_train.csv", "text/csv")
+        st.download_button("⬇️ Download X_train.csv", X_train_with_id.to_csv(index=False).encode("utf-8"), "X_train.csv", "text/csv")
+        st.download_button("⬇️ Download y_train.csv", y_train_df.to_csv(index=False).encode("utf-8"), "y_train.csv", "text/csv")
     with col2:
-        st.download_button("⬇️ Download X_val.csv", X_val_with_id.to_csv(index=False).encode("utf-8"),
-                        "X_val.csv", "text/csv")
-        st.download_button("⬇️ Download y_val.csv", y_val_df.to_csv(index=False).encode("utf-8"),
-                        "y_val.csv", "text/csv")
+        st.download_button("⬇️ Download X_val.csv", X_val_with_id.to_csv(index=False).encode("utf-8"), "X_val.csv", "text/csv")
+        st.download_button("⬇️ Download y_val.csv", y_val_df.to_csv(index=False).encode("utf-8"), "y_val.csv", "text/csv")
 
-    # Save train indices
-    st.session_state["train_idx"] = X_train.index
 
 
 
@@ -751,7 +756,7 @@ if df is not None:
 
 
 
-    st.markdown("### 🔧 Optional Data Transformation")
+    st.markdown("### 🔧 Data Transformations")
 
     # Initialize session keys
     init_session_key("X_train_resampled", st.session_state["X_train"].copy())
@@ -954,7 +959,7 @@ if df is not None:
 
 
     # === 5️⃣ Class Imbalance Handling (Train Set Only) ===
-    st.markdown("### ⚖️ Optional: Handle Class Imbalance (Train Set Only)")
+    st.markdown("### ⚖️ Handle Class Imbalance (Train Set Only)")
 
     # ✅ Restore current training data with fallback
     X_train_resampled = st.session_state.get("X_train_resampled", st.session_state["X_train"]).copy()
