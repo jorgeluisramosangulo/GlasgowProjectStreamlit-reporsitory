@@ -102,7 +102,7 @@ use_sample = st.radio("How would you like to provide your dataset?", ["Use sampl
 df = None
 
 if use_sample == "Use sample dataset":
-    dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+    dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote", "creditcard 1to100", "creditcard 10to100", "creditcard 50to50"]
     format_options = ["csv", "xlsx", "json"]
     dataset = st.selectbox("Select dataset", dataset_names)
     file_format = st.radio("File format", format_options, horizontal=True)
@@ -3270,7 +3270,7 @@ if df is not None:
         df_test = None
 
         if use_sample_test == "Use sample test file":
-            dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote"]
+            dataset_names = ["titanic", "heart_disease", "breast cancer", "creditcard", "diabetes", "banknote", "creditcard 1to100", "creditcard 10to100", "creditcard 50to50"]
             format_options = ["csv", "xlsx", "json"]
 
             dataset = st.selectbox("Select test dataset", dataset_names, key="test_dataset")
