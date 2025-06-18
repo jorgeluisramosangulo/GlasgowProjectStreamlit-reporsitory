@@ -806,152 +806,152 @@ if df is not None:
 
 
 
-    # === 2️⃣ Standardization (Zero Mean, Unit Variance) ===
-    if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
-        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
-        col_to_standardize = st.selectbox("Select column to standardize", numeric_cols, key="standardize_col")
+        # === 2️⃣ Standardization (Zero Mean, Unit Variance) ===
+        if st.checkbox("2️⃣ Standardization (Zero Mean, Unit Variance)", value=False):
+            numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+            col_to_standardize = st.selectbox("Select column to standardize", numeric_cols, key="standardize_col")
 
-        if st.button("✅ Confirm Standardizing"):
-            before = X_train_resampled[col_to_standardize].copy()
+            if st.button("✅ Confirm Standardizing"):
+                before = X_train_resampled[col_to_standardize].copy()
 
-            # Apply transformation using helper
-            X_train_resampled, X_val_resampled, std_scaler = apply_standard_scaling(
-                X_train_resampled, X_val_resampled, col_to_standardize
-            )
-
-            # Save updated state
-            st.session_state["X_train_resampled"] = X_train_resampled
-            st.session_state["X_val_resampled"] = X_val_resampled
-
-            # Log transformation step
-            log_transformation(f"standard_{col_to_standardize}", std_scaler, col_to_standardize)
-
-            # Plot before/after using helper
-            after = X_train_resampled[col_to_standardize]
-            fig = plot_before_after(before, after, "Standardization")
-            st.pyplot(fig)
-
-            # Optional download
-            csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
-            st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
-
-
-
-
-
-    # === 3️⃣ Create New Feature ===
-    if st.checkbox("3️⃣ Create New Feature", value=False):
-        operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
-
-        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
-        col1 = st.selectbox("Select first column", numeric_cols, key="new_col1")
-
-        col2 = None
-        if operation in ["Add", "Subtract", "Multiply", "Divide"]:
-            col2 = st.selectbox("Select second column", numeric_cols, key="new_col2")
-
-        default_name = f"{col1}_{operation}_{col2}" if col2 else f"{col1}_{operation}"
-        new_col_name = st.text_input("New column name", value=default_name)
-
-        if st.button("➕ Add New Feature"):
-            try:
-                # Apply helper
-                X_train_resampled, X_val_resampled = create_new_feature(
-                    X_train_resampled, X_val_resampled, operation, col1, col2, new_col_name
+                # Apply transformation using helper
+                X_train_resampled, X_val_resampled, std_scaler = apply_standard_scaling(
+                    X_train_resampled, X_val_resampled, col_to_standardize
                 )
 
-                # Save updated sets
+                # Save updated state
                 st.session_state["X_train_resampled"] = X_train_resampled
                 st.session_state["X_val_resampled"] = X_val_resampled
 
-                # Log transformation
-                log_transformation("create_feature", {
-                    "operation": operation,
-                    "col1": col1,
-                    "col2": col2,
-                    "new_col": new_col_name
-                }, target="custom")
+                # Log transformation step
+                log_transformation(f"standard_{col_to_standardize}", std_scaler, col_to_standardize)
 
-                st.success(f"✅ Feature '{new_col_name}' successfully added.")
+                # Plot before/after using helper
+                after = X_train_resampled[col_to_standardize]
+                fig = plot_before_after(before, after, "Standardization")
+                st.pyplot(fig)
 
                 # Optional download
-                csv_feat = X_train_resampled.to_csv(index=False).encode("utf-8")
-                st.download_button("⬇️ Download Train Set with New Feature", csv_feat, f"train_{new_col_name}.csv", "text/csv")
-
-            except Exception as e:
-                st.error(f"⚠️ Error creating feature: {e}")
+                csv_std = X_train_resampled.to_csv(index=False).encode("utf-8")
+                st.download_button("⬇️ Download Standardized Train Set", csv_std, "train_standardized.csv", "text/csv")
 
 
 
 
 
+        # === 3️⃣ Create New Feature ===
+        if st.checkbox("3️⃣ Create New Feature", value=False):
+            operation = st.selectbox("Operation", ["Add", "Subtract", "Multiply", "Divide", "Log", "Square"], key="op")
 
-    # === 4️⃣ Outlier Detection & Removal ===
-    if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
+            numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+            col1 = st.selectbox("Select first column", numeric_cols, key="new_col1")
 
-        # Restore current state of train data and labels
-        X_train_resampled = st.session_state.get("X_train_resampled", st.session_state["X_train"]).copy()
-        y_train_resampled = st.session_state.get("y_train_resampled", st.session_state["y_train"]).copy()
+            col2 = None
+            if operation in ["Add", "Subtract", "Multiply", "Divide"]:
+                col2 = st.selectbox("Select second column", numeric_cols, key="new_col2")
 
-        numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
-        outlier_col = st.selectbox("Select column", numeric_cols, key="outlier_col")
-        method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
+            default_name = f"{col1}_{operation}_{col2}" if col2 else f"{col1}_{operation}"
+            new_col_name = st.text_input("New column name", value=default_name)
 
-        col_data = X_train_resampled[outlier_col]
-        q1, q3 = col_data.quantile([0.25, 0.75])
-        iqr = q3 - q1
-        lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+            if st.button("➕ Add New Feature"):
+                try:
+                    # Apply helper
+                    X_train_resampled, X_val_resampled = create_new_feature(
+                        X_train_resampled, X_val_resampled, operation, col1, col2, new_col_name
+                    )
 
-        outliers_train = (col_data < lower) | (col_data > upper)
-        outlier_count = outliers_train.sum()
+                    # Save updated sets
+                    st.session_state["X_train_resampled"] = X_train_resampled
+                    st.session_state["X_val_resampled"] = X_val_resampled
 
-        st.write(f"📊 Outliers detected in training set: **{outlier_count}** out of **{len(col_data)}**")
+                    # Log transformation
+                    log_transformation("create_feature", {
+                        "operation": operation,
+                        "col1": col1,
+                        "col2": col2,
+                        "new_col": new_col_name
+                    }, target="custom")
 
-        # Visualize boxplot
-        fig, ax = plt.subplots()
-        sns.boxplot(x=col_data, ax=ax)
-        ax.axvline(lower, color="red", linestyle="--", label="Lower Threshold")
-        ax.axvline(upper, color="red", linestyle="--", label="Upper Threshold")
-        ax.set_title("Boxplot with IQR Thresholds")
-        ax.legend()
-        st.pyplot(fig)
+                    st.success(f"✅ Feature '{new_col_name}' successfully added.")
 
-        if st.button("🧹 Confirm Outlier Removal (Train Only)"):
-            # Keep non-outlier rows
-            keep_indices = ~outliers_train
-            X_train_clean = X_train_resampled[keep_indices].reset_index(drop=True)
-            y_train_clean = y_train_resampled[keep_indices].reset_index(drop=True)
+                    # Optional download
+                    csv_feat = X_train_resampled.to_csv(index=False).encode("utf-8")
+                    st.download_button("⬇️ Download Train Set with New Feature", csv_feat, f"train_{new_col_name}.csv", "text/csv")
 
-            # Get row_ids removed
-            removed_ids = X_train_resampled.loc[outliers_train, "row_id"].reset_index(drop=True)
+                except Exception as e:
+                    st.error(f"⚠️ Error creating feature: {e}")
 
-            # Update session state
-            st.session_state["X_train_resampled"] = X_train_clean
-            st.session_state["y_train_resampled"] = y_train_clean
-            st.session_state["removed_row_ids"] = removed_ids
-            st.session_state["outlier_confirmed"] = True
 
-            st.session_state["transform_steps"].append((
-                "remove_outliers",
-                {
-                    "method": "IQR",
-                    "column": outlier_col,
-                    "thresholds": [float(lower), float(upper)],
-                    "removed_count": int(outlier_count)
-                },
-                "row_filter"
-            ))
 
-            st.success("✅ Outliers removed and row IDs recorded.")
 
-    # === Show download buttons if removal was confirmed ===
-    if st.session_state.get("outlier_confirmed", False):
-        st.markdown("#### 💾 Download Cleaned Data")
-        csv_cleaned = st.session_state["X_train_resampled"].to_csv(index=False).encode("utf-8")
-        csv_removed_ids = st.session_state["removed_row_ids"].to_frame(name="row_id").to_csv(index=False).encode("utf-8")
 
-        st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
-        st.download_button("⬇️ Download Removed Outlier Row IDs", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
+
+        # === 4️⃣ Outlier Detection & Removal ===
+        if st.checkbox("4️⃣ Outlier Detection & Removal", value=False):
+
+            # Restore current state of train data and labels
+            X_train_resampled = st.session_state.get("X_train_resampled", st.session_state["X_train"]).copy()
+            y_train_resampled = st.session_state.get("y_train_resampled", st.session_state["y_train"]).copy()
+
+            numeric_cols = [col for col in X_train_resampled.select_dtypes(include=np.number).columns if col != "row_id"]
+            outlier_col = st.selectbox("Select column", numeric_cols, key="outlier_col")
+            method = st.selectbox("Outlier Method", ["IQR (1.5x)"], key="outlier_method")
+
+            col_data = X_train_resampled[outlier_col]
+            q1, q3 = col_data.quantile([0.25, 0.75])
+            iqr = q3 - q1
+            lower, upper = q1 - 1.5 * iqr, q3 + 1.5 * iqr
+
+            outliers_train = (col_data < lower) | (col_data > upper)
+            outlier_count = outliers_train.sum()
+
+            st.write(f"📊 Outliers detected in training set: **{outlier_count}** out of **{len(col_data)}**")
+
+            # Visualize boxplot
+            fig, ax = plt.subplots()
+            sns.boxplot(x=col_data, ax=ax)
+            ax.axvline(lower, color="red", linestyle="--", label="Lower Threshold")
+            ax.axvline(upper, color="red", linestyle="--", label="Upper Threshold")
+            ax.set_title("Boxplot with IQR Thresholds")
+            ax.legend()
+            st.pyplot(fig)
+
+            if st.button("🧹 Confirm Outlier Removal (Train Only)"):
+                # Keep non-outlier rows
+                keep_indices = ~outliers_train
+                X_train_clean = X_train_resampled[keep_indices].reset_index(drop=True)
+                y_train_clean = y_train_resampled[keep_indices].reset_index(drop=True)
+
+                # Get row_ids removed
+                removed_ids = X_train_resampled.loc[outliers_train, "row_id"].reset_index(drop=True)
+
+                # Update session state
+                st.session_state["X_train_resampled"] = X_train_clean
+                st.session_state["y_train_resampled"] = y_train_clean
+                st.session_state["removed_row_ids"] = removed_ids
+                st.session_state["outlier_confirmed"] = True
+
+                st.session_state["transform_steps"].append((
+                    "remove_outliers",
+                    {
+                        "method": "IQR",
+                        "column": outlier_col,
+                        "thresholds": [float(lower), float(upper)],
+                        "removed_count": int(outlier_count)
+                    },
+                    "row_filter"
+                ))
+
+                st.success("✅ Outliers removed and row IDs recorded.")
+
+        # === Show download buttons if removal was confirmed ===
+        if st.session_state.get("outlier_confirmed", False):
+            st.markdown("#### 💾 Download Cleaned Data")
+            csv_cleaned = st.session_state["X_train_resampled"].to_csv(index=False).encode("utf-8")
+            csv_removed_ids = st.session_state["removed_row_ids"].to_frame(name="row_id").to_csv(index=False).encode("utf-8")
+
+            st.download_button("⬇️ Download Train Set After Outlier Removal", csv_cleaned, "train_outliers_removed.csv", "text/csv")
+            st.download_button("⬇️ Download Removed Outlier Row IDs", csv_removed_ids, "removed_outlier_row_ids.csv", "text/csv")
 
 
 
@@ -1031,8 +1031,8 @@ if df is not None:
 
 
 
-    # === 6️⃣ Optional: Drop Columns Manually Before PCA ===
-    st.markdown("### 6️⃣ Drop Unwanted Columns Before PCA")
+    # === Optional: Drop Columns Manually Before PCA ===
+    st.markdown("### Drop Unwanted Columns Before PCA")
     st.write("You can remove any features (including engineered ones) before applying PCA or training models.")
 
     # ✅ Restore latest transformed state (important!)
