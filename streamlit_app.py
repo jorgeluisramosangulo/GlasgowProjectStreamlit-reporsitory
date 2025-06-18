@@ -42,6 +42,7 @@ from sklearn.cross_decomposition import PLSRegression
 
 # === Scikit-learn: Preprocessing & Feature Engineering ===
 from sklearn.preprocessing import StandardScaler
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.decomposition import PCA
 from sklearn.feature_selection import mutual_info_classif
 from sklearn.inspection import permutation_importance
