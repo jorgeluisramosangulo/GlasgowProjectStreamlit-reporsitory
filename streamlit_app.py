@@ -78,7 +78,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+st.title("🤖 Binary Classification Appppp")
 
 st.markdown("""
 **Author:** Jorge Ramos  
