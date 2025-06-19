@@ -78,7 +78,7 @@ from ml_utils import (
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Appppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
@@ -1772,9 +1772,9 @@ if df is not None:
                         with st.spinner("Running PLS-DA hyperparameter tuning..."):
                             pls_base = PLSRegression()
                             if search_method == "Grid Search":
-                                pls_search = GridSearchCV(pls_base, comp_grid, cv=n_folds, scoring='r2')
+                                pls_search = GridSearchCV(pls_base, comp_grid, cv=n_folds, scoring='roc_auc')
                             else:
-                                pls_search = RandomizedSearchCV(pls_base, comp_grid, n_iter=5, cv=n_folds, scoring='r2', random_state=42)
+                                pls_search = RandomizedSearchCV(pls_base, comp_grid, n_iter=5, cv=n_folds, scoring='roc_auc', random_state=42)
 
                             pls_search.fit(X_train_final, y_train)
                             pls_model = pls_search.best_estimator_
