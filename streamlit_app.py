@@ -2097,39 +2097,52 @@ if df is not None:
                 svm_model_ready = False
 
                 if enable_tuning:
-                    search_method = st.radio("Search Method:", ["Grid Search", "Random Search"], key="svm_search_method")
+                    search_method = st.radio("Search Method:", ["Random Search", "Grid Search"], key="svm_search_method")
 
                     c_range = st.slider("C Range", 0.01, 10.0, (0.1, 5.0), step=0.1, key="svm_c_range")
-                    kernel_options = ['linear', 'rbf', 'poly', 'sigmoid']
-                    gamma_options = ['scale', 'auto']
+                    kernel_options = ['linear', 'rbf']
+                    gamma_options = ['scale']
 
                     param_grid = {
-                        "C": np.linspace(c_range[0], c_range[1], 5),
+                        "C": np.linspace(c_range[0], c_range[1], 3),
                         "kernel": kernel_options,
                         "gamma": gamma_options
                     }
 
-                    n_folds = st.slider("Cross-validation folds", 3, 10, 10, key="svm_cv_folds")
+                    n_folds = st.slider("Cross-validation folds", 2, 10, 3, key="svm_cv_folds")
 
                     if st.button("🚀 Train SVM with Tuning"):
-                        with st.spinner("Running SVM hyperparameter tuning..."):
-                            base_model = SVC(probability=True, random_state=42)
+                        with st.spinner("Running SVM hyperparameter tuning... this may take a moment..."):
+                            base_model = SVC(probability=False, random_state=42)
+
                             if search_method == "Grid Search":
-                                svm_search = GridSearchCV(base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1)
+                                svm_search = GridSearchCV(
+                                    base_model, param_grid, cv=n_folds, scoring='roc_auc', n_jobs=-1
+                                )
                             else:
-                                svm_search = RandomizedSearchCV(base_model, param_distributions=param_grid, n_iter=10,
-                                                                cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42)
+                                svm_search = RandomizedSearchCV(
+                                    base_model, param_distributions=param_grid, n_iter=5,
+                                    cv=n_folds, scoring='roc_auc', n_jobs=-1, random_state=42
+                                )
 
                             svm_search.fit(X_train_final, y_train)
-                            svm_model = svm_search.best_estimator_
+
+                            best_params = svm_search.best_params_
+                            # Re-train with probability=True for downstream prediction use
+                            svm_model = SVC(
+                                C=best_params["C"],
+                                kernel=best_params["kernel"],
+                                gamma=best_params["gamma"],
+                                probability=True,
+                                random_state=42
+                            )
+                            svm_model.fit(X_train_final, y_train)
 
                             st.session_state["svm_model"] = svm_model
                             st.session_state["svm_predictions"] = svm_model.predict(X_train_final)
                             st.session_state["svm_probabilities"] = get_class1_proba(svm_model, X_train_final)
 
-                            st.success(
-                                f"Best Parameters: C={svm_model.C}, kernel={svm_model.kernel}, gamma={svm_model.gamma}"
-                            )
+                            st.success(f"✅ Best Parameters: C={best_params['C']}, kernel={best_params['kernel']}, gamma={best_params['gamma']}")
                             svm_model_ready = True
 
                 else:
@@ -2152,10 +2165,10 @@ if df is not None:
                             st.session_state["svm_predictions"] = svm_model.predict(X_train_final)
                             st.session_state["svm_probabilities"] = get_class1_proba(svm_model, X_train_final)
 
-                            st.success("Model trained successfully!")
+                            st.success("✅ Model trained successfully!")
                             svm_model_ready = True
 
-                # === After training (common to both paths) ===
+                # === After training (shared logic) ===
                 if "svm_model" in st.session_state:
                     svm_model = st.session_state["svm_model"]
 
@@ -2173,7 +2186,7 @@ if df is not None:
                             std_score = cv_results[f'test_{metric}'].std()
                             st.text(f"{metric.capitalize()}: {mean_score:.4f} ± {std_score:.4f}")
 
-                    # === Training performance and export ===
+                    # === Export training data with predictions ===
                     df_svm_train_export, svm_metrics = export_training_data_general(
                         X_train_final=X_train_final,
                         y_train_raw=y_train,
@@ -2187,19 +2200,16 @@ if df is not None:
 
                     st.markdown("**📊 Training Set Performance**")
                     for metric, value in svm_metrics.items():
-                        if value is not None:
-                            st.text(f"{metric}: {value:.4f}")
-                        else:
-                            st.text(f"{metric}: N/A")
+                        st.text(f"{metric}: {value:.4f}" if value is not None else f"{metric}: N/A")
 
                     st.markdown("#### 📥 Download SVM Training Set with Predictions")
-                    csv_svm_train = df_svm_train_export.to_csv(index=False).encode("utf-8")
                     st.download_button(
                         label="⬇️ Download SVM Training Data",
-                        data=csv_svm_train,
+                        data=df_svm_train_export.to_csv(index=False).encode("utf-8"),
                         file_name="svm_training_predictions.csv",
                         mime="text/csv"
                     )
+
 
 
 
