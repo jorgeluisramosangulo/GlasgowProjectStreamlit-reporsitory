@@ -69,17 +69,25 @@ from ml_utils import (
     export_training_data_pls_da
 )
 
+
 from PIL import Image
+import base64
+import io
 
-# Load and display the PNG image in the app
-robot_img = Image.open("robot.png")
-
-###    Page configuration and Robot face with colour from local PNG   ####
+# Set tab icon with your local PNG
 st.set_page_config(
     page_title="Binary Classification App",
-    page_icon="robot.png",  # Local PNG file
+    page_icon="robot.png",
     layout="wide"
 )
+
+# Read and encode PNG as base64 for HTML rendering
+robot_img = Image.open("robot.png")
+buffered = io.BytesIO()
+robot_img.save(buffered, format="PNG")
+img_data = base64.b64encode(buffered.getvalue()).decode()
+
+
 
 
 
@@ -90,14 +98,14 @@ st.set_page_config(
 
 #st.title("🤖 Binary Classification App")
 
-st.markdown("""
+# Display the image and title together in the app header
+st.markdown(f"""
 <div style="display: flex; align-items: center; gap: 15px;">
     <img src="data:image/png;base64,{img_data}" width="50">
     <h1 style="margin: 0;">Binary Classification App</h1>
 </div>
-""".format(
-    img_data=st.image(robot_img, width=50, use_column_width=False)
-), unsafe_allow_html=True)
+""", unsafe_allow_html=True)
+
 
 st.markdown("""
 **Author:** Jorge Ramos  
