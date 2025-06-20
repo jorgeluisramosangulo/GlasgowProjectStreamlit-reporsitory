@@ -69,30 +69,35 @@ from ml_utils import (
     export_training_data_pls_da
 )
 
-###    Robot face with colour   ####
+from PIL import Image
+
+# Load and display the PNG image in the app
+robot_img = Image.open("robot.png")
+
+###    Page configuration and Robot face with colour from local PNG   ####
 st.set_page_config(
     page_title="Binary Classification App",
-    page_icon="https://upload.wikimedia.org/wikipedia/commons/2/29/Robot_icon.svg",  # or a custom emoji
+    page_icon="robot.png",  # Local PNG file
     layout="wide"
 )
 
-# Load the SVG file content
-with open("robot.svg", "r") as file:
-    svg_content = file.read()
 
-# Display the SVG and the app title
-st.markdown(f"""
-<div style="display: flex; align-items: center; gap: 15px;">
-    {svg_content}
-    <h1 style="margin: 0;">Binary Classification App</h1>
-</div>
-""", unsafe_allow_html=True)
+
 
 ##########################################################################################################################
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification App")
+#st.title("🤖 Binary Classification App")
+
+st.markdown("""
+<div style="display: flex; align-items: center; gap: 15px;">
+    <img src="data:image/png;base64,{img_data}" width="50">
+    <h1 style="margin: 0;">Binary Classification App</h1>
+</div>
+""".format(
+    img_data=st.image(robot_img, width=50, use_column_width=False)
+), unsafe_allow_html=True)
 
 st.markdown("""
 **Author:** Jorge Ramos  
