@@ -78,7 +78,7 @@ import io
 st.set_page_config(
     page_title="Binary Classification App",
     page_icon="robot.png",
-    layout="wide"
+    #layout="wide"
 )
 
 # Read and encode PNG as base64 for HTML rendering
