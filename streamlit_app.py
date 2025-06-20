@@ -69,8 +69,12 @@ from ml_utils import (
     export_training_data_pls_da
 )
 
-
-
+###    Robot face with colour   ####
+st.set_page_config(
+    page_title="Binary Classification App",
+    page_icon="🤖",  # or a custom emoji
+    layout="wide"
+)
 
 
 
