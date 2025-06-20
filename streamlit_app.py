@@ -72,11 +72,21 @@ from ml_utils import (
 ###    Robot face with colour   ####
 st.set_page_config(
     page_title="Binary Classification App",
-    page_icon="🤖",  # or a custom emoji
+    page_icon=""https://upload.wikimedia.org/wikipedia/commons/2/29/Robot_icon.svg"",  # or a custom emoji
     layout="wide"
 )
 
+# Load the SVG file content
+with open("robot.svg", "r") as file:
+    svg_content = file.read()
 
+# Display the SVG and the app title
+st.markdown(f"""
+<div style="display: flex; align-items: center; gap: 15px;">
+    {svg_content}
+    <h1 style="margin: 0;">Binary Classification App</h1>
+</div>
+""", unsafe_allow_html=True)
 
 ##########################################################################################################################
 ######################################    Presentation   #################################################################
