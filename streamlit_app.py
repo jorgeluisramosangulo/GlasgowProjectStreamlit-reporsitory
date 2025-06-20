@@ -72,7 +72,7 @@ from ml_utils import (
 ###    Robot face with colour   ####
 st.set_page_config(
     page_title="Binary Classification App",
-    page_icon=""https://upload.wikimedia.org/wikipedia/commons/2/29/Robot_icon.svg"",  # or a custom emoji
+    page_icon="https://upload.wikimedia.org/wikipedia/commons/2/29/Robot_icon.svg",  # or a custom emoji
     layout="wide"
 )
 
@@ -92,7 +92,7 @@ st.markdown(f"""
 ######################################    Presentation   #################################################################
 ##########################################################################################################################
 
-st.title("🤖 Binary Classification Apppppp")
+st.title("🤖 Binary Classification App")
 
 st.markdown("""
 **Author:** Jorge Ramos  
